@@ -346,7 +346,7 @@ function currentPreview() {
       const ST = C.text.site, bits = [];
       if (sp.prune) bits.push(sp.prune.noise ? fmt(ST.noiseOnly, { n: sp.prune.noise }) : ST.noNoise);
       if (sp.sow) bits.push(fmt(ST.coax, { n: sp.sow.pips }));
-      return { shape: ev.shape, triggers: ev.triggers, ev, text: bits.join(' · ') + tg };
+      return { shape: ev.shape, triggers: ev.triggers, ev: { ...ev, totalsText: sp.totalsText }, text: bits.join(' · ') + tg };
     }
     const ev = E.evaluateSentence(faces, { enemy: ui.game.enemy, tax: ui.game.tax || 0 });
     return { shape: ev.shape, triggers: ev.triggers, ev, text: '' };
@@ -374,7 +374,7 @@ function phraseFor(name, tags) {
   return N.actions[name];
 }
 // -> HTML: each step's phrase in its verb colour, the item named in its item colour, the opponent's name plain
-function narrateSentence(ev) {
+function narrateSentence(ev, sp) {   // sp: site preview (reveal / search counts), else computed from the live site
   const N = C.text.narration, them = themName();
   if (!ev || !ev.steps.length) return ev && !ev.complete ? '' : esc(N.youIdle);
   const partial = !ev.complete;
@@ -397,9 +397,16 @@ function narrateSentence(ev) {
   if (partial) return esc(N.youPartial).replace('{steps}', () => out);
   let txt = esc(N.you).replace('{steps}', () => out);
   if (ev.revealText) {
-    const R = N.reveal, d = ev.revealDepth, f = ev.revealFaces;
-    const t = ev.slots && f ? (f === 'all' ? R.facesAll : R.faces.replace('{n}', f)) : (d === 1 ? R.intent : R.intents.replace('{n}', d));
-    txt += ' <span class="nv nrev" style="--vc:' + C.colors.verb[C.revealVerb] + '">' + esc(t.replace('{its}', pr.its)) + '</span>';
+    const R = N.reveal, d = ev.revealDepth;
+    let f = ev.revealFaces;
+    if (isSite()) { if (!sp) sp = E.sitePreview(ui.game, ev); f = sp.reveal; }   // only the faces that are still hidden
+    const t = !f && isSite() ? '' : ev.slots && f ? (f === 'all' ? R.facesAll : R.faces.replace('{n}', f)) : (d === 1 ? R.intent : R.intents.replace('{n}', d));
+    if (t) txt += ' <span class="nv nrev" style="--vc:' + C.colors.verb[C.revealVerb] + '">' + esc(t.replace('{its}', pr.its)) + '</span>';
+  }
+  if (isSite() && !partial) {                              // reveal points with no face left: careful searching
+    if (!sp) sp = E.sitePreview(ui.game, ev);
+    const n = sp.search;
+    if (n > 0) txt += ' <span class="nv nrev" style="--vc:' + C.colors.verb[C.revealVerb] + '">' + esc((n === 1 ? N.searchPip : N.searchPips).replace('{n}', n)) + '</span>';
   }
   return txt;
 }

@@ -91,7 +91,7 @@
 
   /* sentence rail: interlocking chevron steps, FIRST / THEN / LAST labels, MIND band, per-step captions, totals */
   #sentence { position:absolute; left:0; top:258px; width:100%; height:318px; padding:6px 24px 0; display:flex; flex-direction:column; align-items:flex-start;
-    --sw-max:420px; --sw:420px; --pt:34px; --ov:26px; --pitch:calc(var(--sw) - var(--ov)); --slotH:100px;   /* --sw is re-fitted by JS for more than 3 slots */
+    --sw-max:420px; --sw:420px; --pt:40px; --ov:32px; --pitch:calc(var(--sw) - var(--ov)); --slotH:100px;   /* --sw is re-fitted by JS for more than 3 slots */
     --fs-label:16px; --fs-action:30px; --fs-action-long:24px; --fs-cap:17px; --fs-total:24px; --fs-narr:26px; --narr-h:58px; --focus:var(--rail-line); }
   /* two layers: the story line floats on the plain page background; the rail is a separate dark "technical board" panel */
   #sentence { align-items:center; }
@@ -126,10 +126,18 @@
   .rband.tag.none { color:var(--dim); border-color:var(--line); border-style:dashed; }
   .rband.tag.none, .rband.tag { background:transparent; }
   .slot { position:relative; height:var(--slotH); display:flex; align-items:center; justify-content:center; padding:0 var(--pt); }
-  .slot .chev, .slot .chev::after { position:absolute; inset:0; clip-path:polygon(0 0, calc(100% - var(--pt)) 0, 100% 50%, calc(100% - var(--pt)) 100%, 0 100%, var(--pt) 50%); }
-  .rstep.first .slot .chev, .rstep.first .slot .chev::after { clip-path:polygon(0 0, calc(100% - var(--pt)) 0, 100% 50%, calc(100% - var(--pt)) 100%, 0 100%); }
+  /* cartoon arrows: thick outline (.chev) + inset fill (::after) + a solid offset shadow (.slot::before); corners chamfered by --c, blunt tip */
+  .slot { --c:9px; --k:calc(var(--c) * .8); --ol:5px; --sh:5px;
+    --chev-clip:polygon(var(--c) 0, calc(100% - var(--pt) - var(--c)) 0, calc(100% - var(--pt) + var(--k)) var(--c), calc(100% - var(--k)) calc(50% - var(--c)),
+      calc(100% - var(--k)) calc(50% + var(--c)), calc(100% - var(--pt) + var(--k)) calc(100% - var(--c)), calc(100% - var(--pt) - var(--c)) 100%, var(--c) 100%,
+      var(--k) calc(100% - var(--c)), calc(var(--pt) - var(--k)) calc(50% + var(--c)), calc(var(--pt) - var(--k)) calc(50% - var(--c)), var(--k) var(--c)); }
+  .rstep.first .slot { --chev-clip:polygon(var(--c) 0, calc(100% - var(--pt) - var(--c)) 0, calc(100% - var(--pt) + var(--k)) var(--c), calc(100% - var(--k)) calc(50% - var(--c)),
+      calc(100% - var(--k)) calc(50% + var(--c)), calc(100% - var(--pt) + var(--k)) calc(100% - var(--c)), calc(100% - var(--pt) - var(--c)) 100%, var(--c) 100%,
+      0 calc(100% - var(--c)), 0 var(--c)); }
+  .slot .chev, .slot .chev::after, .slot::before { position:absolute; inset:0; clip-path:var(--chev-clip); }
+  .slot::before { content:''; background:#000; transform:translate(var(--sh), var(--sh)); pointer-events:none; }
   .slot .chev { background:var(--rail-line); pointer-events:none; }
-  .slot .chev::after { content:''; inset:2px; background:var(--rail-bg); }
+  .slot .chev::after { content:''; inset:var(--ol); background:var(--rail-bg); }
   .rstep:not(.first) .slot .chev::after { }
   .slot .num { position:absolute; left:calc(var(--pt) + 10px); top:50%; transform:translateY(-50%); font-size:40px; font-family:var(--display); font-weight:400; color:#2a2a38; pointer-events:none; }
   .rstep.first .slot .num { left:18px; }
@@ -177,10 +185,10 @@
   #bottom { position:absolute; left:0; top:580px; width:100%; height:140px; }
   #stage[data-phase=resolving] #bottom, #stage[data-phase=enemy] #bottom { opacity:.45; transition:opacity .15s; }
   #tray { display:flex; justify-content:center; gap:34px; }
-  .cell { width:210px; height:70px; display:flex; align-items:center; justify-content:center; }
+  .cell { width:84px; height:84px; display:flex; align-items:center; justify-content:center; }
   .cell:empty { border:2px dashed transparent; }   /* placed dice leave an invisible hole, so tray positions stay stable */
   .cell.over, #tray.over .cell:empty { border-color:var(--glow); }
-  .die { width:200px; height:64px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  .die { width:80px; height:80px; display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:5px; position:relative; touch-action:none; cursor:grab; rotate:var(--tilt, 0deg);
     border:4px solid #5a5a78; background:#20202e; box-shadow:0 5px 0 #000; }
   .die .meta { display:flex; align-items:center; gap:8px; height:20px; line-height:1; }
@@ -204,7 +212,13 @@
   /* a die on the rail is a word step: no die frame, same face tiles */
   .die.in-slot { width:100%; height:100%; border:0; background:none; box-shadow:none; rotate:0deg; translate:none; gap:2px; z-index:2; }
   .die.in-slot .tile { font-size:21px; padding:8px 11px; }
-  #tray .die:not(.dragging) .tile { font-size:17px; padding:5px 9px; }
+  /* tray dice are squares: the face tiles stack inside (PALM KNIFE on two lines) */
+  #tray .die:not(.in-slot) { gap:2px; padding:3px; border-radius:0; }
+  #tray .die:not(.in-slot) .meta { gap:4px; height:20px; }
+  #tray .die:not(.in-slot) .ctl button { padding:0 6px; }
+  #tray .die:not(.in-slot) .faceRow { flex-direction:column; max-width:100%; }
+  #tray .die:not(.in-slot) .faceRow .tile + .tile { margin-left:0; margin-top:-3px; }
+  #tray .die:not(.dragging):not(.in-slot) .tile { font-size:14px; padding:3px 5px; border-width:2px; white-space:normal; text-align:center; line-height:1.05; max-width:100%; }
   .die.in-slot .held { top:2px; right:calc(var(--pt) + 4px); }
   .die.in-slot .frz { top:2px; left:calc(var(--pt) + 4px); }
   .rstep.first .die.in-slot .frz { left:12px; }
@@ -226,7 +240,7 @@
   .die.dragging { position:fixed; z-index:60; cursor:grabbing; background:#20202e; border:4px solid var(--glow);
     box-shadow:0 12px 0 #000; pointer-events:none; translate:none; }
   .die.dragging .ctl { display:none; }
-  .die.dragging .tile { font-size:24px; padding:10px 14px; }
+  .die.dragging .tile { font-size:15px; padding:5px 6px; white-space:normal; text-align:center; line-height:1.05; }
   #buttons { margin-top:4px; display:flex; justify-content:center; align-items:center; gap:18px; }
   .btn { background:var(--panel); border:2px solid var(--line); padding:4px 20px; font-size:16px; letter-spacing:.12em;
     box-shadow:0 4px 0 #000; }
@@ -416,6 +430,7 @@
   #stage.site #intentRow { height:48px; align-items:center; }
   .efc.site { cursor:pointer; }
   .efc.site .tile { font-size:var(--fs-min); padding:8px 4px; white-space:normal; line-height:1.15; min-height:52px; display:flex; align-items:center; justify-content:center; text-align:center; }
+  .efc.site .sel { position:absolute; left:0; width:100%; bottom:-19px; text-align:center; font-size:var(--fs-min); font-weight:700; letter-spacing:.15em; color:var(--glow); pointer-events:none; }
   .efc.site.opened { opacity:.5; cursor:default; }
   .efc.site:not(.opened):hover { background:rgba(255,255,255,.05); }
   .efc.site .sfn { position:absolute; right:5px; bottom:2px; font-size:var(--fs-min); color:var(--dim); font-weight:400; }

@@ -26,9 +26,9 @@ Object.assign(CONFIG, {
     text: { cold: 'THE COLD', coldLog: 'the cold bites', moved: 'daylight', revealed: 'shows you the way' },
   },
   noiseMax: 6,
-  // Site noise & pip rules. overkill: PRUNE points still unspent when an ITEM face opens -> the item breaks into JUNK.
+  // Site noise & pip rules. revealOverflowPips: pips removed (no noise) per DIG reveal point with no face left to reveal. overkill: PRUNE points still unspent when an ITEM face opens -> the item breaks into JUNK.
   siteRules: { overkill: 2, pruneNoisePerPoint: 1, turnNoise: 1, ratsNoise: 2, ratsScars: 1, trapScars: 1,
-               sowDivisor: 2, sowMin: 1, shuffleFaces: true },
+               sowDivisor: 2, sowMin: 1, revealOverflowPips: 1, shuffleFaces: true },
   // Scavenge sites: faces = hidden contents (one per face, shuffled when the site is created if shuffleFaces),
   // pips = pips per face, pool = item ids an ITEM face can hold, guardian = enemy id fought when noise is full.
   sites: {

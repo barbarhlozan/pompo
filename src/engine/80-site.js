@@ -50,7 +50,18 @@ const effectiveTarget = (site) => (site.target !== null && site.faces[site.targe
   ? site.target : nextUnopened(site, 0));
 // Faces a step reveals on a site: a DIG step reveals `total` (SPADE: all, handled by the caller); NOSE / GLASSES reveal their depth.
 const siteRevealCount = (step) => (step.idle ? 0 : (step.reveal ? Math.max(step.total, step.depth) : step.depth));
-// Planned effect of a sentence on a site (pure). -> { reveal: n|'all'|0, prune:{points,quiet,noise}|null, sow:{points,pips}|null, text }
+// Reveal points no face is left to take (everything already revealed / opened): each becomes SR.revealOverflowPips pips of quiet searching.
+function siteSearchPips(site, evaluation) {
+  let left = site.faces.filter(f => !f.opened && !f.revealed).length, over = 0;
+  evaluation.steps.forEach(s => {
+    const n = siteRevealCount(s);
+    if (n <= 0) return;
+    const shown = (s.reveal && s.item && specialOf(s.item) === 'spade') ? left : Math.min(left, n);
+    left -= shown; over += n - shown;
+  });
+  return over * (SR.revealOverflowPips || 0);
+}
+// Planned effect of a sentence on a site (pure). -> { reveal: n|'all'|0, search: pips, prune:{points,quiet,noise}|null, sow:{points,pips}|null, text }
 function sitePreview(site, evaluation) {
   let reveal = 0;
   evaluation.steps.forEach(s => {
@@ -59,6 +70,9 @@ function sitePreview(site, evaluation) {
     if (s.reveal && s.item && specialOf(s.item) === 'spade') reveal = 'all';
     else if (reveal !== 'all') reveal = Math.max(reveal, n);
   });
+  const unrevealed = site.faces.filter(f => !f.opened && !f.revealed).length;
+  if (reveal === 'all' ? unrevealed === 0 : reveal > unrevealed) reveal = unrevealed;
+  const search = siteSearchPips(site, evaluation);
   const T = CONFIG.text.site, parts = [];
   let prune = null, sow = null;
   if (evaluation.totals.PRUNE > 0) {
@@ -69,7 +83,10 @@ function sitePreview(site, evaluation) {
     sow = { points: evaluation.totals.SOW, pips: Math.max(SR.sowMin, Math.floor(evaluation.totals.SOW / SR.sowDivisor)) };
   }
   const mk = {
-    DIG: () => reveal && parts.push(reveal === 'all' ? CONFIG.text.revealTotals.facesAll : fmt(CONFIG.text.revealTotals.faces, { n: reveal })),
+    DIG: () => {
+      if (reveal) parts.push(reveal === 'all' ? CONFIG.text.revealTotals.facesAll : fmt(CONFIG.text.revealTotals.faces, { n: reveal }));
+      if (search) parts.push(fmt(search === 1 ? T.searchPip : T.searchPips, { n: search }));
+    },
     PRUNE: () => prune && parts.push(prune.noise === 0 ? fmt(T.forceQuiet, { n: prune.points }) : fmt(T.force, { n: prune.points, noise: prune.noise })),
     SOW: () => sow && parts.push(fmt(T.coax, { n: sow.pips })),
   };
@@ -80,7 +97,16 @@ function sitePreview(site, evaluation) {
     if (!s.reveal && s.verb) ks.push(s.verb);
     ks.forEach(k => { if (mk[k] && !seen[k]) { seen[k] = true; mk[k](); } });
   });
-  return { reveal, prune, sow, text: parts.length ? parts.join(' · ') : CONFIG.text.noEffect };
+  // the sentence totals line with the reveal part made site-aware: only faces still hidden count, leftover points become search pips
+  const revParts = [];
+  if (reveal) revParts.push(reveal === 'all' ? CONFIG.text.revealTotals.facesAll : fmt(CONFIG.text.revealTotals.faces, { n: reveal }));
+  if (search) revParts.push(fmt(search === 1 ? T.searchPip : T.searchPips, { n: search }));
+  let totalsText = evaluation.totalsText;
+  if (evaluation.revealText) {
+    const kept = totalsText.split(' · ').filter(t => t !== evaluation.revealText);
+    totalsText = kept.concat(revParts).join(' · ') || (evaluation.complete ? CONFIG.text.noEffect : '');
+  }
+  return { reveal, search, totalsText, prune, sow, text: parts.length ? parts.join(' · ') : CONFIG.text.noEffect };
 }
 // Begin a site turn (rolls the dice, base rerolls). -> startTurn result
 function startSiteTurn(site, rng) { return startTurn(site, rng); }
@@ -177,6 +203,7 @@ function resolveSiteTurn(site, slotOrder, rng) {
   };
 
   const done = {};
+  let searchAt = -1;                                       // where the reveal-overflow search currently is (continues across steps)
   const target = effectiveTarget(site);
   for (const step of evaluation.steps) {
     if (lost) break;
@@ -195,6 +222,18 @@ function resolveSiteTurn(site, slotOrder, rng) {
         shown.push((order[k] + 1) + ':' + (f.item ? CONFIG.items[f.item].name : f.content));
       }
       if (shown.length) bits.push('revealed ' + shown.join(', '));
+      const over = (revealN - n) * (SR.revealOverflowPips || 0);   // nothing left to reveal: careful searching, pips come off quietly
+      if (over > 0 && !lost) {
+        const start = searchAt >= 0 && !site.faces[searchAt].opened ? searchAt : (searchAt >= 0 ? nextUnopened(site, searchAt) : effectiveTarget(site));
+        if (start >= 0) {
+          searchAt = start;
+          events.push({ type: 'verb', verb: 'SEARCH', total: revealN - n, amount: over, shears: 0, noise: 0 });
+          const used = spend('SEARCH', over, 0, start);
+          bits.push('searched ' + used + ' pip' + (used === 1 ? '' : 's'));
+          const lastPip = events.filter(e => e.type === 'sitePip').pop();
+          if (lastPip) searchAt = lastPip.faceIdx;
+        }
+      }
     }
     if (step.verb && CONFIG.pipResult[step.verb] && !done[step.verb]) {
       done[step.verb] = true;

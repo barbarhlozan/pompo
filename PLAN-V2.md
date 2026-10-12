@@ -344,3 +344,9 @@ Before/after: side-session-notes `encounter-before.jpg` / `encounter-after.jpg` 
 - Narration is now story prose: Lora (system serif fallback), 26px, on the plain page background; action phrases get a muted verb tint (`--vc` + `color-mix`), item names a faint tint + dotted underline, reveal/result clauses dimmer.
 - The rail sits in its own dark `#railPanel` (thin neutral border, mono labels, totals at its right end), centred and sized to its slots; neutral outlines, yellow only for COMMIT / sentence-complete.
 - Verb + enemy colours desaturated in `config/60-colors.js`; empty tray cells are invisible (dashed hole only while dragging a die back).
+
+## Site overflow + chunky UI (small adjustments)
+- Site DIG: reveal points with no hidden face left remove `siteRules.revealOverflowPips` pips each (event `verb SEARCH`, `sitePip verb:'SEARCH'`), quiet, from the target then overflowing; totals line / narration say "search opens N pips". `sitePreview` returns `search` + site-aware `totalsText`.
+- Selected site face shows a "SELECTED" note below it (`text.m2…selected`, `.sel`).
+- Rail arrows: 5px outline, chamfered corners/blunt tip (`--c`, `--chev-clip`), solid 5px black offset shadow (`.slot::before`); `--pt` 40, `--ov` 32.
+- Tray dice are 80×80 squares (tiles stack inside); sized to leave room for the button row at 1280×720.

@@ -15,7 +15,7 @@ function buildSitePanel() {
   site.faces.forEach((f, i) => {
     const el = document.createElement('div');
     el.className = 'efc site'; el.dataset.idx = i;
-    el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div><div class="sub"></div><span class="sfn">' + (i + 1) + '</span>';
+    el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div><div class="sub"></div><span class="sfn">' + (i + 1) + '</span><div class="sel"></div>';
     const pips = el.querySelector('.pips');
     pips.title = C.text.strip.sitePipTip;
     for (let p = 0; p < f.pips; p++) { const sp = document.createElement('span'); sp.className = 'pip'; pips.appendChild(sp); }
@@ -56,6 +56,7 @@ function renderSite() {
     el.classList.toggle('is-next', !f.opened && tgt === i && sv.target !== i);
     el.dataset.status = f.opened ? 'opened' : 'closed';
     el.querySelector('.tag').textContent = f.opened ? '' : (tgt === i ? (sv.target === i ? M.target : M.first) : '');
+    el.querySelector('.sel').textContent = !f.opened && tgt === i ? M.selected : '';
     el.title = f.opened ? '' : M.targetTip + (known ? '' : ' ' + M.hiddenTip);
   });
   $('noiseTrack').querySelectorAll('.nb').forEach((b, i) => {

@@ -61,6 +61,7 @@ Object.assign(CONFIG, {
       facePartBroken: '{n} of {its} {face} pips break.', facePartTurned: '{n} of {its} {face} pips turn.',   // {its} is capitalised at a sentence start
       // appended to the sentence when it reveals something ({its} = pronoun, {n})
       reveal: { intent: 'You see {its} next move.', intents: 'You see {its} next {n} moves.', faces: 'You peek into {n} spots.', facesAll: 'You peek into every spot.' },
+      searchPip: 'With nothing left to find, you search carefully: {n} pip comes loose.', searchPips: 'With nothing left to find, you search carefully: {n} pips come loose.',
       siteOpened: 'You open {what}.', nothing: 'It barely notices.',
     },
     // the sentence rail (src/ui/10-render.js renderSlots): title, step labels by slot count, per-step tags / captions
@@ -145,7 +146,7 @@ Object.assign(CONFIG, {
       fled: 'FLED at turn {n}', turns: '{n} turns', scarsFinal: 'SCARS {n}/{max}', leftover: 'IN INVENTORY',
     },
     site: {                                    // preview / status strings for scavenge sites ({n} {noise} {pips})
-      force: 'force {n} (+{noise} noise)', forceQuiet: 'force {n} (no noise)', coax: 'coax {n} pips', search: 'search: reveals {n}',
+      force: 'force {n} (+{noise} noise)', forceQuiet: 'force {n} (no noise)', coax: 'coax {n} pips', search: 'search: reveals {n}', searchPip: 'search opens {n} pip', searchPips: 'search opens {n} pips',
       noiseOnly: '+{n} noise', noNoise: 'no noise',   // site hint line once the sentence is full (the totals already name PRUNE / REVEAL)
       searchAll: 'search: reveals all', nothing: 'nothing happens', left: 'LEFT', guardian: 'GUARDIAN', noise: 'NOISE',
     },
@@ -162,7 +163,7 @@ Object.assign(CONFIG, {
       typeLabel: { CHARACTER: 'FIGHT', SCAVENGE: 'SITE', CAMPFIRE: 'REST', EMPTY: '', START: '', GATE: 'EXIT' },
       coldMsg: 'THE COLD bites.', coldDestroyed: '{item} destroyed by the cold.', revealedMsg: '{n} fogged tiles are now visible.',
       siteLabel: 'SCAVENGE SITE', guardian: 'guardian', rulesLine: 'each turn +1 noise · PRUNE +1/point · full = guardian',
-      noise: 'NOISE', found: 'FOUND', target: 'TARGET', first: 'FIRST',
+      noise: 'NOISE', found: 'FOUND', target: 'TARGET', first: 'FIRST', selected: 'SELECTED',
       targetTip: 'Click to aim your points at this face first (click again to clear).', hiddenTip: 'Hidden: DIG reveals it, PRUNE / SOW open it.',
       seen: 'SEEN', got: 'TAKEN', brokeInto: '{item} → JUNK', nothingLeft: 'Nothing left here. LEAVE when you are ready.',
       leaveTip: 'Walk away, keeping what you opened.',

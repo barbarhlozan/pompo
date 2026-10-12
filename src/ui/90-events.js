@@ -9,10 +9,10 @@ const EVENT_HANDLERS = {
   async sentence(ev) {
     Object.keys(view.dice).forEach(id => { view.dice[id].frozen = false; });   // the engine thaws a frozen die once it is used
     renderDice();
-    ui.previewOverride = { shape: ev.evaluation.shape, triggers: ev.evaluation.triggers, ev: ev.evaluation, text: ev.preview ? ev.preview.text : '' };
+    ui.previewOverride = { shape: ev.evaluation.shape, triggers: ev.evaluation.triggers, ev: ev.preview && ev.preview.totalsText !== undefined ? { ...ev.evaluation, totalsText: ev.preview.totalsText } : ev.evaluation, text: ev.preview ? ev.preview.text : '' };
     // the rail plays left -> right; a MIND in slot 0 is "reached" first, otherwise the playhead starts at the first step
     ui.railPlay = { idx: ev.evaluation.mindIndex === 0 ? 0 : -1, totals: !ev.evaluation.steps.length };
-    ui.narr = { sentence: narrateSentence(ev.evaluation), hits: [] };
+    ui.narr = { sentence: narrateSentence(ev.evaluation, ev.preview), hits: [] };
     renderPreview(); renderSlots();
     await sleep(T.resolveStepMs / 2);
   },

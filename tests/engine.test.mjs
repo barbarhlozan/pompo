@@ -1156,7 +1156,7 @@ test('M2 CONFIG data: map, sites, noise, rules', () => {
   deepEq({ ...MAPC.weights }, { CHARACTER: 35, SCAVENGE: 30, CAMPFIRE: 10, EMPTY: 25 });
   assert.equal(CFG.noiseMax, 6);
   deepEq({ ...CFG.siteRules }, { overkill: 2, pruneNoisePerPoint: 1, turnNoise: 1, ratsNoise: 2, ratsScars: 1, trapScars: 1,
-    sowDivisor: 2, sowMin: 1, shuffleFaces: true });
+    sowDivisor: 2, sowMin: 1, revealOverflowPips: 1, shuffleFaces: true });
   assert.deepEqual(Object.keys(CFG.sites), ['HEAP', 'SHED', 'HUT', 'WELL']);
   const H = CFG.sites.HEAP, S = CFG.sites.SHED, W = CFG.sites.WELL;
   deepEq([H.word, H.pips, H.guardian, [...H.faces], [...H.pool]], ['HEAP', 2, 'DOG', ['ITEM', 'ITEM', 'JUNK', 'RATS', 'NOTHING', 'NOTHING'], ['SEED_POUCH', 'WATERING_CAN', 'SPADE']]);
@@ -1547,7 +1547,8 @@ test('DIG: revealing skips already-revealed faces; SPADE reveals all', () => {
   assert.equal(r.events.filter(e => e.type === 'siteReveal').length, 6);
   assert.ok(r.events.filter(e => e.type === 'siteReveal').every(e => e.via === 'SPADE'));
   assert.ok(site2.faces.every(f => f.revealed));
-  assert.equal(site2.faces.some(f => f.opened), false);             // DIG never opens
+  const opensBy = r.events.filter(e => e.type === 'siteOpen').map(e => e.by);
+  assert.ok(opensBy.every(b => b === 'SEARCH'));                     // DIG itself never opens; only the overflow search can
   assert.equal(site2.noise, 1);
 });
 
@@ -1632,7 +1633,7 @@ test('scar from a site destroys the item on the face; max scars loses the trip f
 
 test('every committed turn adds +1 noise; noise caps at noiseMax; guardian arrives right after the turn', () => {
   const { trip } = m2Trip(44);
-  const site = fixedSite(trip, 'HEAP', NOTHINGS, null, 2);
+  const site = fixedSite(trip, 'HEAP', NOTHINGS, null, 50);       // many pips: DIG's overflow search must not open faces here
   const rng = E.makeRng(9);
   let r;
   for (let k = 1; k <= 5; k++) {
@@ -1739,6 +1740,41 @@ test('sitePreview text: force/coax/search', () => {
   p = E.sitePreview(site, ev);
   assert.equal(p.prune.noise, 0);
   assert.ok(p.text.includes('no noise'));
+});
+
+test('site DIG overflow: leftover reveal points quietly remove pips (no noise)', () => {
+  const { trip } = m2Trip(57);
+  const site = fixedSite(trip, 'HEAP', ['ITEM', 'NOTHING', 'NOTHING', 'NOTHING', 'NOTHING', 'NOTHING'], ['KNIFE'], 3);
+  site.faces.forEach(f => { f.revealed = true; });                 // everything already revealed
+  const ev = E.evaluateSentence(['DIG', 'HAND', 'EYE'], { site: true });
+  const pts = E.sitePreview(site, ev);
+  assert.ok(pts.search > 0);
+  assert.equal(pts.reveal, 0);
+  assert.match(pts.text, /search opens \d+ pips?/);
+  site.target = 2;
+  const r = siteTurn(site, ['MIND', 'HAND', 'HEAD'], ['DIG', 'HAND', 'EYE']);
+  assert.ok(r.ok);
+  const pipEvs = r.events.filter(e => e.type === 'sitePip' && e.verb === 'SEARCH');
+  assert.equal(pipEvs.length, pts.search);
+  assert.equal(pipEvs[0].faceIdx, 2);                              // targeted face first
+  assert.equal(site.noise, CFG.siteRules.turnNoise);               // only the turn's noise, none from searching
+});
+
+test('site DIG overflow: only the leftover after revealing becomes pips; opened faces give content', () => {
+  const { trip } = m2Trip(58);
+  const site = fixedSite(trip, 'HEAP', ['ITEM', 'NOTHING', 'NOTHING', 'NOTHING', 'NOTHING', 'NOTHING'], ['KNIFE'], 1);
+  site.faces.forEach((f, i) => { if (i > 0) { f.revealed = true; } });   // only face 0 is still hidden
+  const ev = E.evaluateSentence(['DIG', 'HAND', 'EYE'], { site: true });
+  const p = E.sitePreview(site, ev);
+  assert.equal(p.reveal, 1);
+  assert.ok(p.search >= 1);
+  assert.match(p.text, /^REVEAL 1 faces · search opens \d+ pips?$/);
+  const r = siteTurn(site, ['MIND', 'HAND', 'HEAD'], ['DIG', 'HAND', 'EYE']);
+  assert.equal(r.events.filter(e => e.type === 'siteReveal').length, 1);
+  const search = r.events.filter(e => e.type === 'sitePip').length;
+  assert.equal(search, p.search);
+  assert.ok(site.faces.filter(f => f.opened).length >= 1);          // pips=1: each search pip opens a face
+  assert.ok(site.noise <= CFG.siteRules.turnNoise);
 });
 
 test('site turn: startSiteTurn rolls dice and gives base rerolls; rerollUnheld works on a site', () => {
