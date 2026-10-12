@@ -3,8 +3,8 @@
 
 Object.assign(CONFIG, {
   verbInfo: {
-    PRUNE: 'Force. Breaks pips. Beat them.',
-    SOW: 'Persuade. Turns pips. Befriend them.',
+    PRUNE: 'Force. Breaks pips (points of their resolve). Beat them.',
+    SOW: 'Persuade. Turns pips (points of their resolve). Befriend them.',
     DIG: 'Search. Reveals what is coming and passes its points to the next die.',
   },
   // Item special annotations shown in the preview (placeholders: {n}).
@@ -21,15 +21,82 @@ Object.assign(CONFIG, {
     noItems: '0 items',
   },
   text: {
-    help: 'ROLL, hold & reroll, drag dice into the sentence slots, COMMIT. The MIND die (optional) sets the verb for dice after it; dice before it, or with no MIND, act on instinct.',
+    // plain-language narration under the rail (src/ui/10-render.js narrateSentence / narrateResult). {them} = the enemy's shortName
+    // (or the site's shortName); from the second mention it is the pronoun N.pron / enemy.pron. A step's phrase = actions[action name] (items and bare parts share the name space), else the lower-cased action name.
+    narration: {
+      you: 'You {steps}.', youPartial: 'You {steps}, then …', joinThen: ', then ', joinLast: ', and finally ', youIdle: 'You do nothing much.', pron: { them: 'it', its: 'its' }, idle: 'stand around', scar: 'flail with a scarred limb',
+      mind: ' (MIND: {verb})',
+      actions: {
+        Hit: 'punch {them}', Gesture: 'gesture at {them}', Search: 'pat down {them}',
+        Swing: 'swing an arm at {them}', Wave: 'wave at {them}', Reach: 'reach out to {them}',
+        Insult: 'insult {them}', 'Small talk': 'make small talk with {them}', Ask: 'ask {them} a question',
+        Glare: 'glare at {them}', 'Kind look': 'give {them} a kind look', Look: 'look {them} over',
+        'Tune out': 'tune {them} out', 'Hear out': 'hear {them} out', Listen: 'listen to {them}',
+        Snort: 'snort at {them}', 'Sniff kindly': 'sniff kindly at {them}', 'Sniff out': 'sniff {them} out',
+        Shove: 'shove {them} with your back', Lean: 'lean against {them}', Hunch: 'hunch your back at {them}', Brace: 'brace yourself',
+        Bump: 'bump {them} with your belly', Laugh: 'laugh at {them}', Rumble: 'rumble at {them}', Clench: 'clench your belly',
+        Stab: 'stab at {them} with your knife', Threaten: 'threaten {them} with your knife', Pry: 'pry at {them} with your knife',
+        Snip: 'snip at {them} with your shears', 'Offer to trim': 'offer {them} a trim', 'Cut open': 'cut {them} open',
+        Whack: 'whack {them} with your spade', 'Lean and chat': 'lean on your spade and chat with {them}', Dig: 'dig around {them}',
+        Splash: 'splash {them}', 'Water their plant': 'water {them}\'s plant', 'Flood out': 'flood {them} out',
+        'Light up': 'light {them} up', 'Offer a light': 'offer {them} a light', Shine: 'shine a light on {them}',
+        Smack: 'smack {them} with the forbidden book', Quote: 'quote the forbidden book at {them}', 'Look up': 'look {them} up in the forbidden book',
+        Glint: 'glint at {them} through your glasses', 'Look learned': 'look learned at {them}', 'Read the fine print': 'read the fine print',
+        Dazzle: 'dazzle {them}', 'Warm light': 'cast a warm light on {them}',
+        'Listen closely': 'listen closely to {them}', Eavesdrop: 'eavesdrop on {them}',
+        Shriek: 'shriek at {them}', 'Call softly': 'call softly to {them}', Echo: 'echo {them}',
+        'Blow smoke': 'blow smoke at {them}', 'Calm chat': 'chat calmly with {them}', Ponder: 'ponder {them} over your pipe',
+        Shout: 'shout at {them}', Coax: 'coax {them}', 'Call out': 'call out to {them}', 'Lend an ear': 'lend {them} an ear',
+        'Soft look': 'give {them} a soft look', 'Sniff gently': 'sniff gently at {them}', Chuckle: 'chuckle at {them}',
+        Poke: 'poke at {them} with your knife', 'Show shears': 'show {them} your shears', 'Snip around': 'snip around {them}',
+        'Lean on spade': 'lean on your spade near {them}', Sprinkle: 'sprinkle {them}', 'Pour out': 'pour water over {them}',
+        'Strike one': 'strike a match near {them}', 'Read aloud': 'read aloud from the forbidden book', 'Offer a trim': 'offer {them} a trim',
+        'Peer kindly': 'peer kindly at {them}', Squint: 'squint at {them}', Inspect: 'inspect {them} closely',
+        'Shed light': 'shed some light on {them}', 'Listen in': 'listen in on {them}', 'Puff calmly': 'puff calmly on your pipe',
+      },
+      // phrase overrides for one encounter tag (same name, different wording): [tag][action name]; lookup tag -> actions
+      actionsByTag: { site: { Search: 'rummage through {them}', Look: 'look over {them}' }, place: { Search: 'feel along {them}' } },
+      // after resolution: what it did to them (one clause per face touched; {face} = its action name, {n} pips)
+      faceBroken: '{its} {face} breaks.', faceTurned: '{its} {face} turns friendly.',
+      facePartBroken: '{n} of {its} {face} pips break.', facePartTurned: '{n} of {its} {face} pips turn.',   // {its} is capitalised at a sentence start
+      // appended to the sentence when it reveals something ({its} = pronoun, {n})
+      reveal: { intent: 'You see {its} next move.', intents: 'You see {its} next {n} moves.', faces: 'You peek into {n} spots.', facesAll: 'You peek into every spot.' },
+      siteOpened: 'You open {what}.', nothing: 'It barely notices.',
+    },
+    // the sentence rail (src/ui/10-render.js renderSlots): title, step labels by slot count, per-step tags / captions
+    rail: {
+      title: 'WHAT YOU DO', empty: 'drop a die', totalsPrefix: '=', totalsPending: '…', totalsSoFar: 'so far', shapePending: '…',
+      steps: { 1: ['ONLY'], 2: ['FIRST', 'THEN'], 3: ['FIRST', 'THEN', 'LAST'] },   // more slots than listed: FIRST, THEN, THEN…
+      mindSets: 'SETS {verb}', mindHoldAction: 'HOLD', mindIdle: 'nothing to act', mindHold: 'keeps one die for next turn',
+      scarRed: 'SCARRED', scarTip: 'SCAR: 0 points, does nothing.',
+      mindTip: 'The MIND sets the verb for every die after it.',
+      instinct: 'instinct', noInstinct: 'no instinct',
+      instinctTip: 'Acts on instinct (before the MIND, or no MIND): its favourite verb {verb}.',
+      noInstinctTip: 'No instinct: this part does nothing on its own.',
+      directedTip: 'Acts with the MIND\'s verb {verb}.',
+      carryTip: 'DIG passes its points on to the next die.',
+    },
+    help: 'ROLL, hold & reroll, drag dice into the slots, COMMIT. The MIND die sets the verb for dice after it; earlier dice act on instinct.',
+    // reveal part of the totals ('= PRUNE 6 · REVEAL next intent'): fights reveal intents, sites reveal faces
+    revealTotals: { intent: 'REVEAL next intent', intents: 'REVEAL next {n} intents', faces: 'REVEAL {n} faces', facesAll: 'REVEAL all faces' },
     reveal: '(reveal)', noEffect: 'nothing happens', scar: 'SCAR', idleText: 'nothing happens', holdText: 'hold one die for the next turn',
     belly: 'your belly was exposed', lostDie: 'your {die} gave out',   // `scar` is also the face key of a scarred face
     beaten: 'BEATEN', befriended: 'BEFRIENDED', lost: 'YOU FLEE, SCARRED', tripComplete: 'TRIP COMPLETE',
+    // enemy die strip: header, per-face explanation (by effect; an enemy may override per face name with `info: { NAME: '…' }`), ghost hit preview
+    strip: {
+      head: 'ITS DIE', goal: 'clear every pip on its hostile faces to win', legend: '□ pip = 1 point of its resolve · PRUNE breaks, SOW turns · NOW = acts this turn',
+      pipTip: 'Pips: each □ is one point of this face\'s resolve. PRUNE breaks a pip (red), SOW turns it (green). When all its pips are gone the face is BROKEN or TURNED, whichever is the majority.',
+      sitePipTip: 'Pips: each □ is one layer of cover over what this face hides. Points remove pips; when all are gone the face opens.',
+      harmless: 'harmless', hostileNone: 'no effect, but it still counts', broken: 'BROKEN', turned: 'TURNED', wouldBreak: 'WOULD BREAK', wouldTurn: 'WOULD TURN',
+      win: 'THIS WINS THE FIGHT', winBeaten: 'WIN · beaten', winBefriended: 'WIN · befriended', provisional: '(so far)',
+      effects: { scar: 'scars one of your faces', rerollPenalty: '1 fewer reroll', takeItem: 'takes an item', loseItem: 'an item is lost for good',
+        scarHead: 'scars a HEAD face', tax: 'every verb −1 next turn', freezeDie: 'freezes one of your dice', none: '' },
+    },
     // --- UI labels / messages ({n} is replaced by a number) ---
     buttons: { roll: 'ROLL', reroll: 'REROLL ({n} left)', commit: 'COMMIT', restart: 'RESTART TRIP', continue: 'CONTINUE' },
     title: 'SMUGGLER', turn: 'TURN', scarsLabel: 'SCARS', intentLabel: 'INTENT', now: 'NOW', next: 'NEXT', nextPrefix: 'next:',
     held: 'HELD', unknownFace: '?', then: 'THEN',
-    placeHint: 'Fill all {slots} slots to see what the sentence does ({n}/{slots})',
+    placeHint: 'Fill all {slots} slots to COMMIT ({n}/{slots})',
     holdPick: 'HOLD: click one body die to keep its face for the next turn', heldStatus: '{die} held over',
     lastTurn: 'Last:', lastAction: 'last turn:', pressRoll: 'Press ROLL to start',
     growlStatus: '−1 reroll this turn ({n} total)', bonusStatus: '+{n} reroll (seeds)', sowStatus: '+{n} SOW at turn start (watering can)',
@@ -59,13 +126,14 @@ Object.assign(CONFIG, {
     },
     site: {                                    // preview / status strings for scavenge sites ({n} {noise} {pips})
       force: 'force {n} (+{noise} noise)', forceQuiet: 'force {n} (no noise)', coax: 'coax {n} pips', search: 'search: reveals {n}',
+      noiseOnly: '+{n} noise', noNoise: 'no noise',   // site hint line once the sentence is full (the totals already name PRUNE / REVEAL)
       searchAll: 'search: reveals all', nothing: 'nothing happens', left: 'LEFT', guardian: 'GUARDIAN', noise: 'NOISE',
     },
     // V1-5: start screen, map and site screen strings ({n} {c} {max} {item} {name})
     m2: {
       startSub: 'Choose a trip', changeMode: 'MODE SELECT',
-      startM1: 'M1 SEQUENCE', startM1Desc: 'Five events and a campfire, one after another. No map.',
-      startM2: 'M2 MAP', startM2Desc: 'Walk a foggy map to the gate. Daylight runs out; scavenge sites make noise.',
+      startM1: 'SEQUENCE', startM1Desc: 'Five events and a campfire, one after another. No map.',
+      startM2: 'MAP', startM2Desc: 'Walk a foggy map to the gate. Daylight runs out; scavenge sites make noise.',
       daylight: 'DAYLIGHT', scars: 'SCARS', items: 'ITEMS', you: 'YOU', map: 'MAP', moves: 'MOVES {n}', dayShort: '☀ {n}', coldShort: 'THE COLD',
       mapHint: 'Click a highlighted tile to walk there. Each step costs 1 daylight; in the dark every step scars you.',
       coldHint: 'No daylight left: every step scars you (THE COLD).',
@@ -73,7 +141,7 @@ Object.assign(CONFIG, {
       visitedTip: 'visited', seenTip: 'revealed by the dog', hereTip: 'You are here',
       typeLabel: { CHARACTER: 'FIGHT', SCAVENGE: 'SITE', CAMPFIRE: 'REST', EMPTY: '', START: '', GATE: 'EXIT' },
       coldMsg: 'THE COLD bites.', coldDestroyed: '{item} destroyed by the cold.', revealedMsg: '{n} fogged tiles are now visible.',
-      siteLabel: 'SCAVENGE SITE', guardian: 'guardian', rulesLine: 'each turn +1 noise · PRUNE +1 per point · full = guardian',
+      siteLabel: 'SCAVENGE SITE', guardian: 'guardian', rulesLine: 'each turn +1 noise · PRUNE +1/point · full = guardian',
       noise: 'NOISE', found: 'FOUND', target: 'TARGET', first: 'FIRST',
       targetTip: 'Click to aim your points at this face first (click again to clear).', hiddenTip: 'Hidden: DIG reveals it, PRUNE / SOW open it.',
       seen: 'SEEN', got: 'TAKEN', brokeInto: '{item} → JUNK', nothingLeft: 'Nothing left here. LEAVE when you are ready.',

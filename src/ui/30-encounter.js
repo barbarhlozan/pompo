@@ -52,11 +52,16 @@ function onPointerDown(e, id) {
   el.addEventListener('pointercancel', onPointerCancel);
 }
 function dropTarget(x, y) {
+  let best = -1, bd = Infinity;                       // chevrons overlap a little: nearest centre wins
   for (let i = 0; i < slotCount(); i++) {
     const r = dom.slotEls[i].getBoundingClientRect();
     const m = C.ui.dropSlackPx;
-    if (x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m) return { kind: 'slot', i };
+    if (x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m) {
+      const d = Math.abs(x - (r.left + r.right) / 2);
+      if (d < bd) { bd = d; best = i; }
+    }
   }
+  if (best >= 0) return { kind: 'slot', i: best };
   const tr = $('bottom').getBoundingClientRect();
   if (y >= tr.top - C.ui.dropSlackPx) return { kind: 'tray' };
   return null;
@@ -113,7 +118,8 @@ async function onRoll() {
   syncView();                                     // pre-turn picture: a pending watering-can SOW plays from here
   const st = E.startTurn(g, Math.random);
   ui.slots = emptySlots();
-  ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null;
+  ui.previewOverride = null; ui.narr = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
+  newTilts(g.player.dice.map(d => d.id));
   if (st.events.length) {
     const run = ++ui.runId;
     ui.phase = 'start';
@@ -129,10 +135,12 @@ async function onRoll() {
   hooks.onRoll(g.player.dice.map(d => d.id));
   renderAll();
 }
+function newTilts(ids) { ids.forEach(id => { ui.tilt[id] = Math.round((Math.random() * 2 - 1) * C.ui.trayTiltDeg * 10) / 10; }); }
 function onReroll() {
   if (!canInteract()) return;
   const ids = E.rerollUnheld(ui.game, Math.random);
   if (!ids) return;
+  newTilts(ids);
   syncView();
   hooks.onRoll(ids);
   renderAll();
@@ -149,9 +157,13 @@ async function onCommit() {
   const site = isSite();
   const out = site ? E.resolveSiteTurn(ui.game, ui.slots.slice(0, slotCount()), Math.random) : E.resolveTurn(ui.game, ui.slots.slice(0, slotCount()), Math.random);   // engine state is final now; `view` lags
   if (site && !out.ok) { ui.phase = 'arranging'; renderAll(); return; }
+  const se = out.events.find(e => e.type === 'sentence');            // the rail shows this sentence from the first frame
+  ui.railPlay = { idx: -1, totals: false };
+  if (se) ui.previewOverride = { shape: se.evaluation.shape, triggers: se.evaluation.triggers, ev: se.evaluation, text: se.preview ? se.preview.text : '' };
   renderAll();
   await playEvents(out.events, run);
   if (ui.runId !== run) return;                                       // restarted meanwhile
+  ui.railPlay = null;
   ui.actingSlot = null; ui.verbFlash = '';
   syncView();
   if (site) {                                                         // site turn: lost | guardian arrives | keep searching

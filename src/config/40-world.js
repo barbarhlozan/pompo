@@ -32,13 +32,13 @@ Object.assign(CONFIG, {
   // Scavenge sites: faces = hidden contents (one per face, shuffled when the site is created if shuffleFaces),
   // pips = pips per face, pool = item ids an ITEM face can hold, guardian = enemy id fought when noise is full.
   sites: {
-    HEAP: { name: 'COMPOST HEAP', word: 'HEAP', faces: ['ITEM', 'ITEM', 'JUNK', 'RATS', 'NOTHING', 'NOTHING'], pips: 2, slots: 3,
+    HEAP: { shortName: 'the compost heap', name: 'COMPOST HEAP', word: 'HEAP', faces: ['ITEM', 'ITEM', 'JUNK', 'RATS', 'NOTHING', 'NOTHING'], pips: 2, slots: 3,
             pool: ['WATERING_CAN', 'SPADE', 'MATCHES'], guardian: 'DOG' },
-    SHED: { name: 'GARDEN SHED', word: 'SHED', faces: ['ITEM', 'ITEM', 'ITEM', 'JUNK', 'NOTHING', 'TRAP'], pips: 3, slots: 3,
+    SHED: { shortName: 'the garden shed', name: 'GARDEN SHED', word: 'SHED', faces: ['ITEM', 'ITEM', 'ITEM', 'JUNK', 'NOTHING', 'TRAP'], pips: 3, slots: 3,
             pool: ['SHEARS', 'KNIFE', 'LANTERN', 'VEST'], guardian: 'CROWS' },
-    HUT:  { name: 'ABANDONED HUT', word: 'HUT', faces: ['ITEM', 'ITEM', 'NOTHING', 'JUNK', 'TRAP', 'NOTHING'], pips: 2, slots: 3,
+    HUT:  { shortName: 'the abandoned hut', name: 'ABANDONED HUT', word: 'HUT', faces: ['ITEM', 'ITEM', 'NOTHING', 'JUNK', 'TRAP', 'NOTHING'], pips: 2, slots: 3,
             pool: ['MATCHES', 'PIPE', 'FORBIDDEN_BOOK', 'SLEEVE_POCKET'], guardian: 'ACCOUNTANT' },
-    WELL: { name: 'OLD WELL', word: 'WELL', faces: ['ITEM', 'NOTHING', 'NOTHING', 'NOTHING', 'JUNK', 'RATS'], pips: 1, slots: 2,
+    WELL: { shortName: 'the old well', name: 'OLD WELL', word: 'WELL', faces: ['ITEM', 'NOTHING', 'NOTHING', 'NOTHING', 'JUNK', 'RATS'], pips: 1, slots: 2,
             pool: ['WHISTLE', 'EAR_TRUMPET'], guardian: 'PLUMBER' },
   },
   siteContents: {                                          // display words for site face contents

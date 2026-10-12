@@ -12,6 +12,8 @@
     --bg:#0b0b10; --panel:#16161f; --line:#2a2a3a; --text:#e8e6f0; --dim:#8a88a0;
     --lit:#ffe36b; --status:#ffd36b; --danger:#ff3b3b; --glow:#ffffff; --pip:#e8e6f0; --broken:#5a5a66; --turned:#4fe06a; --tiletext:#0b0b10;
     --lift:1.07;
+    /* readability scale (encounter screen): no game text below --fs-min; rail sizes are tuned in the #sentence block */
+    --fs-min:13px; --fs-sm:15px; --fs-md:17px; --fs-lg:20px; --note:#a9dcff; --note-fs:15px;
     --display:"Bungee", Impact, "Arial Black", "Helvetica Neue", sans-serif; }
   * { box-sizing: border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden;
@@ -46,89 +48,196 @@
   .faceRow .tile + .tile { margin-left:-3px; }
 
   /* enemy */
-  #enemy { position:absolute; left:0; top:40px; width:100%; height:232px; padding:16px 24px; display:flex; gap:40px; }
-  #intentPanel { width:520px; display:flex; flex-direction:column; gap:4px; position:relative; }
-  #enemyMeta { min-height:16px; font-size:13px; letter-spacing:.08em; color:var(--dim); display:flex; gap:10px; align-items:center; }
-  #enemyMeta .chip { border:2px solid var(--line); padding:0 6px; font-size:12px; letter-spacing:.12em; text-transform:uppercase; }
+  #enemy { position:absolute; left:0; top:40px; width:100%; height:218px; padding:8px 24px; display:flex; gap:40px; }
+  /* fixed rows (label, meta, intent tile, intent line, action sentence, foresight queue) so long texts wrap inside their own box instead of overlapping */
+  #intentPanel { width:520px; height:216px; display:flex; flex-direction:column; gap:3px; position:relative; overflow:hidden; }
+  #enemyMeta { min-height:16px; font-size:13px; letter-spacing:.04em; color:var(--dim); display:flex; flex-wrap:wrap; gap:2px 10px; align-items:center; flex:none; }
+  #enemyMeta .chip { border:2px solid var(--line); padding:0 6px; font-size:var(--fs-min); letter-spacing:.12em; text-transform:uppercase; }
   #bag { position:absolute; right:0; top:-2px; display:flex; align-items:center; gap:6px; }
   #bag.hidden { display:none; }
-  #bag .tile { font-size:12px; padding:4px 6px; border-width:2px; }
+  #bag .tile { font-size:var(--fs-min); padding:4px 6px; border-width:2px; }
   .vb { cursor:help; }
   .lbl { font-size:13px; letter-spacing:.2em; color:var(--dim); }
-  #intentRow { display:flex; align-items:flex-end; gap:20px; height:84px; }
-  #intentTile { font-size:40px; padding:16px 22px; }
-  #intentText { min-height:22px; font-size:18px; }
-  #nextWrap { display:flex; align-items:center; gap:10px; min-height:40px; }
+  #intentRow { display:flex; align-items:flex-end; gap:20px; height:66px; flex:none; }
+  #intentTile { font-size:34px; padding:12px 20px; }
+  #intentText { height:22px; flex:none; font-size:16px; line-height:22px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #nextWrap { display:flex; align-items:center; gap:10px; height:36px; flex:none; overflow:hidden; }
   #nextWrap .q { opacity:.5; display:flex; align-items:center; gap:8px; }
   #nextWrap.hidden { visibility:hidden; }
-  #enemyText { min-height:22px; font-size:18px; color:var(--status); }
-  #faceStrip { flex:1; display:flex; gap:10px; align-items:flex-start; padding-top:22px; }
-  .efc { flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 4px 8px;
+  #enemyText { height:44px; flex:none; font-size:17px; line-height:22px; color:var(--status); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  #stripWrap { flex:1; display:flex; flex-direction:column; min-width:0; }
+  #stripHead { height:36px; flex:none; font-size:13px; line-height:18px; letter-spacing:.06em; color:var(--dim); overflow:hidden; }
+  #stripHead b { color:var(--text); letter-spacing:.14em; }
+  #stripHead .legend { display:block; letter-spacing:.02em; white-space:nowrap; }
+  #stripHead .legend.win { color:var(--turned); font-weight:700; letter-spacing:.08em; }
+  #faceStrip { flex:1; display:flex; gap:8px; align-items:flex-start; padding-top:20px; }
+  .efc .info { font-size:13px; line-height:15px; height:45px; width:100%; text-align:center; color:var(--dim); overflow:hidden; }
+  .efc .fstate { font-size:12px; font-weight:700; letter-spacing:.08em; height:15px; color:var(--dim); white-space:nowrap; }
+  .efc.harmless { opacity:.6; }
+  .efc.harmless .tile { outline:2px dashed var(--dim); outline-offset:-5px; }
+  .efc.resolved .info { color:var(--dim); text-decoration:line-through; }
+  .efc.would-break { border-color:var(--danger); } .efc.would-break .fstate { color:var(--danger); }
+  .efc.would-turn { border-color:var(--turned); } .efc.would-turn .fstate { color:var(--turned); }
+  .efc.would-break.is-current, .efc.would-turn.is-current { border-style:double; }
+  .efc.prov.would-break, .efc.prov.would-turn { border-style:dashed; opacity:.85; }
+  .pip.ghost-broken { background:var(--danger); border-color:#000; transform:rotate(45deg) scale(.7); box-shadow:0 0 0 2px var(--danger); }
+  .pip.ghost-turned { background:var(--turned); border-radius:50%; box-shadow:0 0 0 2px var(--turned); }
+  .pip.ghost-broken.prov, .pip.ghost-turned.prov { opacity:.5; box-shadow:none; }
+  .efc { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:6px 3px 4px; min-width:0;
     border:3px solid transparent; position:relative; }
-  .efc .tile { font-size:16px; padding:10px 6px; width:100%; text-align:center; }
+  .efc .tile { font-size:15px; padding:8px 4px; width:100%; text-align:center; }
   .efc.is-current { border-color:var(--glow); }
   .efc.is-next { border:3px dashed var(--dim); }
   .efc.is-then { border:3px dotted var(--line); }
-  .efc .tag { position:absolute; top:-18px; left:0; width:100%; text-align:center; font-size:11px; letter-spacing:.15em; color:var(--dim); }
+  .efc .tag { position:absolute; top:-18px; left:0; width:100%; text-align:center; font-size:var(--fs-min); letter-spacing:.15em; color:var(--dim); }
   .efc.is-current .tag { color:var(--glow); }
-  .pips { display:flex; gap:8px; }
+  .pips { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; min-height:24px; }
   .pip { width:18px; height:18px; border:3px solid #000; background:var(--pip); }
   .pip.broken { background:var(--broken); transform:rotate(45deg) scale(.7); }
   .pip.turned { background:var(--turned); border-radius:50%; }
 
-  /* sentence */
-  #sentence { position:absolute; left:0; top:272px; width:100%; height:190px; display:flex; flex-direction:column; align-items:center; }
-  #slots { display:flex; align-items:center; gap:14px; }
-  .slot { width:262px; height:104px; border:3px dashed var(--line); background:rgba(255,255,255,.025);
-    display:flex; align-items:center; justify-content:center; position:relative; }
-  .slot::before { content:attr(data-n); position:absolute; left:6px; top:3px; font-size:12px; color:var(--dim); z-index:1; }
-  .slot.trig { border-color:var(--glow); box-shadow:0 0 10px 1px color-mix(in srgb, var(--glow) 55%, transparent); }
-  .slot .num { position:absolute; left:6px; top:3px; font-size:12px; color:var(--dim); }
-  .slot.over { border-color:var(--glow); background:rgba(255,255,255,.1); }
-  .slot.full { border-style:solid; }
-  .slot.acting { border-color:var(--glow); background:rgba(255,255,255,.14); }
-  #slots.complete .slot { border-color:var(--lit); }
-  .arrow { font-size:26px; color:var(--dim); width:30px; text-align:center; }
-  #preview { margin-top:14px; text-align:center; min-height:62px; }
-  #shape { font-size:14px; letter-spacing:.25em; color:var(--dim); text-transform:uppercase; min-height:18px; }
-  #previewText { font-size:22px; margin:6px auto 0; max-width:1200px; line-height:1.25; }
-  #previewText.hint { color:var(--dim); font-size:18px; }
+  /* sentence rail: interlocking chevron steps, FIRST / THEN / LAST labels, MIND band, per-step captions, totals */
+  #sentence { position:absolute; left:0; top:258px; width:100%; height:318px; padding:6px 24px 0; display:flex; flex-direction:column; align-items:flex-start;
+    --sw-max:425px; --sw:425px; --pt:34px; --ov:26px; --pitch:calc(var(--sw) - var(--ov)); --slotH:100px;   /* --sw is re-fitted by JS for more than 3 slots */
+    --fs-label:16px; --fs-action:30px; --fs-action-long:24px; --fs-cap:17px; --fs-total:24px; --fs-narr:29px; --narr-h:70px; --focus:var(--lit); }
+  /* focal zone: the sentence (headline + rail + totals) sits on a lit band across the full width */
+  #sentence { background:linear-gradient(180deg, color-mix(in srgb, var(--focus) 9%, transparent), color-mix(in srgb, var(--focus) 3%, transparent));
+    border-top:2px solid color-mix(in srgb, var(--focus) 45%, transparent); border-bottom:2px solid color-mix(in srgb, var(--focus) 25%, transparent); }
+  #railHead { display:flex; align-items:baseline; gap:16px; height:30px; width:100%; font-size:var(--fs-sm); letter-spacing:.2em; }
+  #railTitle { color:var(--dim); }
+  /* totals: big and prominent, right end of the header row */
+  #rtotals { margin-left:auto; flex:1 1 0; min-width:0; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:0;
+    font-size:var(--fs-total); line-height:1.15; color:var(--text); }
+  #rtotals .eq { font-family:var(--display); font-weight:400; color:var(--lit); font-size:var(--fs-total); margin-right:6px; }
+  #rtotals.pending { color:var(--dim); }
+  #rtotals.pending .eq { color:var(--dim); }
+  #rtotals .rx { color:var(--note); }
+  #rtotals .sofar { font-family:var(--body, inherit); font-size:var(--fs-min); font-style:italic; color:var(--dim); margin-left:4px; }
+  #rtotals.pending .rx { color:var(--dim); }
+  #sentence.partial .rband.tag.prov { border-style:dashed; opacity:.7; }
+  .carry.prov { border-top-style:dashed; }
+  #railShape { color:var(--lit); font-family:var(--display); font-weight:400; font-size:22px; letter-spacing:.12em; }
+  #slots { position:relative; display:flex; align-items:flex-start; }
+  .rstep { position:relative; width:var(--sw); flex:none; }
+  .rstep + .rstep { margin-left:calc(var(--ov) * -1); }
+  .rlabel { height:22px; line-height:22px; padding-left:var(--pt); font-size:var(--fs-label); letter-spacing:.3em; color:var(--text); }
+  .rstep.first .rlabel { padding-left:8px; }
+  .rband { height:19px; margin:0 0 3px; font-size:var(--fs-min); line-height:19px; letter-spacing:.14em; text-transform:uppercase; color:var(--tiletext);
+    padding-left:var(--pt); white-space:nowrap; }
+  .rstep.first .rband { padding-left:8px; }
+  .rband.on { clip-path:polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+  .rstep.last .rband.on { clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%); }
+  .rband.tag { display:block; width:max-content; margin-left:var(--pt); padding:0 9px; border:2px solid; font-weight:700; font-size:var(--fs-min); line-height:15px; height:19px; }
+  .rstep.first .rband.tag { margin-left:8px; }
+  .rband.tag.none { color:var(--dim); border-color:var(--line); border-style:dashed; }
+  .rband.tag.none, .rband.tag { background:transparent; }
+  .slot { position:relative; height:var(--slotH); display:flex; align-items:center; justify-content:center; padding:0 var(--pt); }
+  .slot .chev, .slot .chev::after { position:absolute; inset:0; clip-path:polygon(0 0, calc(100% - var(--pt)) 0, 100% 50%, calc(100% - var(--pt)) 100%, 0 100%, var(--pt) 50%); }
+  .rstep.first .slot .chev, .rstep.first .slot .chev::after { clip-path:polygon(0 0, calc(100% - var(--pt)) 0, 100% 50%, calc(100% - var(--pt)) 100%, 0 100%); }
+  .slot .chev { background:#3a3a52; pointer-events:none; }
+  .slot .chev::after { content:''; inset:3px; background:var(--bg); }
+  .rstep:not(.first) .slot .chev::after { }
+  .slot .num { position:absolute; left:calc(var(--pt) + 10px); top:50%; transform:translateY(-50%); font-size:40px; font-family:var(--display); font-weight:400; color:#2c2c3e; pointer-events:none; }
+  .rstep.first .slot .num { left:18px; }
+  .slot .empty { font-size:var(--fs-sm); letter-spacing:.2em; color:var(--dim); text-transform:uppercase; pointer-events:none; }
+  .slot.full .empty, .slot.full .num { display:none; }
+  .slot.full .chev { background:var(--line); }
+  .slot.full .chev::after { background:var(--panel); }
+  .slot.trig .chev { background:var(--glow); }
+  .slot.over .chev { background:var(--glow); }
+  .slot.over .chev::after { background:#2a2a3c; }
+  .slot.acting .chev { background:var(--glow); }
+  .slot.acting .chev::after { background:#34344a; }
+  #slots.complete .slot.full .chev { background:var(--lit); }
+  .rstep > .rlink { position:relative; height:16px; }
+  .carry { position:absolute; left:calc(var(--sw) / 2 + 12px); top:6px; height:0; border-top:3px solid; }
+  .carry::after { content:''; position:absolute; right:-2px; top:-6.5px; border:5px solid transparent; border-right:0; border-left:9px solid currentColor; }
+  .carry b { position:absolute; left:50%; top:-11px; transform:translateX(-50%); padding:0 6px; background:var(--bg); font-size:var(--fs-sm); line-height:18px; }
+  .rcap { height:26px; padding:0 var(--ov) 0 var(--pt); text-align:center; font-size:var(--note-fs); line-height:22px; overflow:hidden; }
+  .rstep.first .rcap { padding-left:8px; }
+  .rcap .cl1 { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--note); font-weight:700; }   /* annotations: one consistent style */
+  .rcap .cl2 { font-size:var(--fs-min); line-height:14px; font-weight:400; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rcap .cn { text-transform:none; }
+  .rcap .cp { font-family:var(--display); font-weight:400; font-size:15px; letter-spacing:.02em; }
+  .rcap .cin { color:var(--turned); }
+  .rcap.mind .cl1 { color:var(--dim); }
+  #playhead { position:absolute; left:calc(var(--ph, 0) * var(--pitch) + var(--pt)); top:22px; width:calc(var(--sw) - var(--pt) - var(--ov)); height:19px;
+    background:var(--glow); box-shadow:0 0 14px 2px color-mix(in srgb, var(--glow) 70%, transparent); opacity:0; pointer-events:none; z-index:3;
+    transition:left var(--ph-ms, .16s) ease-out, opacity .1s; }
+  #playhead.on { opacity:1; }
+  #stage[data-phase=resolving] #sentence { --focus:var(--glow); }
+  #narration { height:var(--narr-h); flex:none; width:100%; max-width:1232px; font-size:var(--fs-narr); line-height:35px; color:var(--text); text-align:center; font-weight:700;
+    overflow:hidden; display:grid; align-content:center; text-shadow:0 2px 0 rgba(0,0,0,.6); }
+  #narration .nbox { display:block; max-height:70px; overflow:hidden; } #narration .nm, #narration .nres { color:var(--text); } #narration .ni { text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:4px; }
+  #narration .nres { font-weight:400; font-size:.7em; color:var(--dim); }
+  #preview { margin-top:0; min-height:22px; width:100%; }
+  #previewText { font-size:var(--fs-md); line-height:22px; max-width:1232px; }
+  #previewText.hint { color:var(--dim); }
 
-  /* bottom */
-  #bottom { position:absolute; left:0; top:468px; width:100%; height:200px; }
-  #tray { display:flex; justify-content:center; gap:30px; }
-  .cell { width:262px; height:128px; border:3px solid var(--line); background:var(--panel);
-    display:flex; align-items:center; justify-content:center; }
-  .cell.over { border-color:var(--glow); }
-  .die { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:6px; position:relative; touch-action:none; cursor:grab; }
-  .die .cap { font-size:11px; letter-spacing:.2em; color:var(--dim); }
-  .die .held { position:absolute; right:4px; top:2px; font-size:12px; letter-spacing:.1em; color:var(--tiletext);
-    background:var(--lit); padding:2px 5px; display:none; }
+  /* bottom: dice lying loose on the table */
+  #bottom { position:absolute; left:0; top:580px; width:100%; height:140px; }
+  #stage[data-phase=resolving] #bottom, #stage[data-phase=enemy] #bottom { opacity:.45; transition:opacity .15s; }
+  #tray { display:flex; justify-content:center; gap:34px; }
+  .cell { width:210px; height:70px; display:flex; align-items:center; justify-content:center; border-radius:20px; }
+  .cell:empty { border:2px dashed color-mix(in srgb, var(--line) 30%, transparent); }
+  .cell.over, #tray.over .cell:empty { border-color:var(--glow); }
+  .die { width:200px; height:64px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:5px; position:relative; touch-action:none; cursor:grab; rotate:var(--tilt, 0deg);
+    border-radius:18px; border:3px solid #3a3a52; background:linear-gradient(160deg, #262638, #15151f);
+    box-shadow:0 5px 0 rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.07); }
+  .die .meta { display:flex; align-items:center; gap:8px; height:20px; line-height:1; }
+  .die .cap { font-size:var(--fs-min); letter-spacing:.2em; color:var(--dim); }
+  .die .held { position:absolute; right:10px; top:-9px; font-size:var(--fs-min); letter-spacing:.1em; color:var(--tiletext);
+    background:var(--lit); padding:2px 6px; display:none; }
   .die.held .held { display:block; }
-  .die.held .faceRow { transform:translateY(5px); }
+  .die.held { border-color:var(--lit); box-shadow:0 5px 0 rgba(0,0,0,.55), 0 0 14px 1px color-mix(in srgb, var(--lit) 40%, transparent); translate:0 -5px; }
+  .die.held .faceRow { transform:none; }
   .die.dim .faceRow { opacity:.35; }
-  .die .frz { position:absolute; left:4px; top:2px; font-size:12px; letter-spacing:.1em; color:#06222c; background:#8fe0ff;
+  .die .frz { position:absolute; left:10px; top:-9px; font-size:var(--fs-min); letter-spacing:.1em; color:#06222c; background:#8fe0ff;
     padding:2px 5px; display:none; }
-  .die.frozen { outline:3px solid #8fe0ff; outline-offset:-3px; background:color-mix(in srgb, #8fe0ff 12%, transparent);
-    box-shadow:inset 0 0 22px #8fe0ff88; cursor:not-allowed; }
+  .die.frozen { border-color:#8fe0ff; background:color-mix(in srgb, #8fe0ff 12%, #15151f);
+    box-shadow:0 5px 0 rgba(0,0,0,.55), inset 0 0 22px #8fe0ff88; cursor:not-allowed; }
   .die.frozen .frz { display:block; }
   .nf .sturdy { position:absolute; right:-2px; top:-9px; font-size:10px; letter-spacing:.08em; font-weight:400; color:var(--dim);
     background:var(--panel); border:1px solid var(--line); padding:0 4px; }
-  .die .ctl button { background:var(--panel); border:2px solid var(--line); padding:0 10px; font-size:13px; line-height:18px; }
+  .die .ctl button { background:var(--panel); border:2px solid var(--line); padding:0 10px; font-size:13px; line-height:16px; }
   .die .ctl button:hover { border-color:var(--glow); }
   .die.in-slot .up, .die:not(.in-slot) .down { display:none; }
-  .die.dragging { position:fixed; z-index:60; cursor:grabbing; background:var(--panel); border:3px solid var(--glow);
-    box-shadow:0 12px 0 rgba(0,0,0,.5); pointer-events:none; }
+  /* a die on the rail is a word step: no die frame, same face tiles */
+  .die.in-slot { width:100%; height:100%; border:0; border-radius:0; background:none; box-shadow:none; rotate:0deg; translate:none; gap:2px; z-index:2; }
+  .die.in-slot .tile { font-size:21px; padding:8px 11px; }
+  #tray .die:not(.dragging) .tile { font-size:17px; padding:5px 9px; }
+  .die.in-slot .held { top:2px; right:calc(var(--pt) + 4px); }
+  .die.in-slot .frz { top:2px; left:calc(var(--pt) + 4px); }
+  .rstep.first .die.in-slot .frz { left:12px; }
+  /* slot action: the action the die performs is the slot's main content; the die face shrinks to a small strip */
+  .slot .sact { position:absolute; inset:0; z-index:3; pointer-events:none; display:none; flex-direction:column; align-items:center; justify-content:flex-start;
+    padding:8px var(--pt) 0; text-align:center; }
+  .rstep.first .slot .sact { padding-left:12px; }
+  .slot.acts .sact { display:flex; }
+  .sact .an { font-family:var(--display); font-weight:400; font-size:var(--fs-action); line-height:1.02; letter-spacing:.02em; text-transform:uppercase; white-space:normal;
+    max-height:2.1em; overflow:hidden; text-shadow:0 2px 0 rgba(0,0,0,.6); }
+  .sact .an.long { font-size:var(--fs-action-long); }
+  .sact .ap { font-size:1.12em; }
+  .sact .cin { color:var(--turned); }
+  .slot.acts .die.in-slot { justify-content:flex-end; }
+  .slot.acts .die.in-slot .faceRow { position:absolute; left:0; right:0; bottom:6px; opacity:1; }
+  .slot.acts .die.in-slot .tile { font-size:var(--fs-min); padding:3px 7px; border-width:2px; box-shadow:none; }
+  .slot.acts .die.in-slot .meta { position:absolute; right:calc(var(--pt) + 2px); top:2px; height:16px; }
+  .slot.acts .die.in-slot .cap { display:none; }
+  .die.dragging { position:fixed; z-index:60; cursor:grabbing; background:linear-gradient(160deg, #262638, #15151f); border:3px solid var(--glow);
+    border-radius:18px; box-shadow:0 12px 0 rgba(0,0,0,.5); pointer-events:none; translate:none; }
   .die.dragging .ctl { display:none; }
-  #buttons { margin-top:22px; display:flex; justify-content:center; align-items:center; gap:18px; }
-  .btn { background:var(--panel); border:3px solid var(--glow); padding:12px 26px; font-size:20px; letter-spacing:.12em;
+  .die.dragging .tile { font-size:24px; padding:10px 14px; }
+  #buttons { margin-top:4px; display:flex; justify-content:center; align-items:center; gap:18px; }
+  .btn { background:var(--panel); border:2px solid var(--line); padding:4px 20px; font-size:16px; letter-spacing:.12em;
     box-shadow:0 4px 0 rgba(0,0,0,.6); }
   .btn:disabled { opacity:.3; cursor:default; border-color:var(--line); }
+  #btnCommit:not(:disabled), #btnRoll:not(:disabled) { border-color:var(--lit); }
   .btn:not(:disabled):hover { background:var(--glow); color:var(--tiletext); }
   .btn.primary { background:var(--lit); color:var(--tiletext); border-color:#000; }
-  #status { color:var(--status); font-size:15px; min-width:210px; }
-  #help { position:absolute; left:0; bottom:8px; width:100%; text-align:center; font-size:13px; color:var(--dim); padding:0 40px; }
+  #status { color:var(--status); font-size:var(--fs-sm); min-width:210px; }
+  #help { position:absolute; left:0; bottom:2px; width:100%; text-align:center; font-size:var(--fs-min); color:var(--dim); opacity:.7; padding:0 24px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
   /* popover */
   #pop { position:absolute; z-index:40; display:none; background:#000; border:3px solid var(--glow); padding:8px 10px;
@@ -136,8 +245,8 @@
   #pop .row { display:flex; gap:8px; align-items:center; }
   #pop .f { padding:4px; border:3px solid transparent; }
   #pop .f.cur { border-color:var(--glow); }
-  #pop .tile { font-size:12px; padding:5px 6px; border-width:2px; box-shadow:none; }
-  #pop .ttl { font-size:11px; letter-spacing:.2em; color:var(--dim); margin-bottom:6px; }
+  #pop .tile { font-size:var(--fs-min); padding:5px 6px; border-width:2px; box-shadow:none; }
+  #pop .ttl { font-size:var(--fs-min); letter-spacing:.2em; color:var(--dim); margin-bottom:6px; }
 
   /* overlay */
   #overlay { position:absolute; inset:0; z-index:80; background:rgba(5,5,8,.82); display:none;
@@ -149,10 +258,9 @@
   .tile, .btn, #top .title, #overlay .big, .flyer, #pop .tile { font-family:var(--display); font-weight:400; white-space:nowrap; }
   .tile { letter-spacing:.02em; }
   .efc .tile { letter-spacing:0; }
-  .die { transition: scale .1s ease-out; }
+  .die { transition: scale .1s ease-out, translate .12s ease-out; }
   .die .faceRow { transition: transform .12s ease-out; }
   .die.dragging { scale:var(--lift); box-shadow:0 18px 0 rgba(0,0,0,.45); }
-  .die.held { background:color-mix(in srgb, var(--lit) 6%, transparent); }
   .flyer { position:absolute; left:0; top:0; z-index:70; pointer-events:none; font-size:34px; line-height:1;
     -webkit-text-stroke:2px #000; paint-order:stroke fill; text-shadow:0 4px 0 rgba(0,0,0,.6); will-change:transform; }
   .flyer.small { font-size:20px; }
@@ -160,12 +268,10 @@
   .crack { position:absolute; inset:0; pointer-events:none; z-index:5; }
   .crack svg { width:100%; height:100%; }
   .die { z-index:1; }
-  /* sentence complete: tiles + arrows light up together */
-  @keyframes litFlash { 0% { box-shadow:0 0 0 0 color-mix(in srgb, var(--lit) 95%, transparent); } 100% { box-shadow:0 0 26px 8px color-mix(in srgb, var(--lit) 0%, transparent); } }
-  @keyframes arrowLit { 0% { transform:scale(1.9); } 100% { transform:scale(1); } }
+  /* sentence complete: the rail lights up together */
+  @keyframes litFlash { 0% { filter:drop-shadow(0 0 0 var(--lit)); } 40% { filter:drop-shadow(0 0 9px var(--lit)); } 100% { filter:drop-shadow(0 0 0 transparent); } }
   @keyframes ovPop { 0% { transform:scale(.4) rotate(-6deg); opacity:0; } 60% { transform:scale(1.12) rotate(2deg); opacity:1; } 100% { transform:scale(1) rotate(0); } }
-  #slots.complete .slot { animation:litFlash .45s ease-out; background:color-mix(in srgb, var(--lit) 7%, transparent); box-shadow:0 0 14px 2px color-mix(in srgb, var(--lit) 45%, transparent); }
-  #slots.complete .arrow { color:var(--lit); animation:arrowLit .4s ease-out; text-shadow:0 0 10px color-mix(in srgb, var(--lit) 90%, transparent); }
+  #slots.complete .slot.full { animation:litFlash .45s ease-out; }
   #slots.complete .die .tile { filter:brightness(1.1) saturate(1.1); }
   #overlay.show .big { animation:ovPop .5s cubic-bezier(.2,1.4,.4,1); }
   @media (prefers-reduced-motion: reduce) {
@@ -223,7 +329,7 @@
 
   /* ===== V1-3: placement screen / die nets ===== */
   #pop { z-index:58; }
-  #pop .ftip { font-size:12px; font-weight:400; min-width:230px; }
+  #pop .ftip { font-size:var(--fs-min); font-weight:400; min-width:230px; }
   #pop .ftip .vr { display:flex; gap:10px; align-items:baseline; padding:2px 0; }
   #pop .ftip .vr b { width:52px; letter-spacing:.04em; }
   #pop .ftip .vr .nm { flex:1; }
@@ -302,6 +408,7 @@
   #noiseTrack .nb.on.hot { background:var(--danger); }
   #btnLeave { display:none; }
   #stage.site #intentTile { display:none; }
+  #stage.site #stripHead { visibility:hidden; }
   #stage.site #noiseTrack { display:flex; }
   #stage.site #btnLeave { display:inline-block; }
   #stage.site #intentPanel { width:400px; }
@@ -310,11 +417,11 @@
   #stage.site #enemyMeta .chip { white-space:nowrap; }
   #stage.site #intentRow { height:48px; align-items:center; }
   .efc.site { cursor:pointer; }
-  .efc.site .tile { font-size:12px; padding:8px 4px; white-space:normal; line-height:1.15; min-height:52px; display:flex; align-items:center; justify-content:center; text-align:center; }
+  .efc.site .tile { font-size:var(--fs-min); padding:8px 4px; white-space:normal; line-height:1.15; min-height:52px; display:flex; align-items:center; justify-content:center; text-align:center; }
   .efc.site.opened { opacity:.5; cursor:default; }
   .efc.site:not(.opened):hover { background:rgba(255,255,255,.05); }
-  .efc.site .sfn { position:absolute; right:5px; bottom:2px; font-size:10px; color:var(--dim); font-weight:400; }
-  .efc.site .sub { font-size:10px; letter-spacing:.08em; font-weight:400; color:var(--dim); min-height:12px; text-align:center; }
+  .efc.site .sfn { position:absolute; right:5px; bottom:2px; font-size:var(--fs-min); color:var(--dim); font-weight:400; }
+  .efc.site .sub { font-size:var(--fs-min); letter-spacing:.08em; font-weight:400; color:var(--dim); min-height:12px; text-align:center; }
   .efc.site .tile.ghost { outline:2px dashed var(--dim); outline-offset:1px; opacity:.75; }
   .efc.site .tile.strike { text-decoration:line-through; }
   .mapwrap { width:100%; max-width:1200px; display:flex; flex-direction:column; gap:14px; align-items:stretch; }
@@ -350,7 +457,7 @@
   .coldflash { position:absolute; inset:0; z-index:72; pointer-events:none; box-shadow:inset 0 0 120px 30px rgba(255,59,59,.55); }
 
   /* debug / tuning drawer (overlay on the right, closed by default) */
-  #btnDebug { background:transparent; border:2px solid var(--line); padding:2px 8px; font-size:12px; letter-spacing:.1em; color:var(--dim); }
+  #btnDebug { background:transparent; border:2px solid var(--line); padding:2px 8px; font-size:var(--fs-min); letter-spacing:.1em; color:var(--dim); }
   #btnDebug.on { border-color:var(--status); color:var(--status); }
   #dbg { position:absolute; right:0; top:40px; bottom:0; width:300px; z-index:90; background:rgba(10,10,16,.97);
     border-left:2px solid var(--status); padding:10px 12px 12px; overflow-y:auto; font-size:12px; font-weight:400;
@@ -384,11 +491,13 @@
       <div id="enemyText"></div>
       <div id="nextWrap" class="hidden"></div>
     </div>
-    <div id="faceStrip"></div>
+    <div id="stripWrap"><div id="stripHead"></div><div id="faceStrip"></div></div>
   </section>
   <section id="sentence">
+    <div id="narration"></div>
+    <div id="railHead"><span id="railTitle"></span><span id="railShape"></span><span id="rtotals"></span></div>
     <div id="slots"></div>
-    <div id="preview"><div id="shape"></div><div id="previewText"></div></div>
+    <div id="preview"><div id="previewText"></div></div>
   </section>
   <section id="bottom">
     <div id="tray"></div>
@@ -419,6 +528,7 @@ const CONFIG = {
   loseRule: 'maxScars',                               // 'maxScars' (v1 rule, default) | 'dieLost' = run ends when every face of any single die is a SCAR
   scarTargets: null,                                  // die ids a scar may land on (null = every die with kind 'body')
   mindAloneHolds: false,                              // true: a lone MIND (1-slot sentence) lets you hold one body die into the next turn
+  minSlots: 2,                                        // no encounter / site has fewer sentence slots than this (1-slot code paths stay, unreachable by default)
   defaultSlots: 3,                                    // sentence length of an enemy / site without its own `slots`
   points: { favourite: 2, other: 1, itemBonus: 1, scar: 0 },
   verbs: ['PRUNE', 'SOW', 'DIG'],
@@ -456,15 +566,21 @@ Object.assign(CONFIG, {
   // Sentence labels by MIND position. `first` / `middle` / `last` apply to any slot count; no MIND = reflex;
   // a lone MIND in a 1-slot sentence = idle (or hold with mindAloneHolds).
   shapeNames: { first: 'Plan', middle: 'Situation', last: 'Impulse', reflex: 'Reflex', idle: 'Idle', hold: 'Hold' },
+  // Action names. Defaults are neutral (they read against an animal, a person, a place or a scavenge site); actionNamesByTag overrides
+  // single names for an encounter whose first matching tag is that tag (animal | human | place; scavenge sites use 'site').
+  // Lookup order: item name for the tag -> item name -> part name for the tag -> part name. Keep names short (shown big in slots).
   actionNames: {                                      // bare body parts only: [bodyPart][verb]; item faces use items[id].names. IDLE = acting on instinct with no verb
     'PALM':  { PRUNE: 'Hit',      SOW: 'Gesture',     DIG: 'Search' },
     'ARM':   { PRUNE: 'Swing',    SOW: 'Wave',        DIG: 'Reach' },
-    'MOUTH': { PRUNE: 'Insult',   SOW: 'Small talk',  DIG: 'Ask' },
-    'EYE':   { PRUNE: 'Glare',    SOW: 'Kind look',   DIG: 'Look' },
-    'EAR':   { PRUNE: 'Tune out', SOW: 'Hear out',    DIG: 'Listen' },
-    'NOSE':  { PRUNE: 'Snort',    SOW: 'Sniff kindly', DIG: 'Sniff out' },
+    'MOUTH': { PRUNE: 'Shout',    SOW: 'Coax',        DIG: 'Call out' },
+    'EYE':   { PRUNE: 'Glare',    SOW: 'Soft look',   DIG: 'Look' },
+    'EAR':   { PRUNE: 'Tune out', SOW: 'Lend an ear', DIG: 'Listen' },
+    'NOSE':  { PRUNE: 'Snort',    SOW: 'Sniff gently', DIG: 'Sniff out' },
     'BACK':  { PRUNE: 'Shove',    SOW: 'Lean',        DIG: 'Hunch',  IDLE: 'Brace' },
-    'BELLY': { PRUNE: 'Bump',     SOW: 'Laugh',       DIG: 'Rumble', IDLE: 'Clench' },
+    'BELLY': { PRUNE: 'Bump',     SOW: 'Chuckle',     DIG: 'Rumble', IDLE: 'Clench' },
+  },
+  actionNamesByTag: {                                 // [tag][bodyPart][verb]
+    human: { MOUTH: { PRUNE: 'Insult', SOW: 'Small talk', DIG: 'Ask' }, EAR: { SOW: 'Hear out' }, BELLY: { SOW: 'Laugh' } },
   },
 });
 
@@ -474,34 +590,37 @@ Object.assign(CONFIG, {
 
 Object.assign(CONFIG, {
   // Items: part, a name per verb (null = use the part's action name), a `special` code the engine switches on, `info` for
-  // tooltips, optional `uses` (charges) and `forbidden` (inert until checks). Numbers for the specials live in itemRules.
+  // tooltips, optional `namesByTag` ({ tag: { VERB: name } }, tag = animal | human | place | site; overrides `names`), optional `uses` (charges) and `forbidden` (inert until checks). Numbers for the specials live in itemRules.
   // Every item also gives points.itemBonus.
   items: {
-    KNIFE:        { name: 'KNIFE',        part: 'PALM',  names: { PRUNE: 'Stab',   SOW: 'Threaten',        DIG: 'Pry' },
+    KNIFE:        { name: 'KNIFE',        part: 'PALM',  names: { PRUNE: 'Stab',   SOW: 'Threaten',        DIG: 'Poke' }, namesByTag: { site: { DIG: 'Pry' }, place: { DIG: 'Pry' } },
                     special: 'knife',       info: 'PRUNE: +1 extra point' },
-    SHEARS:       { name: 'SHEARS',       part: 'PALM',  names: { PRUNE: 'Snip',   SOW: 'Offer to trim',   DIG: 'Cut open' },
+    SHEARS:       { name: 'SHEARS',       part: 'PALM',  names: { PRUNE: 'Snip',   SOW: 'Show shears',     DIG: 'Snip around' },
+                    namesByTag: { human: { SOW: 'Offer a trim' }, site: { DIG: 'Cut open' }, place: { DIG: 'Cut open' } },
                     special: 'shears',      info: 'PRUNE: its points are split across 2 different faces. On a scavenge site, PRUNE with SHEARS makes no noise' },
-    SPADE:        { name: 'SPADE',        part: 'PALM',  names: { PRUNE: 'Whack',  SOW: 'Lean and chat',   DIG: 'Dig' },
+    SPADE:        { name: 'SPADE',        part: 'PALM',  names: { PRUNE: 'Whack',  SOW: 'Lean on spade',   DIG: 'Dig' }, namesByTag: { human: { SOW: 'Lean and chat' } },
                     special: 'spade',       info: 'DIG on a scavenge site: reveals all faces' },
-    WATERING_CAN: { name: 'WATERING CAN', part: 'PALM',  names: { PRUNE: 'Splash', SOW: 'Water their plant', DIG: 'Flood out' },
+    WATERING_CAN: { name: 'WATERING CAN', part: 'PALM',  names: { PRUNE: 'Splash', SOW: 'Sprinkle', DIG: 'Pour out' },
+                    namesByTag: { human: { SOW: 'Water their plant' }, site: { DIG: 'Flood out' }, place: { DIG: 'Flood out' } },
                     special: 'wateringCan', info: 'SOW: +1 now, and +1 SOW automatically at the start of your next turn' },
-    MATCHES:      { name: 'MATCHES',      part: 'PALM',  names: { PRUNE: 'Light up', SOW: 'Offer a light', DIG: 'Shine' },
+    MATCHES:      { name: 'MATCHES',      part: 'PALM',  names: { PRUNE: 'Light up', SOW: 'Strike one', DIG: 'Shine' }, namesByTag: { human: { SOW: 'Offer a light' } },
                     special: 'matches',     uses: 3, info: 'PRUNE: +2. Each use spends 1 charge; at 0 the matches burn out' },
-    FORBIDDEN_BOOK: { name: 'FORBIDDEN BOOK', part: 'PALM', names: { PRUNE: 'Smack', SOW: 'Quote', DIG: 'Look up' },
+    FORBIDDEN_BOOK: { name: 'FORBIDDEN BOOK', part: 'PALM', names: { PRUNE: 'Smack', SOW: 'Read aloud', DIG: 'Look up' }, namesByTag: { human: { SOW: 'Quote' } },
                     special: 'forbiddenBook', forbidden: true, info: 'SOW: +2. Forbidden: suspicious at checks (later)' },
     SEED_POUCH:   { name: 'SEED POUCH',   part: 'PALM',  names: { PRUNE: null, SOW: null, DIG: null },
                     special: 'seedPouch',   uses: 3, info: 'Needed to catch a soul (later). One use per soul. No effect yet' },
     SLEEVE_POCKET: { name: 'SLEEVE POCKET', part: 'ARM', names: { PRUNE: null, SOW: null, DIG: null },
                     special: 'sleevePocket', info: 'At a check (later) the item on a neighbouring face stays hidden. No effect yet' },
-    GLASSES:      { name: 'GLASSES',      part: 'EYE',   names: { PRUNE: 'Glint',  SOW: 'Look learned',    DIG: 'Read the fine print' },
+    GLASSES:      { name: 'GLASSES',      part: 'EYE',   names: { PRUNE: 'Glint',  SOW: 'Peer kindly',      DIG: 'Squint' },
+                    namesByTag: { human: { SOW: 'Look learned', DIG: 'Read the fine print' }, site: { DIG: 'Inspect' }, place: { DIG: 'Inspect' } },
                     special: 'glasses',     info: 'First in the sentence: reveals the next 2 enemy intents' },
-    LANTERN:      { name: 'LANTERN',      part: 'EYE',   names: { PRUNE: 'Dazzle', SOW: 'Warm light',      DIG: 'Light up' },
+    LANTERN:      { name: 'LANTERN',      part: 'EYE',   names: { PRUNE: 'Dazzle', SOW: 'Warm light',      DIG: 'Shed light' },
                     special: 'lantern',     info: 'This eye face counts as matching (2 points) under any verb' },
-    EAR_TRUMPET:  { name: 'EAR TRUMPET',  part: 'EAR',   names: { PRUNE: null,     SOW: 'Listen closely',  DIG: 'Eavesdrop' },
+    EAR_TRUMPET:  { name: 'EAR TRUMPET',  part: 'EAR',   names: { PRUNE: null,     SOW: 'Listen closely',  DIG: 'Listen in' }, namesByTag: { human: { DIG: 'Eavesdrop' } },
                     special: 'earTrumpet',  info: 'Directly before a MOUTH die: that MOUTH gets +2' },
     WHISTLE:      { name: 'WHISTLE',      part: 'MOUTH', names: { PRUNE: 'Shriek', SOW: 'Call softly',     DIG: 'Echo' },
                     special: 'whistle',     info: 'SOW vs animals: this die\'s points ×2' },
-    PIPE:         { name: 'PIPE',         part: 'MOUTH', names: { PRUNE: 'Blow smoke', SOW: 'Calm chat',   DIG: 'Ponder' },
+    PIPE:         { name: 'PIPE',         part: 'MOUTH', names: { PRUNE: 'Blow smoke', SOW: 'Puff calmly', DIG: 'Ponder' }, namesByTag: { human: { SOW: 'Calm chat' } },
                     special: 'pipe',        info: 'Last in the sentence: wanted level −1 (no effect yet)' },
     VEST:         { name: 'VEST',         part: 'BELLY', names: { PRUNE: null, SOW: null, DIG: null },
                     special: 'vest',        info: 'Covers the belly: no scar when it is exposed' },
@@ -531,7 +650,8 @@ Object.assign(CONFIG, {
   // Enemy effect numbers. tax: every verb total of the sentence is reduced by this next turn (min 0, not stacking).
   effectRules: { tax: 1, scarHeadDie: 'HEAD' },
   // Enemies: tags, pruneMod / sowMod (added once to that verb's sentence total, min 0), 6 faces with pips,
-  // flavour text (read as "<logName> <text>"), rewards per ending.
+  // shortName = how narration refers to it ('the stray dog'), pron = { them, its } for later mentions (default it / its), act = full-sentence action line per face name ({item} = the item taken / lost; keys noItem, wag, broken; falls back to
+  // shortName + text), flavour text (read as "<logName> <text>"), rewards per ending.
   //   effect: 'scar' (random non-scar HAND/HEAD face -> SCAR, its item is destroyed) | 'rerollPenalty' (-1 reroll next turn)
   //           | 'takeItem' (random placed item goes to the enemy; returned if beaten) | 'none'
   //           | 'loseItem' (a random placed item is removed for good, never returned)
@@ -541,15 +661,18 @@ Object.assign(CONFIG, {
   //   rewards: { choose:[ids] } pick one, { give:[ids] } all; returnTaken:true gives back taken items; revealTiles is M2.
   enemies: {
     DOG: {
-      name: 'STRAY DOG', logName: 'dog', tags: ['animal'], pruneMod: 0, sowMod: 0, slots: 3,
+      name: 'STRAY DOG', logName: 'dog', shortName: 'the stray dog', tags: ['animal'], pruneMod: 0, sowMod: 0, slots: 3,
       faces: [
-        { name: 'BITE',    pips: 4, hostile: true,  effect: 'scar' },
-        { name: 'BITE',    pips: 4, hostile: true,  effect: 'scar' },
-        { name: 'GROWL',   pips: 4, hostile: true,  effect: 'rerollPenalty' },
-        { name: 'GROWL',   pips: 4, hostile: true,  effect: 'rerollPenalty' },
-        { name: 'SNIFF',   pips: 4, hostile: true,  effect: 'none' },
-        { name: 'WHIMPER', pips: 4, hostile: false, effect: 'none' },
+        { name: 'BITE',    pips: 3, hostile: true,  effect: 'scar' },
+        { name: 'BITE',    pips: 3, hostile: true,  effect: 'scar' },
+        { name: 'GROWL',   pips: 3, hostile: true,  effect: 'rerollPenalty' },
+        { name: 'GROWL',   pips: 3, hostile: true,  effect: 'rerollPenalty' },
+        { name: 'SNIFF',   pips: 3, hostile: true,  effect: 'none' },
+        { name: 'WHIMPER', pips: 3, hostile: false, effect: 'none' },
       ],
+      act: { BITE: 'The stray dog bites you: one of your faces becomes a scar.', GROWL: 'The stray dog growls at you: 1 fewer reroll next turn.',
+             SNIFF: 'The stray dog sniffs your pockets.', WHIMPER: 'The stray dog whimpers.',
+             wag: 'The stray dog wags its tail.', broken: 'The stray dog is too hurt to act.' },
       targetPriority: ['BITE', 'GROWL', 'SNIFF'],     // order for spilling PRUNE/SOW past the current intent
       text: { BITE: 'bites', GROWL: 'growls (−1 reroll next turn)', SNIFF: 'sniffs your pockets', WHIMPER: 'whimpers',
               wag: 'wags its tail', broken: 'is too hurt to act' },
@@ -557,15 +680,18 @@ Object.assign(CONFIG, {
       winText: { beaten: 'The dog is done for.', befriended: 'The dog is yours now.' },
     },
     PLUMBER: {
-      name: 'PLUMBER', logName: 'plumber', tags: ['human'], pruneMod: -1, sowMod: 1, slots: 3,
+      name: 'PLUMBER', logName: 'plumber', shortName: 'the plumber', pron: { them: 'him', its: 'his' }, tags: ['human'], pruneMod: -1, sowMod: 1, slots: 3,
       faces: [
-        { name: 'BORROW', pips: 6, hostile: true,  effect: 'takeItem' },
-        { name: 'BORROW', pips: 6, hostile: true,  effect: 'takeItem' },
+        { name: 'BORROW', pips: 5, hostile: true,  effect: 'takeItem' },
+        { name: 'BORROW', pips: 5, hostile: true,  effect: 'takeItem' },
         { name: 'QUOTE',  pips: 2, hostile: true,  effect: 'rerollPenalty' },
         { name: 'QUOTE',  pips: 2, hostile: true,  effect: 'rerollPenalty' },
         { name: 'SIGH',   pips: 2, hostile: false, effect: 'none' },
         { name: 'SIGH',   pips: 2, hostile: false, effect: 'none' },
       ],
+      act: { BORROW: 'The plumber borrows your {item}.', QUOTE: 'The plumber quotes an outrageous price: 1 fewer reroll next turn.',
+             SIGH: 'The plumber sighs and shakes his head.', noItem: 'The plumber rummages through your things and finds nothing worth borrowing.',
+             wag: 'The plumber tips his cap.', broken: 'The plumber is too hurt to act.' },
       targetPriority: ['BORROW', 'QUOTE'],
       text: { BORROW: 'borrows your {item}', QUOTE: 'quotes an outrageous price (−1 reroll next turn)', SIGH: 'sighs and shakes his head',
               noItem: 'rummages through your things, finds nothing worth borrowing', wag: 'tips his cap', broken: 'is too hurt to act' },
@@ -573,15 +699,18 @@ Object.assign(CONFIG, {
       winText: { beaten: 'The plumber leaves, rubbing his bruises.', befriended: 'The plumber shakes your hand and stays for tea.' },
     },
     ACCOUNTANT: {
-      name: 'ACCOUNTANT', logName: 'accountant', tags: ['human'], pruneMod: 1, sowMod: -1, slots: 2,   // he talks, you nod
+      name: 'ACCOUNTANT', logName: 'accountant', shortName: 'the accountant', pron: { them: 'him', its: 'his' }, tags: ['human'], pruneMod: 1, sowMod: -1, slots: 2,   // he talks, you nod
       faces: [
-        { name: 'TAXES',    pips: 4, hostile: true,  effect: 'tax' },
-        { name: 'TAXES',    pips: 4, hostile: true,  effect: 'tax' },
-        { name: 'EXPLAINS', pips: 6, hostile: true,  effect: 'scarHead' },
+        { name: 'TAXES',    pips: 3, hostile: true,  effect: 'tax' },
+        { name: 'TAXES',    pips: 3, hostile: true,  effect: 'tax' },
+        { name: 'EXPLAINS', pips: 5, hostile: true,  effect: 'scarHead' },
         { name: 'BORES',    pips: 2, hostile: true,  effect: 'rerollPenalty' },
-        { name: 'ANECDOTE', pips: 4, hostile: true,  effect: 'freezeDie' },
+        { name: 'ANECDOTE', pips: 3, hostile: true,  effect: 'freezeDie' },
         { name: 'FILES',    pips: 2, hostile: false, effect: 'none' },
       ],
+      act: { TAXES: 'The accountant talks about taxes: next turn every verb is 1 lower.', EXPLAINS: 'The accountant explains depreciation and your eyes glaze over: a HEAD face becomes a scar.',
+             BORES: 'The accountant tells you about his weekend: 1 fewer reroll next turn.', ANECDOTE: 'The accountant starts an anecdote: one of your dice freezes up.',
+             FILES: 'The accountant shuffles his files.', wag: 'The accountant adjusts his glasses.', broken: 'The accountant is too hurt to act.' },
       targetPriority: ['EXPLAINS', 'TAXES', 'ANECDOTE', 'BORES'],
       text: { TAXES: 'talks about taxes (next turn: every verb −1)', EXPLAINS: 'explains depreciation; your eyes glaze over',
               BORES: 'tells you about his weekend (−1 reroll next turn)', ANECDOTE: 'starts an anecdote (a die freezes up)',
@@ -590,16 +719,19 @@ Object.assign(CONFIG, {
       winText: { beaten: 'The accountant flees to a quieter office.', befriended: 'The accountant waves goodbye, his spreadsheet lighter.' },
     },
     BRIDGE: {
-      name: 'WOODEN BRIDGE', logName: 'bridge', tags: ['place'], pruneMod: 0, sowMod: 0, slots: 1,   // one careful step
+      name: 'WOODEN BRIDGE', logName: 'bridge', shortName: 'the bridge', tags: ['place'], pruneMod: 0, sowMod: 0, slots: 2,   // CONFIG.minSlots: never fewer than two steps
       resultLabels: { beaten: 'FORCED ACROSS', befriended: 'CROSSED SAFELY' },   // shown instead of BEATEN / BEFRIENDED
       faces: [
-        { name: 'CREAK',      pips: 4, hostile: true,  effect: 'rerollPenalty' },
-        { name: 'CREAK',      pips: 4, hostile: true,  effect: 'rerollPenalty' },
-        { name: 'SLIP',       pips: 4, hostile: true,  effect: 'scar' },
-        { name: 'DROP',       pips: 6, hostile: true,  effect: 'loseItem' },
+        { name: 'CREAK',      pips: 3, hostile: true,  effect: 'rerollPenalty' },
+        { name: 'CREAK',      pips: 3, hostile: true,  effect: 'rerollPenalty' },
+        { name: 'SLIP',       pips: 3, hostile: true,  effect: 'scar' },
+        { name: 'DROP',       pips: 5, hostile: true,  effect: 'loseItem' },
         { name: 'SWAY',       pips: 2, hostile: true,  effect: 'rerollPenalty' },
         { name: 'CALM WATER', pips: 2, hostile: false, effect: 'none' },
       ],
+      act: { CREAK: 'The planks creak under you: 1 fewer reroll next turn.', SLIP: 'You slip on the wet wood: one of your faces becomes a scar.',
+             DROP: 'Your {item} falls into the river.', SWAY: 'The bridge sways under you: 1 fewer reroll next turn.', 'CALM WATER': 'The water flows quietly.',
+             noItem: 'Something almost falls into the river.', wag: 'The planks hold steady.', broken: 'The planks are splintered.' },
       targetPriority: ['DROP', 'SLIP', 'CREAK', 'SWAY'],
       text: { CREAK: 'the planks creak (−1 reroll next turn)', SLIP: 'you slip on wet wood', DROP: 'something falls into the river',
               SWAY: 'the bridge sways (−1 reroll next turn)', 'CALM WATER': 'the water flows quietly',
@@ -608,15 +740,18 @@ Object.assign(CONFIG, {
       winText: { beaten: 'You force your way across, planks cracking.', befriended: 'You cross, step by careful step.' },
     },
     CROWS: {
-      name: 'CROW FLOCK', logName: 'crows', tags: ['animal'], pruneMod: 1, sowMod: -2, slots: 2,
+      name: 'CROW FLOCK', logName: 'crows', shortName: 'the crows', pron: { them: 'them', its: 'their' }, tags: ['animal'], pruneMod: 1, sowMod: -2, slots: 2,
       faces: [
         { name: 'PECK',   pips: 2, hostile: true,  effect: 'scar' },
         { name: 'PECK',   pips: 2, hostile: true,  effect: 'scar' },
         { name: 'CAW',    pips: 2, hostile: true,  effect: 'rerollPenalty' },
-        { name: 'STEAL',  pips: 4, hostile: true,  effect: 'takeItem' },
+        { name: 'STEAL',  pips: 3, hostile: true,  effect: 'takeItem' },
         { name: 'CIRCLE', pips: 2, hostile: false, effect: 'none' },
         { name: 'CIRCLE', pips: 2, hostile: false, effect: 'none' },
       ],
+      act: { PECK: 'The crows peck at you: one of your faces becomes a scar.', CAW: 'The crows caw loudly: 1 fewer reroll next turn.',
+             STEAL: 'The crows steal your {item}.', CIRCLE: 'The crows circle overhead.',
+             noItem: 'The crows find nothing shiny.', wag: 'The crows settle on a branch.', broken: 'The crows are too hurt to act.' },
       targetPriority: ['PECK', 'STEAL', 'CAW'],
       text: { PECK: 'pecks!', CAW: 'caws (−1 reroll next turn)', STEAL: 'steals from you', CIRCLE: 'circles overhead',
               noItem: 'finds nothing shiny', wag: 'settles on a branch', broken: 'is too hurt to act' },
@@ -661,13 +796,13 @@ Object.assign(CONFIG, {
   // Scavenge sites: faces = hidden contents (one per face, shuffled when the site is created if shuffleFaces),
   // pips = pips per face, pool = item ids an ITEM face can hold, guardian = enemy id fought when noise is full.
   sites: {
-    HEAP: { name: 'COMPOST HEAP', word: 'HEAP', faces: ['ITEM', 'ITEM', 'JUNK', 'RATS', 'NOTHING', 'NOTHING'], pips: 2, slots: 3,
+    HEAP: { shortName: 'the compost heap', name: 'COMPOST HEAP', word: 'HEAP', faces: ['ITEM', 'ITEM', 'JUNK', 'RATS', 'NOTHING', 'NOTHING'], pips: 2, slots: 3,
             pool: ['WATERING_CAN', 'SPADE', 'MATCHES'], guardian: 'DOG' },
-    SHED: { name: 'GARDEN SHED', word: 'SHED', faces: ['ITEM', 'ITEM', 'ITEM', 'JUNK', 'NOTHING', 'TRAP'], pips: 3, slots: 3,
+    SHED: { shortName: 'the garden shed', name: 'GARDEN SHED', word: 'SHED', faces: ['ITEM', 'ITEM', 'ITEM', 'JUNK', 'NOTHING', 'TRAP'], pips: 3, slots: 3,
             pool: ['SHEARS', 'KNIFE', 'LANTERN', 'VEST'], guardian: 'CROWS' },
-    HUT:  { name: 'ABANDONED HUT', word: 'HUT', faces: ['ITEM', 'ITEM', 'NOTHING', 'JUNK', 'TRAP', 'NOTHING'], pips: 2, slots: 3,
+    HUT:  { shortName: 'the abandoned hut', name: 'ABANDONED HUT', word: 'HUT', faces: ['ITEM', 'ITEM', 'NOTHING', 'JUNK', 'TRAP', 'NOTHING'], pips: 2, slots: 3,
             pool: ['MATCHES', 'PIPE', 'FORBIDDEN_BOOK', 'SLEEVE_POCKET'], guardian: 'ACCOUNTANT' },
-    WELL: { name: 'OLD WELL', word: 'WELL', faces: ['ITEM', 'NOTHING', 'NOTHING', 'NOTHING', 'JUNK', 'RATS'], pips: 1, slots: 2,
+    WELL: { shortName: 'the old well', name: 'OLD WELL', word: 'WELL', faces: ['ITEM', 'NOTHING', 'NOTHING', 'NOTHING', 'JUNK', 'RATS'], pips: 1, slots: 2,
             pool: ['WHISTLE', 'EAR_TRUMPET'], guardian: 'PLUMBER' },
   },
   siteContents: {                                          // display words for site face contents
@@ -685,8 +820,8 @@ Object.assign(CONFIG, {
 
 Object.assign(CONFIG, {
   verbInfo: {
-    PRUNE: 'Force. Breaks pips. Beat them.',
-    SOW: 'Persuade. Turns pips. Befriend them.',
+    PRUNE: 'Force. Breaks pips (points of their resolve). Beat them.',
+    SOW: 'Persuade. Turns pips (points of their resolve). Befriend them.',
     DIG: 'Search. Reveals what is coming and passes its points to the next die.',
   },
   // Item special annotations shown in the preview (placeholders: {n}).
@@ -703,15 +838,82 @@ Object.assign(CONFIG, {
     noItems: '0 items',
   },
   text: {
-    help: 'ROLL, hold & reroll, drag dice into the sentence slots, COMMIT. The MIND die (optional) sets the verb for dice after it; dice before it, or with no MIND, act on instinct.',
+    // plain-language narration under the rail (src/ui/10-render.js narrateSentence / narrateResult). {them} = the enemy's shortName
+    // (or the site's shortName); from the second mention it is the pronoun N.pron / enemy.pron. A step's phrase = actions[action name] (items and bare parts share the name space), else the lower-cased action name.
+    narration: {
+      you: 'You {steps}.', youPartial: 'You {steps}, then …', joinThen: ', then ', joinLast: ', and finally ', youIdle: 'You do nothing much.', pron: { them: 'it', its: 'its' }, idle: 'stand around', scar: 'flail with a scarred limb',
+      mind: ' (MIND: {verb})',
+      actions: {
+        Hit: 'punch {them}', Gesture: 'gesture at {them}', Search: 'pat down {them}',
+        Swing: 'swing an arm at {them}', Wave: 'wave at {them}', Reach: 'reach out to {them}',
+        Insult: 'insult {them}', 'Small talk': 'make small talk with {them}', Ask: 'ask {them} a question',
+        Glare: 'glare at {them}', 'Kind look': 'give {them} a kind look', Look: 'look {them} over',
+        'Tune out': 'tune {them} out', 'Hear out': 'hear {them} out', Listen: 'listen to {them}',
+        Snort: 'snort at {them}', 'Sniff kindly': 'sniff kindly at {them}', 'Sniff out': 'sniff {them} out',
+        Shove: 'shove {them} with your back', Lean: 'lean against {them}', Hunch: 'hunch your back at {them}', Brace: 'brace yourself',
+        Bump: 'bump {them} with your belly', Laugh: 'laugh at {them}', Rumble: 'rumble at {them}', Clench: 'clench your belly',
+        Stab: 'stab at {them} with your knife', Threaten: 'threaten {them} with your knife', Pry: 'pry at {them} with your knife',
+        Snip: 'snip at {them} with your shears', 'Offer to trim': 'offer {them} a trim', 'Cut open': 'cut {them} open',
+        Whack: 'whack {them} with your spade', 'Lean and chat': 'lean on your spade and chat with {them}', Dig: 'dig around {them}',
+        Splash: 'splash {them}', 'Water their plant': 'water {them}\'s plant', 'Flood out': 'flood {them} out',
+        'Light up': 'light {them} up', 'Offer a light': 'offer {them} a light', Shine: 'shine a light on {them}',
+        Smack: 'smack {them} with the forbidden book', Quote: 'quote the forbidden book at {them}', 'Look up': 'look {them} up in the forbidden book',
+        Glint: 'glint at {them} through your glasses', 'Look learned': 'look learned at {them}', 'Read the fine print': 'read the fine print',
+        Dazzle: 'dazzle {them}', 'Warm light': 'cast a warm light on {them}',
+        'Listen closely': 'listen closely to {them}', Eavesdrop: 'eavesdrop on {them}',
+        Shriek: 'shriek at {them}', 'Call softly': 'call softly to {them}', Echo: 'echo {them}',
+        'Blow smoke': 'blow smoke at {them}', 'Calm chat': 'chat calmly with {them}', Ponder: 'ponder {them} over your pipe',
+        Shout: 'shout at {them}', Coax: 'coax {them}', 'Call out': 'call out to {them}', 'Lend an ear': 'lend {them} an ear',
+        'Soft look': 'give {them} a soft look', 'Sniff gently': 'sniff gently at {them}', Chuckle: 'chuckle at {them}',
+        Poke: 'poke at {them} with your knife', 'Show shears': 'show {them} your shears', 'Snip around': 'snip around {them}',
+        'Lean on spade': 'lean on your spade near {them}', Sprinkle: 'sprinkle {them}', 'Pour out': 'pour water over {them}',
+        'Strike one': 'strike a match near {them}', 'Read aloud': 'read aloud from the forbidden book', 'Offer a trim': 'offer {them} a trim',
+        'Peer kindly': 'peer kindly at {them}', Squint: 'squint at {them}', Inspect: 'inspect {them} closely',
+        'Shed light': 'shed some light on {them}', 'Listen in': 'listen in on {them}', 'Puff calmly': 'puff calmly on your pipe',
+      },
+      // phrase overrides for one encounter tag (same name, different wording): [tag][action name]; lookup tag -> actions
+      actionsByTag: { site: { Search: 'rummage through {them}', Look: 'look over {them}' }, place: { Search: 'feel along {them}' } },
+      // after resolution: what it did to them (one clause per face touched; {face} = its action name, {n} pips)
+      faceBroken: '{its} {face} breaks.', faceTurned: '{its} {face} turns friendly.',
+      facePartBroken: '{n} of {its} {face} pips break.', facePartTurned: '{n} of {its} {face} pips turn.',   // {its} is capitalised at a sentence start
+      // appended to the sentence when it reveals something ({its} = pronoun, {n})
+      reveal: { intent: 'You see {its} next move.', intents: 'You see {its} next {n} moves.', faces: 'You peek into {n} spots.', facesAll: 'You peek into every spot.' },
+      siteOpened: 'You open {what}.', nothing: 'It barely notices.',
+    },
+    // the sentence rail (src/ui/10-render.js renderSlots): title, step labels by slot count, per-step tags / captions
+    rail: {
+      title: 'WHAT YOU DO', empty: 'drop a die', totalsPrefix: '=', totalsPending: '…', totalsSoFar: 'so far', shapePending: '…',
+      steps: { 1: ['ONLY'], 2: ['FIRST', 'THEN'], 3: ['FIRST', 'THEN', 'LAST'] },   // more slots than listed: FIRST, THEN, THEN…
+      mindSets: 'SETS {verb}', mindHoldAction: 'HOLD', mindIdle: 'nothing to act', mindHold: 'keeps one die for next turn',
+      scarRed: 'SCARRED', scarTip: 'SCAR: 0 points, does nothing.',
+      mindTip: 'The MIND sets the verb for every die after it.',
+      instinct: 'instinct', noInstinct: 'no instinct',
+      instinctTip: 'Acts on instinct (before the MIND, or no MIND): its favourite verb {verb}.',
+      noInstinctTip: 'No instinct: this part does nothing on its own.',
+      directedTip: 'Acts with the MIND\'s verb {verb}.',
+      carryTip: 'DIG passes its points on to the next die.',
+    },
+    help: 'ROLL, hold & reroll, drag dice into the slots, COMMIT. The MIND die sets the verb for dice after it; earlier dice act on instinct.',
+    // reveal part of the totals ('= PRUNE 6 · REVEAL next intent'): fights reveal intents, sites reveal faces
+    revealTotals: { intent: 'REVEAL next intent', intents: 'REVEAL next {n} intents', faces: 'REVEAL {n} faces', facesAll: 'REVEAL all faces' },
     reveal: '(reveal)', noEffect: 'nothing happens', scar: 'SCAR', idleText: 'nothing happens', holdText: 'hold one die for the next turn',
     belly: 'your belly was exposed', lostDie: 'your {die} gave out',   // `scar` is also the face key of a scarred face
     beaten: 'BEATEN', befriended: 'BEFRIENDED', lost: 'YOU FLEE, SCARRED', tripComplete: 'TRIP COMPLETE',
+    // enemy die strip: header, per-face explanation (by effect; an enemy may override per face name with `info: { NAME: '…' }`), ghost hit preview
+    strip: {
+      head: 'ITS DIE', goal: 'clear every pip on its hostile faces to win', legend: '□ pip = 1 point of its resolve · PRUNE breaks, SOW turns · NOW = acts this turn',
+      pipTip: 'Pips: each □ is one point of this face\'s resolve. PRUNE breaks a pip (red), SOW turns it (green). When all its pips are gone the face is BROKEN or TURNED, whichever is the majority.',
+      sitePipTip: 'Pips: each □ is one layer of cover over what this face hides. Points remove pips; when all are gone the face opens.',
+      harmless: 'harmless', hostileNone: 'no effect, but it still counts', broken: 'BROKEN', turned: 'TURNED', wouldBreak: 'WOULD BREAK', wouldTurn: 'WOULD TURN',
+      win: 'THIS WINS THE FIGHT', winBeaten: 'WIN · beaten', winBefriended: 'WIN · befriended', provisional: '(so far)',
+      effects: { scar: 'scars one of your faces', rerollPenalty: '1 fewer reroll', takeItem: 'takes an item', loseItem: 'an item is lost for good',
+        scarHead: 'scars a HEAD face', tax: 'every verb −1 next turn', freezeDie: 'freezes one of your dice', none: '' },
+    },
     // --- UI labels / messages ({n} is replaced by a number) ---
     buttons: { roll: 'ROLL', reroll: 'REROLL ({n} left)', commit: 'COMMIT', restart: 'RESTART TRIP', continue: 'CONTINUE' },
     title: 'SMUGGLER', turn: 'TURN', scarsLabel: 'SCARS', intentLabel: 'INTENT', now: 'NOW', next: 'NEXT', nextPrefix: 'next:',
     held: 'HELD', unknownFace: '?', then: 'THEN',
-    placeHint: 'Fill all {slots} slots to see what the sentence does ({n}/{slots})',
+    placeHint: 'Fill all {slots} slots to COMMIT ({n}/{slots})',
     holdPick: 'HOLD: click one body die to keep its face for the next turn', heldStatus: '{die} held over',
     lastTurn: 'Last:', lastAction: 'last turn:', pressRoll: 'Press ROLL to start',
     growlStatus: '−1 reroll this turn ({n} total)', bonusStatus: '+{n} reroll (seeds)', sowStatus: '+{n} SOW at turn start (watering can)',
@@ -741,13 +943,14 @@ Object.assign(CONFIG, {
     },
     site: {                                    // preview / status strings for scavenge sites ({n} {noise} {pips})
       force: 'force {n} (+{noise} noise)', forceQuiet: 'force {n} (no noise)', coax: 'coax {n} pips', search: 'search: reveals {n}',
+      noiseOnly: '+{n} noise', noNoise: 'no noise',   // site hint line once the sentence is full (the totals already name PRUNE / REVEAL)
       searchAll: 'search: reveals all', nothing: 'nothing happens', left: 'LEFT', guardian: 'GUARDIAN', noise: 'NOISE',
     },
     // V1-5: start screen, map and site screen strings ({n} {c} {max} {item} {name})
     m2: {
       startSub: 'Choose a trip', changeMode: 'MODE SELECT',
-      startM1: 'M1 SEQUENCE', startM1Desc: 'Five events and a campfire, one after another. No map.',
-      startM2: 'M2 MAP', startM2Desc: 'Walk a foggy map to the gate. Daylight runs out; scavenge sites make noise.',
+      startM1: 'SEQUENCE', startM1Desc: 'Five events and a campfire, one after another. No map.',
+      startM2: 'MAP', startM2Desc: 'Walk a foggy map to the gate. Daylight runs out; scavenge sites make noise.',
       daylight: 'DAYLIGHT', scars: 'SCARS', items: 'ITEMS', you: 'YOU', map: 'MAP', moves: 'MOVES {n}', dayShort: '☀ {n}', coldShort: 'THE COLD',
       mapHint: 'Click a highlighted tile to walk there. Each step costs 1 daylight; in the dark every step scars you.',
       coldHint: 'No daylight left: every step scars you (THE COLD).',
@@ -755,7 +958,7 @@ Object.assign(CONFIG, {
       visitedTip: 'visited', seenTip: 'revealed by the dog', hereTip: 'You are here',
       typeLabel: { CHARACTER: 'FIGHT', SCAVENGE: 'SITE', CAMPFIRE: 'REST', EMPTY: '', START: '', GATE: 'EXIT' },
       coldMsg: 'THE COLD bites.', coldDestroyed: '{item} destroyed by the cold.', revealedMsg: '{n} fogged tiles are now visible.',
-      siteLabel: 'SCAVENGE SITE', guardian: 'guardian', rulesLine: 'each turn +1 noise · PRUNE +1 per point · full = guardian',
+      siteLabel: 'SCAVENGE SITE', guardian: 'guardian', rulesLine: 'each turn +1 noise · PRUNE +1/point · full = guardian',
       noise: 'NOISE', found: 'FOUND', target: 'TARGET', first: 'FIRST',
       targetTip: 'Click to aim your points at this face first (click again to clear).', hiddenTip: 'Hidden: DIG reveals it, PRUNE / SOW open it.',
       seen: 'SEEN', got: 'TAKEN', brokeInto: '{item} → JUNK', nothingLeft: 'Nothing left here. LEAVE when you are ready.',
@@ -777,7 +980,7 @@ Object.assign(CONFIG, {
 
 Object.assign(CONFIG, {
   colors: {
-    bg: '#0b0b10', panel: '#16161f', line: '#2a2a3a', text: '#e8e6f0', textDim: '#8a88a0',
+    bg: '#0b0b10', panel: '#16161f', line: '#2a2a3a', text: '#e8e6f0', textDim: '#a9a7c0',
     // verbs carry meaning: PRUNE = red (force), SOW = blue (intellect / persuasion), DIG = amber (curiosity / search)
     verb: { PRUNE: '#ff4a4a', SOW: '#3d8bff', DIG: '#ffb21f' },
     // body parts: a muted, neutral bone / sand / clay family so they never read as verbs
@@ -811,7 +1014,11 @@ Object.assign(CONFIG, {
 
 Object.assign(CONFIG, {
   timing: {
-    rollShuffleMs: 600, resolveStepMs: 340, enemyActMs: 560,
+    // Commit / enemy playback is ~1.6x the v2-3 speed (playtest: too fast to follow); drag, snap, roll and hold stay snappy.
+    rollShuffleMs: 600, resolveStepMs: 544, enemyActMs: 1500,        // enemy action line stays up this long (>= ~1.5 s to read it) before the next event / turn
+    preEnemyMs: 500,        // beat between the end of your sentence and the enemy acting
+    railStepMs: 450,        // one rail step (caption pops, playhead moves) during COMMIT
+    railPlayheadMs: 256,    // playhead slide between steps
     // Phase 3 (ms)
     shuffleStepMs: 55,      // one shuffle frame (also the roll-tick rate)
     settleStaggerMs: 110,   // extra shuffle time per die so they settle one after another
@@ -819,13 +1026,13 @@ Object.assign(CONFIG, {
     snapMs: 130,            // slide into a slot
     squashMs: 240,          // squash-and-stretch after landing
     returnMs: 260,          // invalid drop animating back (with overshoot)
-    popMs: 240,             // a sentence tile popping during COMMIT
-    flyMs: 380,             // floating number flight (to enemy / along the arrow)
-    shakeMs: 300,           // enemy hit shake
-    pipMs: 320,             // pip crack / flip
-    flourishMs: 420,        // face-resolve flourish
-    crackMs: 240,           // BITE crack before the face becomes SCAR
-    lungeMs: 380,           // dog lunge on BITE
+    popMs: 385,             // a sentence tile popping during COMMIT
+    flyMs: 610,             // floating number flight (to enemy / along the arrow)
+    shakeMs: 480,           // enemy hit shake
+    pipMs: 512,             // pip crack / flip
+    flourishMs: 670,        // face-resolve flourish
+    crackMs: 385,           // BITE crack before the face becomes SCAR
+    lungeMs: 610,           // dog lunge on BITE
     netPunchMs: 220,        // placement: die net punch-scale when an item lands
   },
   fx: {
@@ -838,21 +1045,23 @@ Object.assign(CONFIG, {
     litPopScale: 1.08, litPopMs: 260,   // the three dice popping when the sentence completes
     settleScale: 1.35,              // roll: die bounce when it settles
     holdBadgeMs: 200, holdTileMs: 180,
-    floatMs: 700, floatMinY: 121, floatRisePx: 60,   // floating BROKEN / TURNED / SCAR! text (floatMinY keeps it below the top bar)
+    floatMs: 1120, floatMinY: 121, floatRisePx: 60,   // floating BROKEN / TURNED / SCAR! text (floatMinY keeps it below the top bar)
     flyLiftPx: -50, flyLiftDigPx: -34,               // arc height of the +N numbers
-    burstDistMin: 26, burstDistRange: 40, burstMs: 380, burstMsRange: 160,
+    burstDistMin: 26, burstDistRange: 40, burstMs: 610, burstMsRange: 256,
     burstCounts: { pip: 6, resolvedExtra: 4, lunge: 8, scar: 10, win: 14 },   // sparks (resolvedExtra is added to `particles`)
-    cardPulseScale: 1.1, cardPulseMs: 160,          // enemy face card when a +N arrives
-    arrowSwellScale: 2.2,                           // arrows swelling as DIG points are passed on
-    revealSlideMs: 240,
-    lungeUpPx: 16, lungeDownPx: 46, growlShakePx: 4, sniffMs: 520, whimperMs: 600,
-    scarShakePx: 9, scarPopScale: 1.6, scarPopMs: 300, scarBoxPulseMs: 320,
-    newIntentMs: 300, loseShakePx: 6, loseShakeMs: 500,
+    cardPulseScale: 1.1, cardPulseMs: 256,          // enemy face card when a +N arrives
+    arrowSwellScale: 1.5,                           // carry arrow label swelling as DIG points are passed on
+    railPopScale: 1.14,                             // a rail caption popping as its step scores
+    revealSlideMs: 385,
+    lungeUpPx: 16, lungeDownPx: 46, growlShakePx: 4, sniffMs: 830, whimperMs: 960,
+    scarShakePx: 9, scarPopScale: 1.6, scarPopMs: 480, scarBoxPulseMs: 512,
+    newIntentMs: 480, loseShakePx: 6, loseShakeMs: 800,
     reducedWaitMs: 80,              // pause used in place of animations under prefers-reduced-motion
   },
   ui: {
     dragThresholdPx: 5,             // moving less than this = a click (toggle hold), not a drag
     dropSlackPx: 12,                // how far outside a slot a drop still counts
+    trayTiltDeg: 6,                 // max static tilt of a die lying in the tray (new per roll)
   },
   debug: { logRows: 10, pollMs: 120 },
 });
@@ -946,14 +1155,25 @@ function scoreBodyFace(face, verb, ctx) {
   if (p.kind === 'scar') return CONFIG.points.scar;
   return scoreDetail(p, verb, ctx).own;
 }
-// Name of the action a body face performs under `verb` (null verb = idle). Item names win over bare-part names.
-function actionName(p, verb) {
+// Name of the action a body face performs under `verb` (null verb = idle). `tags` = the encounter's tags ('site' for scavenge sites);
+// lookup order: item name for the first tag that has one -> item name -> bare-part name for a tag -> bare-part name.
+function actionName(p, verb, tags) {
   const d = itemDef(p.item);
   const key = verb || 'IDLE';
-  if (verb && d && d.names && d.names[verb]) return d.names[verb];
-  const a = CONFIG.actionNames[p.body];
-  return a && a[key] ? a[key] : p.face + ' ' + key;
+  tags = tags || [];
+  const pick = (byTag, base) => {
+    for (let i = 0; i < tags.length; i++) { const t = byTag && byTag[tags[i]]; if (t && t[key]) return t[key]; }
+    return base && base[key] ? base[key] : null;
+  };
+  let r = verb && d ? pick(d.namesByTag, d.names) : null;
+  if (!r) {
+    const bt = CONFIG.actionNamesByTag, byTag = {};
+    tags.forEach(t => { if (bt && bt[t] && bt[t][p.body]) byTag[t] = bt[t][p.body]; });
+    r = pick(byTag, CONFIG.actionNames[p.body]);
+  }
+  return r || p.face + ' ' + key;
 }
+const contextTags = (ctx) => (ctx.site ? ['site'] : ((ctx.enemy && ctx.enemy.tags) || []));
 
 // ---------- sentence ----------
 // faces = 1..N face strings in slot order (N = the encounter's slots), 0 or 1 verb face (the MIND die), ctx = { enemy?, site?, tax? }:
@@ -964,11 +1184,24 @@ function actionName(p, verb) {
 // Order triggers (final slot order): GLASSES in slot 0 = reveal depth 2; EAR TRUMPET directly before a MOUTH face = that face +2;
 // PIPE in the last slot = wanted level change (evaluation.pipeLast, no effect yet).
 function evaluateSentence(faces, ctx) {
+  if (faces.some(f => f == null)) throw new Error('evaluateSentence needs every slot filled (use evaluatePartial)');
+  return evaluateCore(faces, ctx, false);
+}
+// Same evaluation for a sentence that is still being built: slots = one entry per slot, a face string or null (empty).
+// Empty slots are skipped; a die is directed only if the MIND sits before it; DIG's carry goes to the next placed body die
+// (step.carryProvisional if an empty slot lies between, step.carryPending if no die is placed after it yet); the label is null
+// (shape '…') until a MIND is placed or every slot is full. Result adds complete / placed / shapeKnown; with every slot full it is
+// identical to evaluateSentence. A partial result has no steps for empty slots and `totalsText` '' when nothing is known yet.
+function evaluatePartial(slots, ctx) { return evaluateCore(slots, ctx, true); }
+function evaluateCore(faces, ctx, partial) {
   ctx = ctx || {};
   const enemy = ctx.site ? null : (ctx.enemy || null);
-  const parsed = faces.map(parseFace);
+  const tags = contextTags(ctx);
+  const parsed = faces.map(f => (f == null ? { face: null, kind: 'empty', verb: null, body: null, item: null } : parseFace(f)));
   const n = parsed.length;
   if (n < 1) throw new Error('sentence needs at least one face');
+  const emptyCount = parsed.filter(p => p.kind === 'empty').length;
+  const complete = emptyCount === 0;
   const verbSlots = [];
   parsed.forEach((p, i) => { if (p.kind === 'verb') verbSlots.push(i); });
   if (verbSlots.length > 1) throw new Error('sentence needs at most one verb face, got ' + verbSlots.length);
@@ -977,7 +1210,7 @@ function evaluateSentence(faces, ctx) {
   const SN = CONFIG.shapeNames;
   const holds = mindIndex >= 0 && n === 1 && !!CONFIG.mindAloneHolds;
   let shape;
-  if (mindIndex < 0) shape = SN.reflex;
+  if (mindIndex < 0) shape = complete ? SN.reflex : CONFIG.text.rail.shapePending;
   else if (n === 1) shape = holds ? SN.hold : SN.idle;
   else shape = mindIndex === 0 ? SN.first : (mindIndex === n - 1 ? SN.last : SN.middle);
 
@@ -1001,7 +1234,7 @@ function evaluateSentence(faces, ctx) {
   if (last.kind === 'body' && specialOf(last.item) === 'pipe') triggers.pipeLast = true;
 
   parsed.forEach((p, i) => {
-    if (i === mindIndex) return;
+    if (i === mindIndex || p.kind === 'empty') return;
     if (p.kind === 'scar') {
       steps.push({ slot: i, face: p.face, role: 'scar', verb: null, base: CONFIG.points.scar, carryIn: 0,
         total: 0, reveal: false, passesTo: null, name: CONFIG.text.scar, item: null, notes: [], depth: 0, idle: false });
@@ -1012,6 +1245,8 @@ function evaluateSentence(faces, ctx) {
     const part = partInfo(p.body);
     let v = role === 'instinct' ? (part.favourite || part.instinctVerb || null) : verb;
     const idle = !v;
+    // the role of a die left of a gap can still change if the MIND lands to its left
+    const roleProvisional = role === 'instinct' && mindIndex < 0 && parsed.slice(0, i).some(q => q.kind === 'empty');
     const sp = specialOf(p.item);
     const det = scoreDetail(p, v, { enemy, site: !!ctx.site, extra: trumpetFor[i] || 0 });
     const base = det.own;
@@ -1019,7 +1254,7 @@ function evaluateSentence(faces, ctx) {
     const total = base + carryIn;
     carry = 0;
     const notes = det.notes.slice();
-    let stepReveal = false, passesTo = null, depth = 0;
+    let stepReveal = false, passesTo = null, depth = 0, carryProvisional = false, carryPending = false;
     if (!idle) {
       if (v === CONFIG.revealVerb) depth = RULES.defaultRevealDepth;
       if (part.revealsNext) {
@@ -1034,9 +1269,12 @@ function evaluateSentence(faces, ctx) {
       if (depth > 0) { reveal = true; revealDepth = Math.max(revealDepth, depth); }
       if (v === CONFIG.revealVerb) {
         stepReveal = true;
+        let gap = false;
         for (let j = i + 1; j < parsed.length; j++) {
-          if (j !== mindIndex && parsed[j].kind === 'body') { passesTo = j; carry = total; break; }
+          if (parsed[j].kind === 'empty') { gap = true; continue; }
+          if (j !== mindIndex && parsed[j].kind === 'body') { passesTo = j; carry = total; carryProvisional = gap; break; }
         }
+        carryPending = passesTo === null && gap;
       } else if (totals[v] !== undefined) {
         totals[v] += total;
         if (order.indexOf(v) < 0) order.push(v);
@@ -1046,7 +1284,7 @@ function evaluateSentence(faces, ctx) {
       if (det.flags.matches) spends.push({ slot: i, item: p.item });
     }
     steps.push({ slot: i, face: p.face, role, verb: v, base, carryIn, total, reveal: stepReveal, passesTo,
-      name: actionName(p, v), item: p.item, notes, depth, idle });
+      name: actionName(p, v, tags), item: p.item, notes, depth, idle, roleProvisional, carryProvisional, carryPending });
     carryAfter.push(carry > 0);
   });
   // forbidden items in the sentence (any verb), for the future checks
@@ -1083,11 +1321,25 @@ function evaluateSentence(faces, ctx) {
   });
   const parts = order.map(v => v + ' ' + totals[v] + (mods[v] ? ' (' + mods[v].source + ' ' + signed(mods[v].mod) + ')' : '') +
     (taxed[v] ? ' (' + fmt(CONFIG.notes.taxed, { n: taxed[v].amount }) + ')' : ''));
-  const totalsText = parts.length ? parts.join(' · ') : CONFIG.text.noEffect;
+  // reveal effect: fights reveal the next `revealDepth` intents; sites reveal faces (DIG total / NOSE / GLASSES depth, SPADE = all)
+  let revealText = '', revealFaces = 0;
+  if (ctx.site) {
+    steps.forEach(s => {
+      const k = siteRevealCount(s);
+      if (!k) return;
+      if (s.reveal && s.item && specialOf(s.item) === 'spade') revealFaces = 'all';
+      else if (revealFaces !== 'all') revealFaces = Math.max(revealFaces, k);
+    });
+    if (revealFaces) revealText = revealFaces === 'all' ? CONFIG.text.revealTotals.facesAll : fmt(CONFIG.text.revealTotals.faces, { n: revealFaces });
+  } else if (revealDepth > 0) {
+    revealText = revealDepth === 1 ? CONFIG.text.revealTotals.intent : fmt(CONFIG.text.revealTotals.intents, { n: revealDepth });
+  }
+  if (revealText) parts.push(revealText);
+  const totalsText = parts.length ? parts.join(' · ') : (complete ? CONFIG.text.noEffect : '');
   const text = steps.length ? shape + ': ' + stepsText + ' → ' + totalsText
     : shape + ': ' + (holds ? CONFIG.text.holdText : CONFIG.text.idleText);
-  return { shape, slots: n, mindIndex, verb, holds, steps, totals, order, reveal, revealDepth, mods, taxed, shears, pendingSow,
-    spends, forbidden, triggers, pipeLast: triggers.pipeLast, totalsText, text };
+  return { shape, shapeKnown: shape !== CONFIG.text.rail.shapePending, complete, placed: n - emptyCount, tags, slots: n, mindIndex, verb, holds, steps, totals, order, reveal, revealDepth, mods, taxed, shears, pendingSow,
+    spends, forbidden, triggers, pipeLast: triggers.pipeLast, revealText, revealFaces, totalsText, text };
 }
 
 /* ===== src/engine/20-player.js ===== */
@@ -1153,7 +1405,8 @@ function createEnemy(id, rng) {
   if (!c) throw new Error('unknown enemy ' + id);
   const e = {
     id, name: c.name, logName: c.logName || c.name, tags: c.tags.slice(), pruneMod: c.pruneMod || 0, sowMod: c.sowMod || 0,
-    slots: c.slots || CONFIG.defaultSlots,
+    shortName: c.shortName || (c.logName || c.name).toLowerCase(), act: c.act || null, pron: c.pron || null,
+    slots: Math.max(CONFIG.minSlots || 1, c.slots || CONFIG.defaultSlots),
     targetPriority: c.targetPriority.slice(), text: c.text, winText: c.winText,
     resultLabels: Object.assign({ beaten: CONFIG.text.beaten, befriended: CONFIG.text.befriended }, c.resultLabels || {}),
     faces: c.faces.map(f => ({ name: f.name, pips: Array(f.pips).fill('intact'), hostile: !!f.hostile, effect: f.effect || 'none' })),
@@ -1221,6 +1474,26 @@ function applyVerb(enemy, verb, amount, opts) {
     if (left <= 0) break;
   }
   return events;
+}
+
+// What `evaluation` (full or partial; uses totals, order, shears) would do to the enemy right now, on a clone: the same verb
+// order and applyVerb calls as resolveTurn, nothing is mutated.
+// -> { hits:[{faceIdx,pipIdx,to,verb}], resolves:[{faceIdx,resolved}], win: result string | null }
+function previewHits(enemy, evaluation) {
+  const sim = { faces: enemy.faces.map(f => ({ name: f.name, hostile: f.hostile, effect: f.effect, pips: f.pips.slice() })),
+    current: enemy.current ? { faceIdx: enemy.current.faceIdx, wag: enemy.current.wag } : null, targetPriority: enemy.targetPriority };
+  const out = { hits: [], resolves: [], win: null };
+  if (!evaluation) return out;
+  (evaluation.order || []).forEach(v => {
+    const amount = (evaluation.totals || {})[v];
+    if (!amount || amount <= 0) return;
+    applyVerb(sim, v, amount, { alternate: v === 'PRUNE' ? evaluation.shears || 0 : 0 }).forEach(e => {
+      if (e.type === 'pip') out.hits.push({ faceIdx: e.faceIdx, pipIdx: e.pipIdx, to: e.to, verb: e.verb });
+      else if (e.type === 'faceResolved') out.resolves.push({ faceIdx: e.faceIdx, resolved: e.resolved });
+    });
+  });
+  out.win = out.hits.length ? checkWin(sim) : null;
+  return out;
 }
 
 // Pick a random non-broken face. Turned face => wag intent.
@@ -1313,6 +1586,7 @@ function enemyAct(state, rng) {
       c.d.faces[c.fi] = parseFace(previous).body;
       dropUses(state.trip, c.d.id, c.fi);
       if (state.trip) state.trip.discarded.push(item);           // gone for good: not in `taken`, never returned
+      ev.item = item;
       ev.text = fmt(ev.text, { item: CONFIG.items[item].name.toLowerCase() });
       out.events.push({ type: 'itemDestroyed', dieId: c.d.id, faceIdx: c.fi, item, cause: 'river', by: face.name,
         becomes: c.d.faces[c.fi], previous, wasCurrent: c.d.idx === c.fi });
@@ -1329,6 +1603,7 @@ function enemyAct(state, rng) {
       c.d.faces[c.fi] = parseFace(previous).body;
       state.taken.push(item);
       (state.takenUses = state.takenUses || [])[state.taken.length - 1] = takeUses(state.trip, c.d.id, c.fi);
+      ev.item = item;
       ev.text = fmt(ev.text, { item: CONFIG.items[item].name.toLowerCase() });
       out.events.push({ type: 'itemTaken', dieId: c.d.id, faceIdx: c.fi, item, previous, becomes: c.d.faces[c.fi],
         by: face.name, enemy: enemy.name, wasCurrent: c.d.idx === c.fi });
@@ -2132,7 +2407,7 @@ function createSite(trip, siteId, rng, at) {
     pips: c.pips, pipsLeft: c.pips, revealed: false, opened: false, brokenItem: null }));
   const site = { siteId, name: c.name, word: c.word, at: at || null, faces, noise: 0, noiseMax: CONFIG.noiseMax,
     turn: 1, rerolls: 0, rerollPenalty: 0, rerollBonus: 0, pendingSow: 0, player: trip.player, target: null,
-    slots: c.slots || CONFIG.defaultSlots, holdPending: false, gained: [], guardian: c.guardian, over: null, log: [] };
+    slots: Math.max(CONFIG.minSlots || 1, c.slots || CONFIG.defaultSlots), holdPending: false, gained: [], guardian: c.guardian, over: null, log: [] };
   Object.defineProperty(site, 'trip', { value: trip, enumerable: false, writable: true });
   return site;
 }
@@ -2184,7 +2459,7 @@ function sitePreview(site, evaluation) {
     sow = { points: evaluation.totals.SOW, pips: Math.max(SR.sowMin, Math.floor(evaluation.totals.SOW / SR.sowDivisor)) };
   }
   const mk = {
-    DIG: () => reveal && parts.push(reveal === 'all' ? T.searchAll : fmt(T.search, { n: reveal })),
+    DIG: () => reveal && parts.push(reveal === 'all' ? CONFIG.text.revealTotals.facesAll : fmt(CONFIG.text.revealTotals.faces, { n: reveal })),
     PRUNE: () => prune && parts.push(prune.noise === 0 ? fmt(T.forceQuiet, { n: prune.points }) : fmt(T.force, { n: prune.points, noise: prune.noise })),
     SOW: () => sow && parts.push(fmt(T.coax, { n: sow.pips })),
   };
@@ -2385,9 +2660,9 @@ function leaveSite(trip) {
 // Classic script: top-level names are shared with the other src/engine/*.js files (formerly one IIFE). No DOM, no timers, RNG injected.
 
 globalThis.SmugEngine = {
-  makeRng, parseFace, scoreBodyFace, scoreDetail, evaluateSentence, actionName,
+  makeRng, parseFace, scoreBodyFace, scoreDetail, evaluateSentence, evaluatePartial, actionName,
   createPlayer, currentFace, rollDie, toggleHold, rerollUnheld, countScars,
-  createEnemy, faceStatus, isResolved, isHostile, applyVerb, rollIntent, enemyAct, checkWin, checkLose,
+  createEnemy, faceStatus, isResolved, isHostile, applyVerb, previewHits, rollIntent, enemyAct, checkWin, checkLose,
   createGame, startTurn, resolveTurn,
   createTrip, randomSequence, labelFor, tripScars, startEncounter, rewardsFor, claimReward, addToInventory,
   beginPlacement, endPlacement, canPlace, isLocked, placeItem, moveItem, unplaceItem, healScar, oddsSummary,
@@ -2427,9 +2702,12 @@ const ui = {
   drag: null,
   runId: 0,                    // bumped on restart: aborts an in-flight event playback
   enemyText: '',               // line under the intent (enemy action flavour)
+  narr: null,                  // {sentence, hits[]} narration of the committed sentence (kept until the next commit / encounter)
   previewOverride: null,       // {shape, text} while a committed sentence plays
   verbFlash: '',
   actingSlot: null,
+  railPlay: null,              // { idx, totals } while a committed sentence plays on the rail: steps up to idx are reached
+  tilt: {},                    // die id -> static tray tilt in degrees (new per roll)
   hidePips: false,             // debug panel: hide enemy pip states / resolved tile looks in the face strip
   showMap: false,              // debug: draw the whole map without fog
   showSite: false,             // debug: draw hidden site contents
@@ -2533,17 +2811,21 @@ const viewScars = () => Object.keys(view.dice).reduce((n, id) => n + view.dice[i
 // Classic script: top-level names are shared with the other src/ui/*.js files (formerly one IIFE).
 
 // ---------- static DOM ----------
-const dom = { slotEls: [], cellEls: {}, dieEls: {}, efc: [] };
+const dom = { slotEls: [], stepEls: [], capEls: [], actEls: [], cellEls: {}, dieEls: {}, efc: [] };
 function buildDOM() {
-  // slots + arrows
+  // the sentence rail: one strip of interlocking chevron steps (label, MIND band / instinct tag, slot, carry link, caption) + totals + playhead
   const slots = $('slots');
+  $('railTitle').textContent = C.text.rail.title;
   for (let i = 0; i < C.playerDice.length; i++) {
-    if (i > 0) { const a = document.createElement('div'); a.className = 'arrow'; a.textContent = '▶'; slots.appendChild(a); }
-    const s = document.createElement('div');
-    s.className = 'slot'; s.dataset.slot = i;
-    s.innerHTML = '<span class="num">' + (i + 1) + '</span>';
-    slots.appendChild(s); dom.slotEls.push(s);
+    const st = document.createElement('div');
+    st.className = 'rstep'; st.style.setProperty('--i', i);
+    st.innerHTML = '<div class="rlabel"></div><div class="rband"></div>' +
+      '<div class="slot" data-slot="' + i + '"><div class="chev"></div><span class="num">' + (i + 1) + '</span><span class="empty">' + esc(C.text.rail.empty) + '</span><div class="sact"></div></div>' +
+      '<div class="rlink"></div><div class="rcap"></div>';
+    slots.appendChild(st);
+    dom.stepEls.push(st); dom.slotEls.push(st.querySelector('.slot')); dom.capEls.push(st.querySelector('.rcap')); dom.actEls.push(st.querySelector('.sact'));
   }
+  slots.insertAdjacentHTML('beforeend', '<div id="playhead"></div>');
   // tray cells + dice
   ui.slots = emptySlots();
   C.playerDice.forEach(d => {
@@ -2552,10 +2834,10 @@ function buildDOM() {
     $('tray').appendChild(cell); dom.cellEls[d.id] = cell;
     const die = document.createElement('div');
     die.className = 'die'; die.dataset.id = d.id;
-    die.innerHTML = '<div class="faceRow"></div><div class="cap">' + (d.label || d.id) + '</div><span class="held">' + C.text.held + '</span>' +
-      '<span class="frz" title="' + esc(C.text.s.frozenTip) + '">' + C.text.s.frozen + '</span>' +
+    die.innerHTML = '<div class="faceRow"></div><div class="meta"><div class="cap">' + (d.label || d.id) + '</div>' +
       '<div class="ctl"><button class="up" title="Place in leftmost empty slot">▲</button>' +
-      '<button class="down" title="Return to tray">▼</button></div>';
+      '<button class="down" title="Return to tray">▼</button></div></div>' +
+      '<span class="held">' + C.text.held + '</span><span class="frz" title="' + esc(C.text.s.frozenTip) + '">' + C.text.s.frozen + '</span>';
     die.querySelector('.up').addEventListener('click', (e) => { e.stopPropagation(); onUp(d.id); });
     die.querySelector('.down').addEventListener('click', (e) => { e.stopPropagation(); onDown(d.id); });
     die.addEventListener('pointerdown', (e) => onPointerDown(e, d.id));
@@ -2572,7 +2854,7 @@ function buildDOM() {
   const root = document.documentElement.style, K = C.colors;
   [['bg', K.bg], ['panel', K.panel], ['line', K.line], ['text', K.text], ['dim', K.textDim], ['lit', K.lit], ['status', K.status],
    ['danger', K.scarText], ['glow', K.glow], ['pip', K.pipIntact], ['broken', K.broken], ['turned', K.turned], ['tiletext', K.tileText],
-   ['lift', C.fx.liftScale]].forEach(kv => { if (kv[1] != null) root.setProperty('--' + kv[0], kv[1]); });
+   ['lift', C.fx.liftScale], ['ph-ms', C.timing.railPlayheadMs + 'ms']].forEach(kv => { if (kv[1] != null) root.setProperty('--' + kv[0], kv[1]); });
   $('titleLabel').textContent = C.text.title;
   $('btnRoll').textContent = C.text.buttons.roll;
   $('btnCommit').textContent = C.text.buttons.commit;
@@ -2608,11 +2890,16 @@ function buildEnemyPanel() {
   const strip = $('faceStrip');
   strip.innerHTML = '';
   dom.efc.length = 0;
+  const ST = C.text.strip;
+  $('stripHead').innerHTML = '<b>' + esc(ST.head) + '</b> · ' + esc(ST.goal) + '<span class="legend">' + esc(ST.legend) + '</span>';
   cfg.faces.forEach((cf) => {
     const el = document.createElement('div');
     el.className = 'efc';
-    el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div>';
+    const info = cf.hostile ? ((cfg.info && cfg.info[cf.name]) || ST.effects[cf.effect] || ST.hostileNone) : ST.harmless;
+    el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div><div class="info">' + esc(info) + '</div><div class="fstate"></div>';
+    el.classList.toggle('harmless', !cf.hostile);
     const pips = el.querySelector('.pips');
+    pips.title = ST.pipTip;
     for (let p = 0; p < cf.pips; p++) { const sp = document.createElement('span'); sp.className = 'pip'; pips.appendChild(sp); }
     strip.appendChild(el); dom.efc.push(el);
   });
@@ -2659,6 +2946,8 @@ function renderEnemy() {
     el.classList.toggle('is-next', !isCur && qi === 0);
     el.classList.toggle('is-then', !isCur && qi >= 1);
     el.dataset.status = st;
+    el.querySelector('.fstate').textContent = ui.hidePips ? '' : (st === 'broken' ? C.text.strip.broken : (st === 'turned' ? C.text.strip.turned : ''));
+    el.classList.toggle('resolved', !ui.hidePips && (st === 'broken' || st === 'turned'));
     el.querySelector('.tag').textContent = isCur ? C.text.now : (qi === 0 ? C.text.next : (qi >= 1 ? C.text.then : ''));
   });
   // intent
@@ -2694,6 +2983,39 @@ function renderEnemy() {
     }
   }
   $('verbFlash').textContent = ui.verbFlash || '';
+  renderGhosts();
+}
+// Hit preview on the enemy strip while arranging: ghost marks on the pips the sentence (so far) would break / turn,
+// outlines on faces that would resolve, a WIN hint. Provisional (partial sentence) ghosts are dimmer. Gone during playback.
+function renderGhosts() {
+  if (isSite() || !dom.efc.length) return;
+  const ST = C.text.strip;
+  const legend = $('stripHead').querySelector('.legend');
+  dom.efc.forEach(el => {
+    el.classList.remove('would-break', 'would-turn');
+    el.querySelectorAll('.pip').forEach(p => p.classList.remove('ghost-broken', 'ghost-turned', 'prov'));
+  });
+  legend.classList.remove('win'); legend.textContent = ST.legend;
+  if (ui.phase !== 'arranging' || ui.hidePips || !ui.game.enemy) return;
+  const ev = partialEvaluation();
+  if (!ev || !ev.placed) return;
+  const pv = E.previewHits(ui.game.enemy, ev);
+  const prov = !ev.complete;
+  pv.hits.forEach(h => {
+    const pip = dom.efc[h.faceIdx].querySelectorAll('.pip')[h.pipIdx];
+    pip.classList.add(h.to === 'turned' ? 'ghost-turned' : 'ghost-broken');
+    pip.classList.toggle('prov', prov);
+  });
+  pv.resolves.forEach(r => {
+    const el = dom.efc[r.faceIdx];
+    el.classList.add(r.resolved === 'turned' ? 'would-turn' : 'would-break');
+    el.classList.toggle('prov', prov);
+    el.querySelector('.fstate').textContent = r.resolved === 'turned' ? ST.wouldTurn : ST.wouldBreak;
+  });
+  if (pv.win) {
+    legend.classList.add('win');
+    legend.textContent = (pv.win === C.text.beaten ? ST.winBeaten : ST.winBefriended) + (prov ? ' ' + ST.provisional : '');
+  }
 }
 
 function renderDice() {
@@ -2708,6 +3030,7 @@ function renderDice() {
       el.dataset.face = face;
       el.querySelector('.faceRow').innerHTML = hidden ? '<span class="tile" style="background:' + C.colors.unknownBg + ';color:' + C.colors.unknownFg + '">' + C.text.unknownFace + '</span>' : faceHTML(face);
     }
+    el.style.setProperty('--tilt', (ui.tilt[d.id] || 0) + 'deg');
     el.classList.toggle('in-slot', si >= 0);
     el.classList.toggle('held', (d.held || !!d.heldOver) && !hidden);
     el.classList.toggle('frozen', !!vd.frozen);
@@ -2716,36 +3039,126 @@ function renderDice() {
     el.querySelector('.ctl').style.visibility = canInteract() ? 'visible' : 'hidden';
   });
 }
+// ---- the sentence rail ----
+const stepLabelsFor = (n) => C.text.rail.steps[n] || Array.from({ length: n }, (_, i) => (i === 0 ? 'FIRST' : 'THEN'));
+const verbSpan = (v) => '<span class="vb" style="color:' + C.colors.verb[v] + '" title="' + esc(C.verbInfo[v]) + '">' + v + '</span>';
+// what the slot itself shows once a die sits on it: the action it performs, big, in the verb's colour, with its points
+function slotAction(s, ev) {
+  const RT = C.text.rail;
+  if (s === 'mind') {
+    const txt = ev.holds ? RT.mindHoldAction : RT.mindSets.replace('{verb}', ev.verb);
+    return { html: '<span class="an" style="color:' + C.colors.verb[ev.verb] + '">' + esc(txt) + '</span>', title: txt + '. ' + RT.mindTip };
+  }
+  if (s.role === 'scar') return { html: '<span class="an scar" style="color:' + C.colors.scarText + '">' + esc(RT.scarRed) + ' <span class="ap">' + s.base + '</span></span>', title: RT.scarTip };
+  const col = s.verb ? C.colors.verb[s.verb] : C.colors.textDim;
+  const pts = s.base + (s.carryIn > 0 ? '<span class="cin" title="' + esc(RT.carryTip) + '">+' + s.carryIn + '</span>' : '');
+  return { html: '<span class="an' + (s.name.length > 13 ? ' long' : '') + '" style="color:' + col + '">' + esc(s.name) + ' <span class="ap">' + pts + '</span></span>',
+    title: s.name + ' ' + s.base + (s.carryIn > 0 ? '+' + s.carryIn : '') + (s.verb ? ' (' + s.verb + ')' : '') };
+}
+// caption below a step: only the annotations ('(knife +1) (reveal)'); the action and points live in the slot
+function stepCaption(s) {
+  const notes = s.notes.slice(); if (s.reveal) notes.unshift(C.text.reveal.replace(/[()]/g, ''));
+  const plain = s.name + ' ' + s.base + (s.carryIn > 0 ? '+' + s.carryIn : '') + notes.map(n => ' (' + n + ')').join('');
+  return { html: '<div class="cl1">' + (notes.length ? esc(notes.map(n => '(' + n + ')').join(' ')) : '&nbsp;') + '</div>', title: plain };
+}
 function renderSlots() {
-  const n = slotCount();
+  const n = slotCount(), RT = C.text.rail;
   for (let i = n; i < ui.slots.length; i++) ui.slots[i] = null;           // a debug change of the slot count empties the hidden slots
-  const arrows = document.querySelectorAll('#slots .arrow');
-  dom.slotEls.forEach((s, i) => {
-    s.style.display = i < n ? '' : 'none';
-    if (arrows[i - 1]) arrows[i - 1].style.display = i < n ? '' : 'none';
-    s.classList.toggle('full', !!ui.slots[i]);
-    s.classList.toggle('acting', ui.actingSlot === i);
-    s.dataset.n = i + 1;
+  const p = currentPreview(), last = n - 1;
+  const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy';
+  const full = live && p.ev && p.ev.slots === n ? p.ev : null;
+  const play = ui.phase === 'resolving' || ui.phase === 'enemy' ? ui.railPlay : null;
+  // sentence being built: engine partial evaluation (empty slots skipped), so the rail builds up die by die
+  const ev = full || (ui.phase === 'arranging' && placedCount() > 0 ? partialEvaluation() : null);
+  const partial = !!ev && !ev.complete;
+  $('sentence').classList.toggle('partial', partial);
+  renderGhosts();
+  // fit the chevrons to the page width (CSS --sw is the 3-slot size; more slots shrink it)
+  const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 425, ovPx = 26;
+  sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1232 + (n - 1) * ovPx) / n)) + 'px');
+  const tg = (ev && ev.triggers) || {};
+  const labels = stepLabelsFor(n), mi = ev ? ev.mindIndex : -1, mcol = ev && ev.verb ? C.colors.verb[ev.verb] : null;
+  dom.stepEls.forEach((st, i) => {
+    st.style.display = i < n ? '' : 'none';
+    if (i >= n) return;
+    st.classList.toggle('first', i === 0);
+    st.classList.toggle('last', i === last);
+    st.querySelector('.rlabel').textContent = labels[i];
+    const sl = dom.slotEls[i], band = st.querySelector('.rband'), cap = dom.capEls[i], link = st.querySelector('.rlink');
+    sl.classList.toggle('full', !!ui.slots[i]);
+    sl.classList.toggle('acting', ui.actingSlot === i);
+    sl.classList.toggle('trig', !!((tg.glassesFirst && i === 0) || (tg.earTrumpet && tg.earTrumpet.indexOf(i) >= 0) || (tg.pipeLast && i === last)));
+    const step = ev ? ev.steps.find(x => x.slot === i) : null;
+    const reached = !play || i <= play.idx;
+    // MIND band (this slot and everything after it) / instinct tag (before the MIND, or every slot without one)
+    band.className = 'rband'; band.innerHTML = ''; band.removeAttribute('title'); band.style.cssText = '';
+    if (ev && mcol && i >= mi && mi >= 0) {
+      band.classList.add('on'); band.style.background = mcol; band.title = RT.directedTip.replace('{verb}', ev.verb);
+      band.innerHTML = '<span>' + ev.verb + '</span>';
+    } else if (step && step.role === 'instinct') {
+      const v = step.verb;
+      band.classList.add('tag');
+      if (step.roleProvisional) band.classList.add('prov');
+      if (v) { band.style.color = C.colors.verb[v]; band.style.borderColor = C.colors.verb[v]; band.title = RT.instinctTip.replace('{verb}', v); band.textContent = RT.instinct + ' · ' + v; }
+      else { band.classList.add('none'); band.title = RT.noInstinctTip; band.textContent = RT.noInstinct; }
+    }
+    // the action in the slot (live, also while the sentence is still being filled) + caption (annotations only)
+    const act = dom.actEls[i], sev = ev, sstep = sev && ui.slots[i] ? sev.steps.find(x => x.slot === i) : null;
+    let sa = null;
+    if (sev && ui.slots[i]) sa = (sev.mindIndex === i) ? slotAction('mind', sev) : (sstep ? slotAction(sstep, sev) : null);
+    if (sa) { act.innerHTML = sa.html; act.title = sa.title; } else { act.innerHTML = ''; act.removeAttribute('title'); }
+    sl.classList.toggle('acts', !!sa);
+    cap.style.visibility = ev && reached ? '' : 'hidden';
+    cap.classList.toggle('prov', partial);
+    cap.classList.toggle('mind', !!ev && i === mi);
+    if (ev && i === mi) {
+      cap.innerHTML = '<div class="cl1">' + (ev.holds ? esc(RT.mindHold) : (n === 1 ? esc(RT.mindIdle) : '&nbsp;')) + '</div>';
+      cap.title = RT.mindTip;
+    } else if (step) { const c = stepCaption(step); cap.innerHTML = c.html; cap.title = c.title; }
+    else { cap.innerHTML = ''; cap.removeAttribute('title'); }
+    // DIG carry: an arrow from the giving caption to the receiving one
+    link.innerHTML = '';
+    if (step && step.passesTo != null && reached) {
+      const d = step.passesTo - i, col = C.colors.verb[C.revealVerb];
+      link.innerHTML = '<span class="carry' + (step.carryProvisional ? ' prov' : '') + '" style="width:calc(var(--pitch) * ' + d + ' - 30px);border-color:' + col + ';color:' + col + '" title="' + esc(RT.carryTip) + '"><b>+' + step.total + (step.carryProvisional ? '?' : '') + '</b></span>';
+    }
   });
-  const tg = (currentPreview().triggers) || {}, last = n - 1;
-  dom.slotEls.forEach((s, i) => {
-    s.classList.toggle('trig', !!(i < n && ((tg.glassesFirst && i === 0) || (tg.earTrumpet && tg.earTrumpet.indexOf(i) >= 0) || (tg.pipeLast && i === last))));
-  });
+  // totals at the right end of the rail
+  const tot = $('rtotals');
+  const known = ev && ev.totalsText;
+  tot.innerHTML = known ? '<span class="eq">' + esc(RT.totalsPrefix) + '</span> ' + verbify(ev.totalsText) + (partial ? ' <span class="sofar">' + esc(RT.totalsSoFar) + '</span>' : '')
+    : '<span class="eq">' + esc(RT.totalsPrefix) + ' ' + esc(RT.totalsPending) + '</span>';
+  tot.style.visibility = ev && play && !play.totals ? 'hidden' : '';
+  tot.classList.toggle('pending', !known || partial);
+  // playhead: slides left -> right along the band row while a commit plays
+  const ph = $('playhead');
+  ph.classList.toggle('on', !!(play && play.idx >= 0 && ui.phase === 'resolving'));
+  if (play && play.idx >= 0) ph.style.setProperty('--ph', play.idx);
   $('slots').classList.toggle('complete', placedCount() === slotCount() && (ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy'));
 }
+// evaluation of the sentence as built so far (empty slots skipped); null while nothing is placed
+function partialEvaluation() {
+  const faces = []; for (let i = 0; i < slotCount(); i++) faces.push(ui.slots[i] ? viewFace(ui.slots[i]) : null);
+  try { return E.evaluatePartial(faces, isSite() ? { site: true } : { enemy: ui.game.enemy, tax: ui.game.tax || 0 }); } catch (e) { return null; }
+}
+// -> { hint?, shape, triggers?, ev? (evaluation, when the sentence is complete), text } ; `text` is the compact line under the rail
 function currentPreview() {
-  if (ui.previewOverride) return ui.previewOverride;
+  if (ui.previewOverride && ui.phase !== 'await-roll') return ui.previewOverride;
   if (ui.phase === 'arranging') {
-    if (placedCount() < slotCount()) return { hint: true, shape: '', text: C.text.placeHint.replace(/\{slots\}/g, slotCount()).replace('{n}', placedCount()) };
+    if (placedCount() < slotCount()) return { hint: true, shape: placedCount() > 0 ? ((partialEvaluation() || {}).shape || C.text.rail.shapePending) : '', text: C.text.placeHint.replace(/\{slots\}/g, slotCount()).replace('{n}', placedCount()) };
     const faces = ui.slots.slice(0, slotCount()).map(id => viewFace(id));
     if (isSite()) {
       const ev = E.evaluateSentence(faces, { site: true });
       const sp = E.sitePreview(ui.game, ev);
       const tg = ui.game.target !== null ? ' (' + MT().target.toLowerCase() + ': ' + (ui.game.target + 1) + ')' : '';
-      return { shape: ev.shape, triggers: ev.triggers, text: ev.text + '  ⇒  ' + sp.text + tg, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+      // totals already name PRUNE / SOW / REVEAL; the hint line only adds what they don't: the noise and the coax pips
+      const ST = C.text.site, bits = [];
+      if (sp.prune) bits.push(sp.prune.noise ? fmt(ST.noiseOnly, { n: sp.prune.noise }) : ST.noNoise);
+      if (sp.sow) bits.push(fmt(ST.coax, { n: sp.sow.pips }));
+      return { shape: ev.shape, triggers: ev.triggers, ev, text: bits.join(' · ') + tg };
     }
     const ev = E.evaluateSentence(faces, { enemy: ui.game.enemy, tax: ui.game.tax || 0 });
-    return { shape: ev.shape, triggers: ev.triggers, text: ev.text, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+    return { shape: ev.shape, triggers: ev.triggers, ev, text: '' };
   }
   if (ui.phase === 'await-roll') {
     const log = ui.game.log;
@@ -2754,15 +3167,97 @@ function currentPreview() {
   }
   return { hint: true, shape: '', text: '' };
 }
+// ---- plain-language narration (CONFIG.text.narration): what you do to them, then what it did ----
+const capFirst = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const themName = () => {
+  const g = ui.game;
+  if (g && g.enemy) return g.enemy.shortName || g.enemy.logName || g.enemy.name.toLowerCase();
+  const st = g && C.sites[g.siteId];
+  return (st && st.shortName) || (g && g.name ? g.name.toLowerCase() : 'it');
+};
+const pronouns = () => Object.assign({}, C.text.narration.pron, ui.game && ui.game.enemy && ui.game.enemy.pron || {});
+// phrase for an action name: the encounter's first tag with an override, else the flat map
+function phraseFor(name, tags) {
+  const N = C.text.narration, by = N.actionsByTag || {};
+  for (let i = 0; i < (tags || []).length; i++) if (by[tags[i]] && by[tags[i]][name]) return by[tags[i]][name];
+  return N.actions[name];
+}
+// -> HTML: each step's phrase in its verb colour, the item named in its item colour, the opponent's name plain
+function narrateSentence(ev) {
+  const N = C.text.narration, them = themName();
+  if (!ev || !ev.steps.length) return ev && !ev.complete ? '' : esc(N.youIdle);
+  const partial = !ev.complete;
+  const pr = pronouns();
+  let named = false;
+  const parts = ev.steps.map(s => {
+    const t = s.role === 'scar' ? N.scar : (phraseFor(s.name, ev.tags) || (s.idle ? N.idle : s.name.toLowerCase()));
+    let h = esc(t);
+    const item = s.face && s.face.indexOf('+') > 0 ? s.face.slice(s.face.indexOf('+') + 1) : null;
+    if (item && C.colors.item[item]) {
+      const nm = esc(itemName(item).toLowerCase());
+      if (nm && h.indexOf(nm) >= 0) h = h.replace(nm, '<span class="ni" style="color:' + C.colors.item[item] + '">' + nm + '</span>');
+    }
+    h = h.replace(/\{them\}/g, () => { const r = '<span class="nm">' + esc(named ? pr.them : them) + '</span>'; named = true; return r; });   // the name once, then the pronoun
+    const col = s.verb && C.colors.verb[s.verb];
+    return '<span class="nv"' + (col ? ' style="color:' + col + '"' : '') + '>' + h + '</span>';
+  });
+  let out = parts[0];
+  for (let i = 1; i < parts.length; i++) out += esc(i === parts.length - 1 && parts.length > 2 && !partial ? N.joinLast : N.joinThen) + parts[i];
+  if (partial) return esc(N.youPartial).replace('{steps}', () => out);
+  let txt = esc(N.you).replace('{steps}', () => out);
+  if (ev.revealText) {
+    const R = N.reveal, d = ev.revealDepth, f = ev.revealFaces;
+    const t = ev.slots && f ? (f === 'all' ? R.facesAll : R.faces.replace('{n}', f)) : (d === 1 ? R.intent : R.intents.replace('{n}', d));
+    txt += ' <span class="nv" style="color:' + C.colors.verb[C.revealVerb] + '">' + esc(t.replace('{its}', pr.its)) + '</span>';
+  }
+  return txt;
+}
+// what the committed sentence did to the enemy's faces so far (from the pip events the player has seen)
+function narrateResult(hits) {
+  const N = C.text.narration, order = [], byFace = {};
+  hits.forEach(h => {
+    if (!byFace[h.faceIdx]) { byFace[h.faceIdx] = { broken: 0, turned: 0 }; order.push(h.faceIdx); }
+    byFace[h.faceIdx][h.to === 'turned' ? 'turned' : 'broken']++;
+  });
+  const out = order.map(fi => {
+    const f = view.enemy.faces[fi], h = byFace[fi], kind = h.turned > h.broken ? 'turned' : 'broken';
+    const all = f.pips.every(p => p !== 'intact');
+    const tpl = all ? (kind === 'turned' ? N.faceTurned : N.faceBroken) : (kind === 'turned' ? N.facePartTurned : N.facePartBroken);
+    return '<span class="nres ' + kind + '">' + esc(capFirst(tpl.replace('{its}', pronouns().its).replace('{face}', f.name).replace('{n}', h[kind] || (h.broken + h.turned)))) + '</span>';
+  });
+  return out.join(' ');
+}
+function narrationText() {
+  const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy' || ui.phase === 'await-roll';
+  if (!live || !ui.game) return '';
+  if (ui.phase === 'arranging') {
+    if (placedCount() === 0) return '';
+    return narrateSentence(partialEvaluation());
+  }
+  const n = ui.narr;
+  if (!n) return '';
+  return n.sentence + (view.enemy && n.hits.length ? ' ' + narrateResult(n.hits) : '');
+}
+// the enemy's action as one full sentence (act templates; fallback "<shortName> <text>.")
+function enemyActSentence(ev) {
+  const en = ui.game.enemy, A = en.act || {};
+  const key = ev.skipped ? ev.reason : (ev.nothing ? 'noItem' : ev.face);
+  let t = A[key];
+  if (!t) t = capFirst(en.shortName || en.logName) + ' ' + ev.text + '.';
+  return t.replace('{item}', ev.item ? itemName(ev.item).toLowerCase() : C.text.itemWord);
+}
 function renderPreview() {
   const p = currentPreview();
-  $('shape').textContent = p.sentence ? (p.shape ? p.shape + ' · ' : '') + p.sentence : (p.shape || '');
+  const nr = $('narration'), nt = narrationText();
+  nr.innerHTML = '<span class="nbox">' + (nt || '&nbsp;') + '</span>'; nr.title = nt.replace(/<[^>]+>/g, '');
+  $('railShape').textContent = p.shape ? p.shape.toUpperCase() : '';
   const t = $('previewText');
   t.innerHTML = p.text ? verbify(p.text) : '&nbsp;';
   t.classList.toggle('hint', !!p.hint);
 }
 function renderControls() {
   const g = ui.game, ph = ui.phase;
+  $('stage').dataset.phase = ph;
   $('btnRoll').disabled = ph !== 'await-roll' || nothingLeft() || ui.holdPick;
   $('btnLeave').disabled = !(ph === 'await-roll' || ph === 'arranging');
   $('btnLeave').classList.toggle('primary', nothingLeft());
@@ -2902,6 +3397,7 @@ function buildSitePanel() {
     el.className = 'efc site'; el.dataset.idx = i;
     el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div><div class="sub"></div><span class="sfn">' + (i + 1) + '</span>';
     const pips = el.querySelector('.pips');
+    pips.title = C.text.strip.sitePipTip;
     for (let p = 0; p < f.pips; p++) { const sp = document.createElement('span'); sp.className = 'pip'; pips.appendChild(sp); }
     strip.appendChild(el); dom.efc.push(el);
   });
@@ -3033,11 +3529,16 @@ function onPointerDown(e, id) {
   el.addEventListener('pointercancel', onPointerCancel);
 }
 function dropTarget(x, y) {
+  let best = -1, bd = Infinity;                       // chevrons overlap a little: nearest centre wins
   for (let i = 0; i < slotCount(); i++) {
     const r = dom.slotEls[i].getBoundingClientRect();
     const m = C.ui.dropSlackPx;
-    if (x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m) return { kind: 'slot', i };
+    if (x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m) {
+      const d = Math.abs(x - (r.left + r.right) / 2);
+      if (d < bd) { bd = d; best = i; }
+    }
   }
+  if (best >= 0) return { kind: 'slot', i: best };
   const tr = $('bottom').getBoundingClientRect();
   if (y >= tr.top - C.ui.dropSlackPx) return { kind: 'tray' };
   return null;
@@ -3094,7 +3595,8 @@ async function onRoll() {
   syncView();                                     // pre-turn picture: a pending watering-can SOW plays from here
   const st = E.startTurn(g, Math.random);
   ui.slots = emptySlots();
-  ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null;
+  ui.previewOverride = null; ui.narr = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
+  newTilts(g.player.dice.map(d => d.id));
   if (st.events.length) {
     const run = ++ui.runId;
     ui.phase = 'start';
@@ -3110,10 +3612,12 @@ async function onRoll() {
   hooks.onRoll(g.player.dice.map(d => d.id));
   renderAll();
 }
+function newTilts(ids) { ids.forEach(id => { ui.tilt[id] = Math.round((Math.random() * 2 - 1) * C.ui.trayTiltDeg * 10) / 10; }); }
 function onReroll() {
   if (!canInteract()) return;
   const ids = E.rerollUnheld(ui.game, Math.random);
   if (!ids) return;
+  newTilts(ids);
   syncView();
   hooks.onRoll(ids);
   renderAll();
@@ -3130,9 +3634,13 @@ async function onCommit() {
   const site = isSite();
   const out = site ? E.resolveSiteTurn(ui.game, ui.slots.slice(0, slotCount()), Math.random) : E.resolveTurn(ui.game, ui.slots.slice(0, slotCount()), Math.random);   // engine state is final now; `view` lags
   if (site && !out.ok) { ui.phase = 'arranging'; renderAll(); return; }
+  const se = out.events.find(e => e.type === 'sentence');            // the rail shows this sentence from the first frame
+  ui.railPlay = { idx: -1, totals: false };
+  if (se) ui.previewOverride = { shape: se.evaluation.shape, triggers: se.evaluation.triggers, ev: se.evaluation, text: se.preview ? se.preview.text : '' };
   renderAll();
   await playEvents(out.events, run);
   if (ui.runId !== run) return;                                       // restarted meanwhile
+  ui.railPlay = null;
   ui.actingSlot = null; ui.verbFlash = '';
   syncView();
   if (site) {                                                         // site turn: lost | guardian arrives | keep searching
@@ -3218,7 +3726,7 @@ function enterStage() {
     ui.screen = 'encounter'; ui.phase = 'await-roll';
     ui.slots = emptySlots(); ui.holdPick = false;
     ui.pipRec = site.faces.map(() => []);
-    ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null;
+    ui.previewOverride = null; ui.narr = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
     hooks.onRestart();
     buildSitePanel();
     syncView();
@@ -3230,7 +3738,7 @@ function enterStage() {
     ? pending : E.startEncounter(t, t.stage, Math.random);
   ui.screen = 'encounter'; ui.phase = 'await-roll';
   ui.slots = emptySlots(); ui.holdPick = false;
-  ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null;
+  ui.previewOverride = null; ui.narr = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
   hooks.onRestart();
   buildEnemyPanel();
   syncView();
@@ -3883,26 +4391,31 @@ const EVENT_HANDLERS = {
   async sentence(ev) {
     Object.keys(view.dice).forEach(id => { view.dice[id].frozen = false; });   // the engine thaws a frozen die once it is used
     renderDice();
-    ui.previewOverride = { shape: ev.evaluation.shape, triggers: ev.evaluation.triggers, text: ev.text + (ev.preview ? '  ⇒  ' + ev.preview.text : ''),
-      sentence: ev.faces.map((f, i) => i === ev.evaluation.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+    ui.previewOverride = { shape: ev.evaluation.shape, triggers: ev.evaluation.triggers, ev: ev.evaluation, text: ev.preview ? ev.preview.text : '' };
+    // the rail plays left -> right; a MIND in slot 0 is "reached" first, otherwise the playhead starts at the first step
+    ui.railPlay = { idx: ev.evaluation.mindIndex === 0 ? 0 : -1, totals: !ev.evaluation.steps.length };
+    ui.narr = { sentence: narrateSentence(ev.evaluation), hits: [] };
     renderPreview(); renderSlots();
     await sleep(T.resolveStepMs / 2);
   },
   async step(ev) {
     ui.actingSlot = ev.step.slot;
+    if (ui.railPlay) ui.railPlay.idx = ev.step.slot;
     ui.enemyText = '';
     renderSlots(); renderEnemy();
-    await sleep(T.resolveStepMs);
+    await sleep(T.railStepMs);
   },
   async verb(ev) {
     ui.actingSlot = null;
+    if (ui.railPlay) ui.railPlay.totals = true;
     ui.verbFlash = isSite() && ev.verb === 'SOW' ? ev.verb + ' ' + ev.total + ' → ' + ev.amount + (ev.amount === 1 ? ' pip' : ' pips') : ev.verb + ' ' + ev.amount;
     renderSlots(); renderEnemy();
     await sleep(T.resolveStepMs / 2);
   },
   async pip(ev) {
     view.enemy.faces[ev.faceIdx].pips[ev.pipIdx] = ev.to;
-    renderEnemy();
+    if (ui.narr) ui.narr.hits.push({ faceIdx: ev.faceIdx, to: ev.to });
+    renderEnemy(); renderPreview();
     await sleep(T.resolveStepMs / 2.5);
   },
   async faceResolved(ev) {
@@ -3925,7 +4438,7 @@ const EVENT_HANDLERS = {
   async enemyAct(ev) {
     ui.phase = 'enemy';
     ui.verbFlash = ''; ui.actingSlot = null;
-    ui.enemyText = ui.game.enemy.name + ' ' + ev.text;
+    ui.enemyText = enemyActSentence(ev);
     renderEnemy(); renderSlots(); renderControls();
     await sleep(T.enemyActMs);
   },
@@ -3938,6 +4451,7 @@ const EVENT_HANDLERS = {
   // V1 events ------------------------------------------------------------------
   async mod(ev) {                       // pruneMod / sowMod applied to the sentence total
     ui.actingSlot = null;
+    if (ui.railPlay) ui.railPlay.totals = true;
     ui.verbFlash = C.text.modFlash.replace('{verb}', ev.verb).replace('{before}', ev.before).replace('{after}', ev.after)
       .replace('{source}', ev.source).replace('{mod}', signed(ev.mod));
     renderSlots(); renderEnemy();
@@ -3972,6 +4486,7 @@ const EVENT_HANDLERS = {
   },
   async taxed(ev) {                     // ACCOUNTANT tax: this sentence's verb total is reduced
     ui.actingSlot = null;
+    if (ui.railPlay) ui.railPlay.totals = true;
     ui.verbFlash = C.text.taxFlash.replace('{verb}', ev.verb).replace('{after}', ev.after).replace('{n}', ev.amount);
     renderSlots(); renderEnemy();
     await sleep(T.resolveStepMs);
@@ -4060,6 +4575,7 @@ const hooks = {
 async function playEvents(events, run) {
   for (const ev of events) {
     if (ui.runId !== run) return false;
+    if (ev.type === 'enemyAct' && T.preEnemyMs) await sleep(T.preEnemyMs);   // a beat between your sentence and the enemy's action
     const h = EVENT_HANDLERS[ev.type];
     if (h) await h(ev);
   }
@@ -4305,13 +4821,12 @@ document.addEventListener('DOMContentLoaded', init);
     for (const nm of U.game.enemy.targetPriority) for (let i = 0; i < en.faces.length; i++) if (en.faces[i].name === nm && ok(i)) return i;
     return en.current ? en.current.faceIdx : 0;
   }
-  function flashArrows(a, b) {
-    const arrows = document.querySelectorAll('#slots .arrow');
-    for (let i = Math.min(a, b); i < Math.max(a, b); i++) {
-      const ar = arrows[i];
-      motion(ar, [{ transform: 'scale(1)', color: C.colors.glow }, { transform: 'scale(' + FXC.arrowSwellScale + ')', color: verbColor(C.revealVerb), offset: .4 }, { transform: 'scale(1)' }], { duration: T.flyMs });
-    }
+  // DIG carry: the +N label on the arrow under the giving caption swells as the points are handed on
+  function flashCarry(from) {
+    const el = dom.stepEls[from] && dom.stepEls[from].querySelector('.carry b');
+    if (el) motion(el, [{ transform: 'translateX(-50%) scale(1)' }, { transform: 'translateX(-50%) scale(' + FXC.arrowSwellScale + ')', offset: .4 }, { transform: 'translateX(-50%) scale(1)' }], { duration: T.flyMs });
   }
+  const popCaption = (i) => { const c = dom.actEls[i]; if (c) popAnim(c, FXC.railPopScale, T.popMs); };
   function installHandlers() {
     const EH = U.EVENT_HANDLERS;
     const wrap = (name, fn) => {            // fn(ev, orig, run) must call orig(ev) exactly once and return its promise
@@ -4323,14 +4838,18 @@ document.addEventListener('DOMContentLoaded', init);
     wrap('step', async (ev, orig) => {
       const st = ev.step, id = U.ui.slots[st.slot], die = dom.dieEls[id];
       const from = ctr(dom.slotEls[st.slot]);
+      const prev = U.ui.railPlay ? U.ui.railPlay.idx : -1;
       const p = orig(ev);
       if (die) popAnim(die);
+      popCaption(st.slot);
+      const mi = U.ui.previewOverride && U.ui.previewOverride.ev ? U.ui.previewOverride.ev.mindIndex : -1;
+      if (mi >= 0 && prev < mi && mi < st.slot) popCaption(mi);      // the playhead swept over the MIND on its way here
       const col = verbColor(st.verb);
       if (st.role === 'scar') floatText('0', from, C.colors.textDim, { small: false });
       else if (st.verb === C.revealVerb) {
         if (st.passesTo != null) {
           fly('+' + st.total, from, ctr(dom.slotEls[st.passesTo]), col, { lift: FXC.flyLiftDigPx });
-          flashArrows(st.slot, st.passesTo);
+          flashCarry(st.slot);
         } else floatText(C.text.floatReveal, from, col);
       } else {
         const ci = targetCard(), card = dom.efc[ci];
@@ -4341,7 +4860,7 @@ document.addEventListener('DOMContentLoaded', init);
       await p;
     });
     wrap('verb', async (ev, orig) => {
-      const p = orig(ev); popAnim($('verbFlash'), 1.4, 220); await p;
+      const p = orig(ev); popAnim($('verbFlash'), 1.4, 350); await p;
     });
     wrap('pip', async (ev, orig) => {
       const p = orig(ev);
@@ -4385,7 +4904,7 @@ document.addEventListener('DOMContentLoaded', init);
           { transform: 'translateY(' + FXC.lungeDownPx + 'px) scale(1.3)', offset: .55 }, { transform: 'translateY(0) scale(1)' }], { duration: T.lungeMs, easing: 'ease-in-out' });
         burst({ x: at.x, y: at.y + FXC.lungeDownPx }, C.colors.hostile, FXC.burstCounts.lunge);
       } else if (ev.anim === 'growl') {
-        shake(tile, FXC.growlShakePx, T.enemyActMs * .8);
+        shake(tile, FXC.growlShakePx, T.lungeMs * 1.2);
       } else if (ev.anim === 'sniff') {
         motion(tile, [{ transform: 'rotate(0)' }, { transform: 'rotate(-6deg) translateY(4px)', offset: .25 }, { transform: 'rotate(4deg)', offset: .5 },
           { transform: 'rotate(-5deg) translateY(4px)', offset: .75 }, { transform: 'rotate(0)' }], { duration: FXC.sniffMs, easing: 'linear' });
@@ -4477,7 +4996,7 @@ document.addEventListener('DOMContentLoaded', init);
           const a = n.animate([
             { transform: at0, opacity: 1 },
             { transform: at0 + ' translate(' + (h[1] * 6) + 'px,-8px) rotate(' + (h[1] * 8) + 'deg)', opacity: 1, offset: .2 },
-            { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 640, easing: 'ease-in' });
+            { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 1020, easing: 'ease-in' });
           a.onfinish = a.oncancel = () => sweep(n);
         });
       }
@@ -4488,14 +5007,14 @@ document.addEventListener('DOMContentLoaded', init);
     wrap('mod', async (ev, orig) => {
       const p = orig(ev);
       const v = $('verbFlash');
-      popAnim(v, 1.3, 260);
+      popAnim(v, 1.3, 415);
       floatText(ev.source.toUpperCase() + ' ' + (ev.mod < 0 ? '−' : '+') + Math.abs(ev.mod), ctr(v), verbColor(ev.verb), { small: false });
       await p;
     });
     wrap('taxed', async (ev, orig) => {
       const p = orig(ev);
       const v = $('verbFlash');
-      popAnim(v, 1.3, 260);
+      popAnim(v, 1.3, 415);
       floatText(C.text.taxFloat.replace('{n}', ev.amount), ctr(v), C.colors.status, { small: false });
       burst(ctr(v), C.colors.status, FXC.burstCounts.pip);
       await p;
@@ -4559,7 +5078,11 @@ document.addEventListener('DOMContentLoaded', init);
       shake($('stage'), FXC.loseShakePx, FXC.loseShakeMs);
       await p;
     });
-    wrap('sentence', async (ev, orig) => orig(ev));
+    wrap('sentence', async (ev, orig) => {
+      const p = orig(ev);
+      if (ev.evaluation.mindIndex === 0) popCaption(0);              // MIND first: the rail starts on it
+      await p;
+    });
     // exposed belly: the TORSO die lurches and flashes red before the scar lands
     wrap('bellyExposed', async (ev, orig) => {
       const el = dom.dieEls[ev.dieId], at = ctr(el);
@@ -4593,7 +5116,7 @@ document.addEventListener('DOMContentLoaded', init);
         const at0 = 'translate(' + at.x + 'px,' + at.y + 'px) translate(-50%,-50%)';
         const a = n.animate([{ transform: at0, opacity: 1 },
           { transform: at0 + ' translate(' + (h[1] * 6) + 'px,-8px) rotate(' + (h[1] * 8) + 'deg)', opacity: 1, offset: .2 },
-          { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 640, easing: 'ease-in' });
+          { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 1020, easing: 'ease-in' });
         a.onfinish = a.oncancel = () => sweep(n);
       });
     };
@@ -4624,7 +5147,7 @@ document.addEventListener('DOMContentLoaded', init);
     wrap('noise', async (ev, orig) => {
       const p = orig(ev);
       const nb = $('noiseTrack').querySelectorAll('.nb')[ev.total - 1];
-      if (nb) motion(nb, [{ transform: 'scale(1.8)' }, { transform: 'scale(1)' }], { duration: 220 });
+      if (nb) motion(nb, [{ transform: 'scale(1.8)' }, { transform: 'scale(1)' }], { duration: 350 });
       if (ev.cause === 'RATS') floatText('+' + ev.amount + ' NOISE', ctr($('noiseTrack')), C.colors.status, { small: false });
       await p;
     });
@@ -4653,7 +5176,7 @@ document.addEventListener('DOMContentLoaded', init);
     });
     wrap('guardian', async (ev, orig) => {
       const p = orig(ev);
-      shake($('noiseTrack'), FXC.shakePx + 3, 500);
+      shake($('noiseTrack'), FXC.shakePx + 3, 800);
       shake($('stage'), FXC.loseShakePx, FXC.loseShakeMs);
       floatText(ev.name, ctr($('noiseTrack')), C.colors.verb.PRUNE, { small: false });
       await p;
@@ -4812,10 +5335,10 @@ document.addEventListener('DOMContentLoaded', init);
     die.frozen = !die.frozen; if (die.frozen) die.held = false;
     refreshGame(); return true;
   }
-  // slot count of the current encounter / site (1..number of dice); dice in the vanished slots return to the tray
+  // slot count of the current encounter / site (CONFIG.minSlots..number of dice); dice in the vanished slots return to the tray
   function setSlots(n) {
     if (!U.game || U.ui.screen !== 'encounter') return false;
-    U.game.slots = Math.max(1, Math.min(C.playerDice.length, Math.floor(n) || 1));
+    U.game.slots = Math.max(C.minSlots || 1, Math.min(C.playerDice.length, Math.floor(n) || 1));
     if (U.game.enemy) U.game.enemy.slots = U.game.slots;
     refreshGame(); return true;
   }
@@ -4855,7 +5378,7 @@ document.addEventListener('DOMContentLoaded', init);
       '<div class="row"><button class="dbtn" id="dbgReset">RESET ENEMY</button><button class="dbtn" id="dbgScars">CLEAR SCARS</button></div>' +
       '<div class="row"><button class="dbtn" id="dbgTax">TAX NEXT SENTENCE</button></div><div class="row" id="dbgFrz"></div>' +
       '<h4>RULES (V2)</h4>' +
-      '<div class="row"><label>slots</label><input type="number" id="dbgSlots" min="1" max="' + C.playerDice.length + '" value="3" style="width:54px"><button class="dbtn" id="dbgSlotsSet">SET</button></div>' +
+      '<div class="row"><label>slots</label><input type="number" id="dbgSlots" min="' + (C.minSlots || 1) + '" max="' + C.playerDice.length + '" value="3" style="width:54px"><button class="dbtn" id="dbgSlotsSet">SET</button></div>' +
       '<label class="chk"><input type="checkbox" id="dbgHold"> mindAloneHolds</label>' +
       '<div class="row"><label>lose</label><select id="dbgLoseRule"><option value="dieLost">dieLost</option><option value="maxScars">maxScars</option></select></div>' +
       '<div id="dbgNote"></div>' +

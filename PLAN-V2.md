@@ -50,7 +50,7 @@ may override this later (default null).
 
 **Slots and choosing dice.**
 - Each enemy and site has `slots` (default 3). Values: DOG 3, PLUMBER 3, ACCOUNTANT 2 ("he talks, you nod"),
-  CROWS 2, BRIDGE 1 ("one careful step"); sites HEAP 3, SHED 3, WELL 2, HUT 3. All in CONFIG; debug can change it.
+  CROWS 2, BRIDGE 2 (was 1; playtest: **minimum 2 slots**, `CONFIG.minSlots: 2`); sites HEAP 3, SHED 3, WELL 2, HUT 3. All in CONFIG; debug can set 2–3.
 - The sentence has exactly `slots` positions; COMMIT is enabled when **all slots are filled**. Dice not in the
   sentence do nothing (but count for the belly check).
 - `evaluateSentence(faces, ctx)`: `faces` has 1–3 entries, **0 or 1** verb faces.
@@ -159,7 +159,7 @@ ACCOUNTANT → exposed belly ended the run ("Every face of your TORSO is scarred
 | `items[ID]` | `{name, part, names:{PRUNE,SOW,DIG}` (null = part's name)`, special, info, uses?, forbidden?}` |
 | `itemRules` | `knifePruneBonus, matchesPruneBonus, forbiddenBookSowBonus, glassesRevealDepth, defaultRevealDepth, noseRevealDepth, whistleMultiplier, whistleTag, wateringCanNow, wateringCanSow, earTrumpetBonus, earTrumpetPart, pipeWanted` |
 | `shapeNames` | `{first:'Plan', middle:'Situation', last:'Impulse', reflex:'Reflex', idle:'Idle', hold:'Hold'}` (title case; the UI may upper-case) |
-| `defaultSlots: 3`, `enemies[ID].slots`, `sites[ID].slots` | DOG 3 PLUMBER 3 ACCOUNTANT 2 CROWS 2 BRIDGE 1; HEAP 3 SHED 3 WELL 2 HUT 3 |
+| `minSlots: 2`, `defaultSlots: 3`, `enemies[ID].slots`, `sites[ID].slots` | DOG 3 PLUMBER 3 ACCOUNTANT 2 CROWS 2 BRIDGE 2; HEAP 3 SHED 3 WELL 2 HUT 3; createEnemy / createSite clamp to `minSlots` |
 | `mindAloneHolds: false`, `loseRule: 'maxScars'` (**default, user decision**) `\|'dieLost'`, `maxScars: 4`, `scarTargets: null\|[dieIds]` | |
 | `effectRules.scarHeadDie: 'HEAD'` | die ACCOUNTANT's `scarHead` hits |
 | `startingInventory: [KNIFE, GLASSES, SEED_POUCH]` | placed on the intro screen |
@@ -266,3 +266,66 @@ The single 4,900-line `index.html` was split into `src/` (see `CLAUDE.md` for th
 - Because engine/ui share the global scope, a new top-level name must not clash with another file's (`const` redeclaration
   is a load-time SyntaxError). Pick the file by topic and keep the load order in `src/index.html` in mind for load-time reads
   (only `CONFIG` is read at load time by the engine).
+
+### V2-3 notes (done — sentence rail, playtest fix)
+
+Playtest: the sentence did not read as steps one after another and empty slots looked like tray boxes. Reworked the presentation only (no engine changes; tests 114/114).
+- **Rail** (`#sentence`, `renderSlots` in `ui/10-render.js`): one strip of interlocking chevron steps (`.rstep` = label · band/tag · `.slot` · carry link · caption), title `CONFIG.text.rail.title`, step labels `text.rail.steps[n]` (1 ONLY · 2 FIRST/THEN · 3 FIRST/THEN/LAST), shape label (PLAN … HOLD) in the header, totals `= PRUNE 6 (mods/tax) · SOW 2` at the right end (`evaluation.totalsText`). Empty slots are outlined chevrons with "drop a die".
+- **Captions** per step from `evaluateSentence` (`Stab 4+2` / `(knife +1)`), MIND caption "MIND: sets SOW"; DIG carry = arrow from giving to receiving caption labelled `+N`. Old long preview line is now a compact hint line (placeHint / "Last: …" / site `sitePreview`).
+- **MIND influence**: slots from the MIND rightward get a band in its verb colour; slots before it / all in REFLEX get an `instinct · VERB` tag in the favourite verb's colour (`no instinct` for BACK/BELLY). Tooltips on both.
+- **Tray**: no cell frames; dice are rounded loose dice with a static random tilt per roll/reroll (`ui.tilt`, `CONFIG.ui.trayTiltDeg`, CSS var `--tilt`); held = lit border + lift + HELD badge. On the rail a die loses the frame and reads as a word step. Empty tray spots show a faint dashed ring.
+- **Playback**: `ui.railPlay {idx, totals}`; the `sentence` / `step` / `verb|mod|taxed` handlers move a playhead left→right over the band row, each caption appears and pops (`fx.js` `popCaption`, `flashCarry`); a MIND crossed on the way pops too. Timing: `timing.railStepMs` 280, `railPlayheadMs` 160, `fx.railPopScale`, `fx.arrowSwellScale` (now the +N label swell).
+- Drop target = nearest chevron centre (chevrons overlap by `--ov`). Rail sizes are CSS vars on `#sentence` (`--sw --pt --ov --slotH`).
+- Browser (1280×720, 0 console errors): 1-slot BRIDGE, 2-slot REFLEX (instinct tags + DIG carry), 3-slot PLAN with MIND band, site (HEAP) commit, real drag onto a slot. Screenshot: side-session-notes `rail-3slot-plan.jpg`.
+- Not done: no rail view of the last turn after the dice go `?` (the "Last:" line covers it); `.rcap` notes ellipsise if very long (full text in the tooltip).
+
+### V2-4 notes (playtest fixes: min 2 slots, slower playback, shorter fights, narration, enemy-area layout)
+
+Tests 115/115 (new: minSlots clamp, narration/act data coverage). Browser (1280×720, 0 console errors): 2-slot BRIDGE, 3-slot DOG / PLUMBER, 2-slot WELL site.
+- **minSlots**: `CONFIG.minSlots: 2`; `createEnemy` / `createSite` clamp `slots`; BRIDGE 2; debug slots input min 2. 1-slot paths untouched (tests force `g.slots = 1`; `minSlots: 1` re-enables).
+- **Timing** (`70-timing.js`): commit / enemy playback ~1.6× (resolve, rail, pip, fly, shake, lunge, float, burst, scar…); `enemyActMs` 1500 (action line readable ≥1.5 s), new `preEnemyMs` 500 before the enemy acts (in `playEvents`). Drag / snap / roll / hold unchanged.
+- **Pips** ~1.5× v1 rounded (DOG 3; PLUMBER 5/2/2; ACCOUNTANT 3/5/2/3/2; BRIDGE 3/3/5/2/2; CROWS 2/2/3/2). Test harness `pinV1Pips` pins each face to its v1 original (no more `/ 2`).
+- **Narration** (`#narration`, `narrateSentence` / `narrateResult` in `ui/10-render.js`): "You glare at the stray dog, then punch him. 3 of his BORROW pips break." Phrases = `text.narration.actions[action name]` with `{them}`
+  (fallback: lower-cased action name); the name is used once, later mentions use `enemy.pron` (default it / its). Enemy `shortName`, `pron`, site `shortName`. Result clauses come from the pip events seen so far; sites get the sentence only.
+- **Enemy action line** = `enemy.act[FACE|noItem|wag|broken]` full sentences (`{item}`), fallback `shortName + text`; engine event gains `item` for BORROW / STEAL / DROP.
+- **Layout**: `#intentPanel` has fixed rows (66 label/tile row, 22 intent line ellipsis, 44 action sentence clamped to 2 lines, 36 queue) and `overflow:hidden`; `#sentence` 196→232 and `#bottom` moved 36px down (buttons margin 22→8) to fit the 2-line narration.
+- Open: narration for sites has no result clause; phrases are English-only; a mid-lunge intent tile can still scale over the intent line for a moment (FX, unchanged).
+
+### V2-5 notes (slot shows the action; reveal in the totals)
+
+Tests 116/116 (3 updated string asserts, +1 new DIG-only test). Browser (1280×720, 0 console errors): 2-slot BRIDGE with GLASSES+MIND, HEAP site 3-slot DIG sentence + real commit. Screenshot: side-session-notes `rail-actions-site-dig.jpg`.
+- **Slot = action** (`slotAction` in `ui/10-render.js`, `.sact` overlay in each slot): action name + points big in the verb colour (`READ THE FINE PRINT 3`, `PRY 2+3`), MIND slot `SETS PRUNE` (`HOLD` when it holds), SCAR `SCARRED 0`. The die face is a small strip at the slot bottom; ▼ moved to the top right. Updates live, also on partial sentences (empty slots padded with a SCAR for evaluation only; a die right of an empty slot is assumed instinct until a MIND lands left of it).
+- **Caption** below a step now only carries annotations `(reveal) (knife +1)`; MIND caption only for hold / idle. DIG carry arrow, band, playhead unchanged; `popCaption` pops the slot action (`dom.actEls`).
+- **Reveal totals** (`text.revealTotals`, engine `evaluateSentence`): `= PRUNE 6 · REVEAL next intent`, `REVEAL next 2 intents` (GLASSES), sites `REVEAL 2 faces` / `REVEAL all faces` (SPADE). New fields `revealText`, `revealFaces`; "nothing happens" only if no verb total and no reveal. `sitePreview` hint and narration (`text.narration.reveal`: "You see its next move.") use the same numbers; engine log line includes it.
+- Open: `rtotals` max-width 290px (wraps to 2 lines); partial-sentence actions on a die right of a gap can flip when the MIND is placed.
+
+### V2-6 notes (rail bigger + readability pass; no engine change, tests 116/116)
+
+Before/after: side-session-notes `encounter-before.jpg` / `encounter-after.jpg` (HEAP site, 3 slots / PLUMBER fight). Browser 1280×720: 0 console errors, no page scroll, fight + site commit played through.
+- **Rail ≈1.3–1.4×**: chevrons 330→425px wide (re-fitted by JS for >3 slots via `--sw`), slot 76→100px, action name 25→30px (24px for names >13 chars), step labels 12→16px, notes 13→15px, totals moved into the header row, right-aligned, 24px display font (`= SOW 6 (plumber +1) · REVEAL next 2 intents`), narration 17→19px, hint line 16→17px.
+- **Space**: tray dice 96→78px high (cells 86), buttons slimmer, `#bottom` top 504→564, help line shortened to one line. All sizes are CSS vars (`--fs-min/-sm/-md/-lg`, `--note`, `--note-fs`, and on `#sentence` `--sw-max --pt --ov --slotH --fs-label --fs-action --fs-action-long --fs-cap --fs-total --fs-narr`).
+- **Type floor** 13px on the encounter screen (instinct tags, die labels, HELD/FROZEN, site sub-labels, pop-over labels, DEBUG button); `colors.textDim` #8a88a0→#a9a7c0; annotations all one style (`.rcap .cl1`, `--note`).
+- **Duplicates removed**: caption no longer repeats action/points; site hint line under the narration now only adds noise / coax pips (REVEAL / PRUNE live in the totals); site rules line shortened so it stops overlapping the noise boxes.
+- Open: placement / map / end screens still have 9–12px labels (not touched); help line ellipsises if a translation is longer.
+
+### V2-7 notes (context-fitting action names; progressive sentence). Tests 118/118, built.
+- **Names by tag**: defaults made neutral (MOUTH Shout/Coax/Call out, GLASSES DIG `Squint`, KNIFE DIG `Poke`, …). Overrides: `CONFIG.actionNamesByTag[tag][part][verb]` and `items[id].namesByTag[tag][verb]`; tags = enemy `tags` (animal | human | place) or `site` for scavenge sites. Lookup (`actionName(p, verb, tags)`): item-for-tag → item → part-for-tag → part. Examples: GLASSES DIG dog `Squint`, accountant `Read the fine print`, site `Inspect`; MOUTH SOW dog `Coax`, human `Small talk`.
+- **Narration**: phrases still keyed by displayed name (`text.narration.actions`); same name with different wording per tag via `narration.actionsByTag[tag][name]` (`phraseFor` in `ui/10-render.js`). New names all have phrases (test covers by-tag names too).
+- **Partial evaluation**: engine `evaluatePartial(slots, ctx)` (slots hold face or null; shares `evaluateCore` with `evaluateSentence`, which rejects nulls). Empty slots skipped; directed only if MIND placed before; `shape` is `text.rail.shapePending` ('…') until a MIND is placed or all slots full; steps carry `roleProvisional` / `carryProvisional` / `carryPending`; result has `complete`, `placed`, `shapeKnown`, `tags`. EAR TRUMPET / GLASSES-first only fire on real adjacency / slot 0.
+- **UI**: `partialEvaluation()` feeds the rail while arranging; actions, captions, MIND band, instinct tags (dashed = provisional), DIG arrow (dashed, `+N?`), totals `= PRUNE 4 so far` (dim + italic label), narration `You stab at the stray dog …, then …`. COMMIT still needs all slots full and resolves the full evaluation.
+- Browser 1280×720, 0 console errors: dog fight placed HEAD→MIND→TORSO (label `…` → PLAN, totals/narration grew each step), dog `Squint` vs accountant `Read the fine print`. Screenshot: side-session-notes `rail-partial.jpg`.
+- Open: narration for a half-built sentence with a MIND but no body die yet shows nothing; partial site sentences untested beyond the engine.
+
+### V2-8 notes (opponent die made understandable). Tests 120/120 (+2 `previewHits`), built.
+- **Strip header** `#stripHead`: `ITS DIE · break or turn every hostile face to win` + legend line `NOW = acts this turn · NEXT / THEN = foreseen` (`text.strip`). Per card: `.info` line (by `effect` from `text.strip.effects`; per-enemy override `enemies[ID].info = { FACE: '…' }`; hostile with effect none → "no effect, but it still counts"), `harmless` faces dimmed with a dashed tile, `.fstate` line BROKEN / TURNED (struck-through info).
+- **Engine** `previewHits(enemy, evaluation)` (`30-enemy.js`, exported): clone + same verb order / `applyVerb` / shears as `resolveTurn` → `{ hits, resolves, win }`; mods and tax are already in `evaluation.totals`.
+- **UI** `renderGhosts()` (end of `renderEnemy`, `renderSlots`; only `phase === 'arranging'`, so playback / commit clears them): ghost pips (red diamond PRUNE, green circle SOW), `would-break` / `would-turn` outline + `WOULD BREAK` / `WOULD TURN`, legend line becomes `WIN · beaten|befriended`. Partial sentences → dimmer (`.prov`, dashed outline, "(so far)").
+- Browser 1280×720, 0 console errors: DOG PRUNE / SOW, PLUMBER mixed SOW+PRUNE (HEAD, TORSO, MIND): ghost pips == pips changed after COMMIT in every case; WIN hint on a nearly-dead enemy.
+- Not done: connector arrow from totals to first hit face (optional); site panel unchanged. Card info text is 13px (long ones wrap to 3 lines).
+
+### V2-9 notes (sentence as the hero of the screen; no engine change, tests 120/120, built)
+- **Headline**: `#narration` moved above the rail, centred, 29px bold (`--fs-narr`, `--narr-h` 70px = 2 lines) in `#sentence`. `narrateSentence` now returns HTML: each step phrase in its verb colour (`.nv`), the item name in its item colour + underline (`.ni`), the opponent's name plain (`.nm`), reveal clause in the DIG colour, result clauses dim and small (`.nres`). Still builds die by die.
+- **Focal zone**: `#sentence` has a lit band (gradient + top/bottom rule from `--focus`, `--lit`; `--glow` white while resolving) across the full width; rail, totals and narration live in it.
+- **Quieter**: tray dice 78→64px, tiles 17px, buttons smaller with thin borders (ROLL / COMMIT keep a lit border), help line 70% opacity, enemy card info lines dim; NOW card, intent tile and intent line unchanged. During commit/enemy playback `#bottom` fades to 45% (`#stage[data-phase]`, set in `renderControls`), so the playhead + highlighted steps are the strongest motion.
+- **Layout** (1280×720, no scroll): enemy 40–258, sentence 258–576, bottom 580–720; fits PLUMBER 3 slots with the 2-line sentence, ACCOUNTANT names, ghost labels. Text floor 13px kept.
+- Open: result clause wording still repeats ("His BORROW breaks. 1 of his BORROW pips break."); 3-line narrations are clipped at 70px.

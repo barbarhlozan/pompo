@@ -9,26 +9,31 @@ const EVENT_HANDLERS = {
   async sentence(ev) {
     Object.keys(view.dice).forEach(id => { view.dice[id].frozen = false; });   // the engine thaws a frozen die once it is used
     renderDice();
-    ui.previewOverride = { shape: ev.evaluation.shape, triggers: ev.evaluation.triggers, text: ev.text + (ev.preview ? '  ⇒  ' + ev.preview.text : ''),
-      sentence: ev.faces.map((f, i) => i === ev.evaluation.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+    ui.previewOverride = { shape: ev.evaluation.shape, triggers: ev.evaluation.triggers, ev: ev.evaluation, text: ev.preview ? ev.preview.text : '' };
+    // the rail plays left -> right; a MIND in slot 0 is "reached" first, otherwise the playhead starts at the first step
+    ui.railPlay = { idx: ev.evaluation.mindIndex === 0 ? 0 : -1, totals: !ev.evaluation.steps.length };
+    ui.narr = { sentence: narrateSentence(ev.evaluation), hits: [] };
     renderPreview(); renderSlots();
     await sleep(T.resolveStepMs / 2);
   },
   async step(ev) {
     ui.actingSlot = ev.step.slot;
+    if (ui.railPlay) ui.railPlay.idx = ev.step.slot;
     ui.enemyText = '';
     renderSlots(); renderEnemy();
-    await sleep(T.resolveStepMs);
+    await sleep(T.railStepMs);
   },
   async verb(ev) {
     ui.actingSlot = null;
+    if (ui.railPlay) ui.railPlay.totals = true;
     ui.verbFlash = isSite() && ev.verb === 'SOW' ? ev.verb + ' ' + ev.total + ' → ' + ev.amount + (ev.amount === 1 ? ' pip' : ' pips') : ev.verb + ' ' + ev.amount;
     renderSlots(); renderEnemy();
     await sleep(T.resolveStepMs / 2);
   },
   async pip(ev) {
     view.enemy.faces[ev.faceIdx].pips[ev.pipIdx] = ev.to;
-    renderEnemy();
+    if (ui.narr) ui.narr.hits.push({ faceIdx: ev.faceIdx, to: ev.to });
+    renderEnemy(); renderPreview();
     await sleep(T.resolveStepMs / 2.5);
   },
   async faceResolved(ev) {
@@ -51,7 +56,7 @@ const EVENT_HANDLERS = {
   async enemyAct(ev) {
     ui.phase = 'enemy';
     ui.verbFlash = ''; ui.actingSlot = null;
-    ui.enemyText = ui.game.enemy.name + ' ' + ev.text;
+    ui.enemyText = enemyActSentence(ev);
     renderEnemy(); renderSlots(); renderControls();
     await sleep(T.enemyActMs);
   },
@@ -64,6 +69,7 @@ const EVENT_HANDLERS = {
   // V1 events ------------------------------------------------------------------
   async mod(ev) {                       // pruneMod / sowMod applied to the sentence total
     ui.actingSlot = null;
+    if (ui.railPlay) ui.railPlay.totals = true;
     ui.verbFlash = C.text.modFlash.replace('{verb}', ev.verb).replace('{before}', ev.before).replace('{after}', ev.after)
       .replace('{source}', ev.source).replace('{mod}', signed(ev.mod));
     renderSlots(); renderEnemy();
@@ -98,6 +104,7 @@ const EVENT_HANDLERS = {
   },
   async taxed(ev) {                     // ACCOUNTANT tax: this sentence's verb total is reduced
     ui.actingSlot = null;
+    if (ui.railPlay) ui.railPlay.totals = true;
     ui.verbFlash = C.text.taxFlash.replace('{verb}', ev.verb).replace('{after}', ev.after).replace('{n}', ev.amount);
     renderSlots(); renderEnemy();
     await sleep(T.resolveStepMs);
@@ -186,6 +193,7 @@ const hooks = {
 async function playEvents(events, run) {
   for (const ev of events) {
     if (ui.runId !== run) return false;
+    if (ev.type === 'enemyAct' && T.preEnemyMs) await sleep(T.preEnemyMs);   // a beat between your sentence and the enemy's action
     const h = EVENT_HANDLERS[ev.type];
     if (h) await h(ev);
   }

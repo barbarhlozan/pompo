@@ -220,13 +220,12 @@
     for (const nm of U.game.enemy.targetPriority) for (let i = 0; i < en.faces.length; i++) if (en.faces[i].name === nm && ok(i)) return i;
     return en.current ? en.current.faceIdx : 0;
   }
-  function flashArrows(a, b) {
-    const arrows = document.querySelectorAll('#slots .arrow');
-    for (let i = Math.min(a, b); i < Math.max(a, b); i++) {
-      const ar = arrows[i];
-      motion(ar, [{ transform: 'scale(1)', color: C.colors.glow }, { transform: 'scale(' + FXC.arrowSwellScale + ')', color: verbColor(C.revealVerb), offset: .4 }, { transform: 'scale(1)' }], { duration: T.flyMs });
-    }
+  // DIG carry: the +N label on the arrow under the giving caption swells as the points are handed on
+  function flashCarry(from) {
+    const el = dom.stepEls[from] && dom.stepEls[from].querySelector('.carry b');
+    if (el) motion(el, [{ transform: 'translateX(-50%) scale(1)' }, { transform: 'translateX(-50%) scale(' + FXC.arrowSwellScale + ')', offset: .4 }, { transform: 'translateX(-50%) scale(1)' }], { duration: T.flyMs });
   }
+  const popCaption = (i) => { const c = dom.actEls[i]; if (c) popAnim(c, FXC.railPopScale, T.popMs); };
   function installHandlers() {
     const EH = U.EVENT_HANDLERS;
     const wrap = (name, fn) => {            // fn(ev, orig, run) must call orig(ev) exactly once and return its promise
@@ -238,14 +237,18 @@
     wrap('step', async (ev, orig) => {
       const st = ev.step, id = U.ui.slots[st.slot], die = dom.dieEls[id];
       const from = ctr(dom.slotEls[st.slot]);
+      const prev = U.ui.railPlay ? U.ui.railPlay.idx : -1;
       const p = orig(ev);
       if (die) popAnim(die);
+      popCaption(st.slot);
+      const mi = U.ui.previewOverride && U.ui.previewOverride.ev ? U.ui.previewOverride.ev.mindIndex : -1;
+      if (mi >= 0 && prev < mi && mi < st.slot) popCaption(mi);      // the playhead swept over the MIND on its way here
       const col = verbColor(st.verb);
       if (st.role === 'scar') floatText('0', from, C.colors.textDim, { small: false });
       else if (st.verb === C.revealVerb) {
         if (st.passesTo != null) {
           fly('+' + st.total, from, ctr(dom.slotEls[st.passesTo]), col, { lift: FXC.flyLiftDigPx });
-          flashArrows(st.slot, st.passesTo);
+          flashCarry(st.slot);
         } else floatText(C.text.floatReveal, from, col);
       } else {
         const ci = targetCard(), card = dom.efc[ci];
@@ -256,7 +259,7 @@
       await p;
     });
     wrap('verb', async (ev, orig) => {
-      const p = orig(ev); popAnim($('verbFlash'), 1.4, 220); await p;
+      const p = orig(ev); popAnim($('verbFlash'), 1.4, 350); await p;
     });
     wrap('pip', async (ev, orig) => {
       const p = orig(ev);
@@ -300,7 +303,7 @@
           { transform: 'translateY(' + FXC.lungeDownPx + 'px) scale(1.3)', offset: .55 }, { transform: 'translateY(0) scale(1)' }], { duration: T.lungeMs, easing: 'ease-in-out' });
         burst({ x: at.x, y: at.y + FXC.lungeDownPx }, C.colors.hostile, FXC.burstCounts.lunge);
       } else if (ev.anim === 'growl') {
-        shake(tile, FXC.growlShakePx, T.enemyActMs * .8);
+        shake(tile, FXC.growlShakePx, T.lungeMs * 1.2);
       } else if (ev.anim === 'sniff') {
         motion(tile, [{ transform: 'rotate(0)' }, { transform: 'rotate(-6deg) translateY(4px)', offset: .25 }, { transform: 'rotate(4deg)', offset: .5 },
           { transform: 'rotate(-5deg) translateY(4px)', offset: .75 }, { transform: 'rotate(0)' }], { duration: FXC.sniffMs, easing: 'linear' });
@@ -392,7 +395,7 @@
           const a = n.animate([
             { transform: at0, opacity: 1 },
             { transform: at0 + ' translate(' + (h[1] * 6) + 'px,-8px) rotate(' + (h[1] * 8) + 'deg)', opacity: 1, offset: .2 },
-            { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 640, easing: 'ease-in' });
+            { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 1020, easing: 'ease-in' });
           a.onfinish = a.oncancel = () => sweep(n);
         });
       }
@@ -403,14 +406,14 @@
     wrap('mod', async (ev, orig) => {
       const p = orig(ev);
       const v = $('verbFlash');
-      popAnim(v, 1.3, 260);
+      popAnim(v, 1.3, 415);
       floatText(ev.source.toUpperCase() + ' ' + (ev.mod < 0 ? '−' : '+') + Math.abs(ev.mod), ctr(v), verbColor(ev.verb), { small: false });
       await p;
     });
     wrap('taxed', async (ev, orig) => {
       const p = orig(ev);
       const v = $('verbFlash');
-      popAnim(v, 1.3, 260);
+      popAnim(v, 1.3, 415);
       floatText(C.text.taxFloat.replace('{n}', ev.amount), ctr(v), C.colors.status, { small: false });
       burst(ctr(v), C.colors.status, FXC.burstCounts.pip);
       await p;
@@ -474,7 +477,11 @@
       shake($('stage'), FXC.loseShakePx, FXC.loseShakeMs);
       await p;
     });
-    wrap('sentence', async (ev, orig) => orig(ev));
+    wrap('sentence', async (ev, orig) => {
+      const p = orig(ev);
+      if (ev.evaluation.mindIndex === 0) popCaption(0);              // MIND first: the rail starts on it
+      await p;
+    });
     // exposed belly: the TORSO die lurches and flashes red before the scar lands
     wrap('bellyExposed', async (ev, orig) => {
       const el = dom.dieEls[ev.dieId], at = ctr(el);
@@ -508,7 +515,7 @@
         const at0 = 'translate(' + at.x + 'px,' + at.y + 'px) translate(-50%,-50%)';
         const a = n.animate([{ transform: at0, opacity: 1 },
           { transform: at0 + ' translate(' + (h[1] * 6) + 'px,-8px) rotate(' + (h[1] * 8) + 'deg)', opacity: 1, offset: .2 },
-          { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 640, easing: 'ease-in' });
+          { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 1020, easing: 'ease-in' });
         a.onfinish = a.oncancel = () => sweep(n);
       });
     };
@@ -539,7 +546,7 @@
     wrap('noise', async (ev, orig) => {
       const p = orig(ev);
       const nb = $('noiseTrack').querySelectorAll('.nb')[ev.total - 1];
-      if (nb) motion(nb, [{ transform: 'scale(1.8)' }, { transform: 'scale(1)' }], { duration: 220 });
+      if (nb) motion(nb, [{ transform: 'scale(1.8)' }, { transform: 'scale(1)' }], { duration: 350 });
       if (ev.cause === 'RATS') floatText('+' + ev.amount + ' NOISE', ctr($('noiseTrack')), C.colors.status, { small: false });
       await p;
     });
@@ -568,7 +575,7 @@
     });
     wrap('guardian', async (ev, orig) => {
       const p = orig(ev);
-      shake($('noiseTrack'), FXC.shakePx + 3, 500);
+      shake($('noiseTrack'), FXC.shakePx + 3, 800);
       shake($('stage'), FXC.loseShakePx, FXC.loseShakeMs);
       floatText(ev.name, ctr($('noiseTrack')), C.colors.verb.PRUNE, { small: false });
       await p;
