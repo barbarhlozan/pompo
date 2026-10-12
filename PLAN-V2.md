@@ -334,3 +334,8 @@ Before/after: side-session-notes `encounter-before.jpg` / `encounter-after.jpg` 
 - DICTIONARY button (bottom right, all screens) + `?` / Esc / click outside; overlay in `src/ui/65-dictionary.js`, entries in `CONFIG.text.dictionary`
   (`{term, kind: verb|body|item|term, key?, big?, text}`; `big` = the three verbs shown first as large cards). Opening it never changes game state.
 - Add a term: append an entry. Wording follows the rules as of this commit; update when rules change.
+
+## Visual pass (Baba-ish, CSS-level)
+- Sentence band is a flat `--panel` strip with solid 4px top/bottom rules (`--focus`, white while resolving); yellow gradient/glow gone.
+- Tray dice: hard corners, flat fill, 4px outline, solid black offset shadow; no tilt (`trayTiltDeg`/`tiltMaxDeg` = 0 in config). Held = lifted 5px, no glow.
+- Removed blur shadows/drop-shadows (playhead, cold flash → solid border, litFlash → brightness); turned pips are no longer round. Font stays Bungee (already blocky, system fallback).

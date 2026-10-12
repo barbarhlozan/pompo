@@ -25,7 +25,7 @@ Object.assign(CONFIG, {
     netPunchMs: 220,        // placement: die net punch-scale when an item lands
   },
   fx: {
-    shakePx: 7, tiltMaxDeg: 11, particles: 8,
+    shakePx: 7, tiltMaxDeg: 0, particles: 8,
     netPunchScale: 1.06,            // placement: die net punch-scale when an item lands
     tiltPerPx: 1.4,                 // drag tilt degrees per px of horizontal pointer movement
     liftScale: 1.07,                // a dragged die's scale
@@ -50,7 +50,7 @@ Object.assign(CONFIG, {
   ui: {
     dragThresholdPx: 5,             // moving less than this = a click (toggle hold), not a drag
     dropSlackPx: 12,                // how far outside a slot a drop still counts
-    trayTiltDeg: 6,                 // max static tilt of a die lying in the tray (new per roll)
+    trayTiltDeg: 0,                 // max static tilt of a die lying in the tray (new per roll)
   },
   debug: { logRows: 10, pollMs: 120 },
 });
