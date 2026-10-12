@@ -237,6 +237,19 @@ a seeded 40-trip simulation (random subsets, holds, intro/reward placement, camp
 - Bare `HEAD`/`TORSO` have no `mind`-style `label` variants; Czech `bodyParts[].label` are stored but not displayed yet.
 - Default lose rule is `maxScars` 4 (user change); under it the top bar / map keep the v1 `n/4` scar boxes, `dieLost` shows per-die scars. No balance pass; pips are still the doubled preset (the test harness halves them).
 
+### V2-2 notes (done — M1 UI polish; V2-1 UI already covered the base)
+
+Tests still 114/114 (no engine change). Browser smoke (`smug-prototype`, 1280×720, **0 console errors**): 3-slot site turn with GLASSES in slot 0, 2-slot ACCOUNTANT REFLEX
+(GLASSES first, KNIFE; order trigger lit), 1-slot BRIDGE REFLEX, 3-slot DOG PLAN; an exposed belly (BELLY under a SOW sentence) fired earlier in the same session.
+Added on top of the V2-1 UI:
+- Preview line now reads `LABEL · [MIND] FACE FACE` (label was hidden once a sentence existed); CSS upper-cases it.
+- Slot tiles show their number (`.slot::before`) and light up (`.slot.trig`) where an order trigger applies: GLASSES in slot 1, the EAR TRUMPET's boosted MOUTH,
+  PIPE in the last slot (read from `evaluation.triggers`, also kept in the resolving preview via `previewOverride.triggers`).
+- FX (src/fx.js wraps): `bellyExposed` (die lurches, red burst, "BELLY EXPOSED"), `itemBurnedOut` (float text + burst + face pop), NOSE/GLASSES `reveal` ("SEES n").
+- Already there from V2-1 and checked: slots = `enemy.slots`, drag / ▲ / keys 1–N, COMMIT when full, REFLEX/IDLE/HOLD labels, `mindAloneHolds` die pick, lose overlay naming
+  the die, placement nets/odds/heal over `bodyDieIds()`, `×n` charges on tiles, debug (slots, mindAloneHolds, loseRule, give item).
+- Not done / open: item burn-out and hold-pick FX only exercised by code path, not by eye; slot tiles keep a fixed 262px width (1-slot row is just centred).
+
 ## Refactor notes (code split, no behaviour change)
 The single 4,900-line `index.html` was split into `src/` (see `CLAUDE.md` for the one-line-per-file map).
 - **Layout:** `src/index.html` (markup + `<link>`/`<script>` tags in load order), `src/styles.css`, `src/config/*.js`

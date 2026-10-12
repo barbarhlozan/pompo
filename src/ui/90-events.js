@@ -9,7 +9,7 @@ const EVENT_HANDLERS = {
   async sentence(ev) {
     Object.keys(view.dice).forEach(id => { view.dice[id].frozen = false; });   // the engine thaws a frozen die once it is used
     renderDice();
-    ui.previewOverride = { shape: ev.evaluation.shape, text: ev.text + (ev.preview ? '  ⇒  ' + ev.preview.text : ''),
+    ui.previewOverride = { shape: ev.evaluation.shape, triggers: ev.evaluation.triggers, text: ev.text + (ev.preview ? '  ⇒  ' + ev.preview.text : ''),
       sentence: ev.faces.map((f, i) => i === ev.evaluation.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
     renderPreview(); renderSlots();
     await sleep(T.resolveStepMs / 2);

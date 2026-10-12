@@ -194,6 +194,11 @@ function renderSlots() {
     if (arrows[i - 1]) arrows[i - 1].style.display = i < n ? '' : 'none';
     s.classList.toggle('full', !!ui.slots[i]);
     s.classList.toggle('acting', ui.actingSlot === i);
+    s.dataset.n = i + 1;
+  });
+  const tg = (currentPreview().triggers) || {}, last = n - 1;
+  dom.slotEls.forEach((s, i) => {
+    s.classList.toggle('trig', !!(i < n && ((tg.glassesFirst && i === 0) || (tg.earTrumpet && tg.earTrumpet.indexOf(i) >= 0) || (tg.pipeLast && i === last))));
   });
   $('slots').classList.toggle('complete', placedCount() === slotCount() && (ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy'));
 }
@@ -206,10 +211,10 @@ function currentPreview() {
       const ev = E.evaluateSentence(faces, { site: true });
       const sp = E.sitePreview(ui.game, ev);
       const tg = ui.game.target !== null ? ' (' + MT().target.toLowerCase() + ': ' + (ui.game.target + 1) + ')' : '';
-      return { shape: ev.shape, text: ev.text + '  ⇒  ' + sp.text + tg, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+      return { shape: ev.shape, triggers: ev.triggers, text: ev.text + '  ⇒  ' + sp.text + tg, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
     }
     const ev = E.evaluateSentence(faces, { enemy: ui.game.enemy, tax: ui.game.tax || 0 });
-    return { shape: ev.shape, text: ev.text, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+    return { shape: ev.shape, triggers: ev.triggers, text: ev.text, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
   }
   if (ui.phase === 'await-roll') {
     const log = ui.game.log;
@@ -220,7 +225,7 @@ function currentPreview() {
 }
 function renderPreview() {
   const p = currentPreview();
-  $('shape').textContent = p.sentence || p.shape || '';
+  $('shape').textContent = p.sentence ? (p.shape ? p.shape + ' · ' : '') + p.sentence : (p.shape || '');
   const t = $('previewText');
   t.innerHTML = p.text ? verbify(p.text) : '&nbsp;';
   t.classList.toggle('hint', !!p.hint);

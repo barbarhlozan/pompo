@@ -288,6 +288,7 @@
     });
     wrap('reveal', async (ev, orig) => {
       const p = orig(ev);
+      floatText('SEES ' + ev.list.length, ctr($('nextWrap')), C.colors.glow, { small: true });
       motion($('nextWrap'), [{ transform: 'translateX(-30px) scale(.8)' }, { transform: 'translateX(0) scale(1)' }], { duration: FXC.revealSlideMs, easing: 'cubic-bezier(.2,1.4,.4,1)' });
       await p;
     });
@@ -474,6 +475,26 @@
       await p;
     });
     wrap('sentence', async (ev, orig) => orig(ev));
+    // exposed belly: the TORSO die lurches and flashes red before the scar lands
+    wrap('bellyExposed', async (ev, orig) => {
+      const el = dom.dieEls[ev.dieId], at = ctr(el);
+      const p = orig(ev);
+      motion(el, [{ transform: 'scale(1)' }, { transform: 'scale(1.25) rotate(-4deg)', offset: .3 }, { transform: 'scale(.92) rotate(3deg)', offset: .65 }, { transform: 'scale(1)' }], { duration: FXC.scarPopMs * 2 });
+      shake(el, FXC.scarShakePx, T.crackMs);
+      floatText('BELLY EXPOSED', { x: at.x, y: at.y - 50 }, C.colors.hostile, { small: false });
+      burst(at, C.colors.hostile, FXC.burstCounts.lunge);
+      await p;
+    });
+    // an item's last charge: it burns out and the face reverts
+    wrap('itemBurnedOut', async (ev, orig) => {
+      const el = dom.dieEls[ev.dieId], at = ctr(el), col = C.colors.item[ev.item] || '#b967ff';
+      const d = C.items[ev.item];
+      const p = orig(ev);
+      floatText((d ? d.name : ev.item) + ' BURNED OUT', { x: at.x, y: at.y - 50 }, col, { small: false });
+      burst(at, col, FXC.burstCounts.scar);
+      motion(el.querySelector('.faceRow'), [{ scale: '1.3', opacity: .4 }, { scale: '.85', offset: .5 }, { scale: '1', opacity: 1 }], { duration: FXC.scarPopMs, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+      await p;
+    });
 
     // ---- scavenge site events ----
     const breakTile = (at, name, col, size) => {

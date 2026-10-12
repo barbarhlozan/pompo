@@ -81,6 +81,8 @@
   #slots { display:flex; align-items:center; gap:14px; }
   .slot { width:262px; height:104px; border:3px dashed var(--line); background:rgba(255,255,255,.025);
     display:flex; align-items:center; justify-content:center; position:relative; }
+  .slot::before { content:attr(data-n); position:absolute; left:6px; top:3px; font-size:12px; color:var(--dim); z-index:1; }
+  .slot.trig { border-color:var(--glow); box-shadow:0 0 10px 1px color-mix(in srgb, var(--glow) 55%, transparent); }
   .slot .num { position:absolute; left:6px; top:3px; font-size:12px; color:var(--dim); }
   .slot.over { border-color:var(--glow); background:rgba(255,255,255,.1); }
   .slot.full { border-style:solid; }
@@ -2723,6 +2725,11 @@ function renderSlots() {
     if (arrows[i - 1]) arrows[i - 1].style.display = i < n ? '' : 'none';
     s.classList.toggle('full', !!ui.slots[i]);
     s.classList.toggle('acting', ui.actingSlot === i);
+    s.dataset.n = i + 1;
+  });
+  const tg = (currentPreview().triggers) || {}, last = n - 1;
+  dom.slotEls.forEach((s, i) => {
+    s.classList.toggle('trig', !!(i < n && ((tg.glassesFirst && i === 0) || (tg.earTrumpet && tg.earTrumpet.indexOf(i) >= 0) || (tg.pipeLast && i === last))));
   });
   $('slots').classList.toggle('complete', placedCount() === slotCount() && (ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy'));
 }
@@ -2735,10 +2742,10 @@ function currentPreview() {
       const ev = E.evaluateSentence(faces, { site: true });
       const sp = E.sitePreview(ui.game, ev);
       const tg = ui.game.target !== null ? ' (' + MT().target.toLowerCase() + ': ' + (ui.game.target + 1) + ')' : '';
-      return { shape: ev.shape, text: ev.text + '  ⇒  ' + sp.text + tg, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+      return { shape: ev.shape, triggers: ev.triggers, text: ev.text + '  ⇒  ' + sp.text + tg, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
     }
     const ev = E.evaluateSentence(faces, { enemy: ui.game.enemy, tax: ui.game.tax || 0 });
-    return { shape: ev.shape, text: ev.text, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+    return { shape: ev.shape, triggers: ev.triggers, text: ev.text, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
   }
   if (ui.phase === 'await-roll') {
     const log = ui.game.log;
@@ -2749,7 +2756,7 @@ function currentPreview() {
 }
 function renderPreview() {
   const p = currentPreview();
-  $('shape').textContent = p.sentence || p.shape || '';
+  $('shape').textContent = p.sentence ? (p.shape ? p.shape + ' · ' : '') + p.sentence : (p.shape || '');
   const t = $('previewText');
   t.innerHTML = p.text ? verbify(p.text) : '&nbsp;';
   t.classList.toggle('hint', !!p.hint);
@@ -3876,7 +3883,7 @@ const EVENT_HANDLERS = {
   async sentence(ev) {
     Object.keys(view.dice).forEach(id => { view.dice[id].frozen = false; });   // the engine thaws a frozen die once it is used
     renderDice();
-    ui.previewOverride = { shape: ev.evaluation.shape, text: ev.text + (ev.preview ? '  ⇒  ' + ev.preview.text : ''),
+    ui.previewOverride = { shape: ev.evaluation.shape, triggers: ev.evaluation.triggers, text: ev.text + (ev.preview ? '  ⇒  ' + ev.preview.text : ''),
       sentence: ev.faces.map((f, i) => i === ev.evaluation.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
     renderPreview(); renderSlots();
     await sleep(T.resolveStepMs / 2);
@@ -4366,6 +4373,7 @@ document.addEventListener('DOMContentLoaded', init);
     });
     wrap('reveal', async (ev, orig) => {
       const p = orig(ev);
+      floatText('SEES ' + ev.list.length, ctr($('nextWrap')), C.colors.glow, { small: true });
       motion($('nextWrap'), [{ transform: 'translateX(-30px) scale(.8)' }, { transform: 'translateX(0) scale(1)' }], { duration: FXC.revealSlideMs, easing: 'cubic-bezier(.2,1.4,.4,1)' });
       await p;
     });
@@ -4552,6 +4560,26 @@ document.addEventListener('DOMContentLoaded', init);
       await p;
     });
     wrap('sentence', async (ev, orig) => orig(ev));
+    // exposed belly: the TORSO die lurches and flashes red before the scar lands
+    wrap('bellyExposed', async (ev, orig) => {
+      const el = dom.dieEls[ev.dieId], at = ctr(el);
+      const p = orig(ev);
+      motion(el, [{ transform: 'scale(1)' }, { transform: 'scale(1.25) rotate(-4deg)', offset: .3 }, { transform: 'scale(.92) rotate(3deg)', offset: .65 }, { transform: 'scale(1)' }], { duration: FXC.scarPopMs * 2 });
+      shake(el, FXC.scarShakePx, T.crackMs);
+      floatText('BELLY EXPOSED', { x: at.x, y: at.y - 50 }, C.colors.hostile, { small: false });
+      burst(at, C.colors.hostile, FXC.burstCounts.lunge);
+      await p;
+    });
+    // an item's last charge: it burns out and the face reverts
+    wrap('itemBurnedOut', async (ev, orig) => {
+      const el = dom.dieEls[ev.dieId], at = ctr(el), col = C.colors.item[ev.item] || '#b967ff';
+      const d = C.items[ev.item];
+      const p = orig(ev);
+      floatText((d ? d.name : ev.item) + ' BURNED OUT', { x: at.x, y: at.y - 50 }, col, { small: false });
+      burst(at, col, FXC.burstCounts.scar);
+      motion(el.querySelector('.faceRow'), [{ scale: '1.3', opacity: .4 }, { scale: '.85', offset: .5 }, { scale: '1', opacity: 1 }], { duration: FXC.scarPopMs, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+      await p;
+    });
 
     // ---- scavenge site events ----
     const breakTile = (at, name, col, size) => {

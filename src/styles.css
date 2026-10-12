@@ -71,6 +71,8 @@
   #slots { display:flex; align-items:center; gap:14px; }
   .slot { width:262px; height:104px; border:3px dashed var(--line); background:rgba(255,255,255,.025);
     display:flex; align-items:center; justify-content:center; position:relative; }
+  .slot::before { content:attr(data-n); position:absolute; left:6px; top:3px; font-size:12px; color:var(--dim); z-index:1; }
+  .slot.trig { border-color:var(--glow); box-shadow:0 0 10px 1px color-mix(in srgb, var(--glow) 55%, transparent); }
   .slot .num { position:absolute; left:6px; top:3px; font-size:12px; color:var(--dim); }
   .slot.over { border-color:var(--glow); background:rgba(255,255,255,.1); }
   .slot.full { border-style:solid; }
