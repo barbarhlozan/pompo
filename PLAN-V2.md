@@ -290,3 +290,20 @@ Tests 115/115 (new: minSlots clamp, narration/act data coverage). Browser (1280�
 - **Enemy action line** = `enemy.act[FACE|noItem|wag|broken]` full sentences (`{item}`), fallback `shortName + text`; engine event gains `item` for BORROW / STEAL / DROP.
 - **Layout**: `#intentPanel` has fixed rows (66 label/tile row, 22 intent line ellipsis, 44 action sentence clamped to 2 lines, 36 queue) and `overflow:hidden`; `#sentence` 196→232 and `#bottom` moved 36px down (buttons margin 22→8) to fit the 2-line narration.
 - Open: narration for sites has no result clause; phrases are English-only; a mid-lunge intent tile can still scale over the intent line for a moment (FX, unchanged).
+
+### V2-5 notes (slot shows the action; reveal in the totals)
+
+Tests 116/116 (3 updated string asserts, +1 new DIG-only test). Browser (1280×720, 0 console errors): 2-slot BRIDGE with GLASSES+MIND, HEAP site 3-slot DIG sentence + real commit. Screenshot: side-session-notes `rail-actions-site-dig.jpg`.
+- **Slot = action** (`slotAction` in `ui/10-render.js`, `.sact` overlay in each slot): action name + points big in the verb colour (`READ THE FINE PRINT 3`, `PRY 2+3`), MIND slot `SETS PRUNE` (`HOLD` when it holds), SCAR `SCARRED 0`. The die face is a small strip at the slot bottom; ▼ moved to the top right. Updates live, also on partial sentences (empty slots padded with a SCAR for evaluation only; a die right of an empty slot is assumed instinct until a MIND lands left of it).
+- **Caption** below a step now only carries annotations `(reveal) (knife +1)`; MIND caption only for hold / idle. DIG carry arrow, band, playhead unchanged; `popCaption` pops the slot action (`dom.actEls`).
+- **Reveal totals** (`text.revealTotals`, engine `evaluateSentence`): `= PRUNE 6 · REVEAL next intent`, `REVEAL next 2 intents` (GLASSES), sites `REVEAL 2 faces` / `REVEAL all faces` (SPADE). New fields `revealText`, `revealFaces`; "nothing happens" only if no verb total and no reveal. `sitePreview` hint and narration (`text.narration.reveal`: "You see its next move.") use the same numbers; engine log line includes it.
+- Open: `rtotals` max-width 290px (wraps to 2 lines); partial-sentence actions on a die right of a gap can flip when the MIND is placed.
+
+### V2-6 notes (rail bigger + readability pass; no engine change, tests 116/116)
+
+Before/after: side-session-notes `encounter-before.jpg` / `encounter-after.jpg` (HEAP site, 3 slots / PLUMBER fight). Browser 1280×720: 0 console errors, no page scroll, fight + site commit played through.
+- **Rail ≈1.3–1.4×**: chevrons 330→425px wide (re-fitted by JS for >3 slots via `--sw`), slot 76→100px, action name 25→30px (24px for names >13 chars), step labels 12→16px, notes 13→15px, totals moved into the header row, right-aligned, 24px display font (`= SOW 6 (plumber +1) · REVEAL next 2 intents`), narration 17→19px, hint line 16→17px.
+- **Space**: tray dice 96→78px high (cells 86), buttons slimmer, `#bottom` top 504→564, help line shortened to one line. All sizes are CSS vars (`--fs-min/-sm/-md/-lg`, `--note`, `--note-fs`, and on `#sentence` `--sw-max --pt --ov --slotH --fs-label --fs-action --fs-action-long --fs-cap --fs-total --fs-narr`).
+- **Type floor** 13px on the encounter screen (instinct tags, die labels, HELD/FROZEN, site sub-labels, pop-over labels, DEBUG button); `colors.textDim` #8a88a0→#a9a7c0; annotations all one style (`.rcap .cl1`, `--note`).
+- **Duplicates removed**: caption no longer repeats action/points; site hint line under the narration now only adds noise / coax pips (REVEAL / PRUNE live in the totals); site rules line shortened so it stops overlapping the noise boxes.
+- Open: placement / map / end screens still have 9–12px labels (not touched); help line ellipsises if a translation is longer.

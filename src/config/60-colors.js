@@ -3,7 +3,7 @@
 
 Object.assign(CONFIG, {
   colors: {
-    bg: '#0b0b10', panel: '#16161f', line: '#2a2a3a', text: '#e8e6f0', textDim: '#8a88a0',
+    bg: '#0b0b10', panel: '#16161f', line: '#2a2a3a', text: '#e8e6f0', textDim: '#a9a7c0',
     // verbs carry meaning: PRUNE = red (force), SOW = blue (intellect / persuasion), DIG = amber (curiosity / search)
     verb: { PRUNE: '#ff4a4a', SOW: '#3d8bff', DIG: '#ffb21f' },
     // body parts: a muted, neutral bone / sand / clay family so they never read as verbs

@@ -225,7 +225,7 @@
     const el = dom.stepEls[from] && dom.stepEls[from].querySelector('.carry b');
     if (el) motion(el, [{ transform: 'translateX(-50%) scale(1)' }, { transform: 'translateX(-50%) scale(' + FXC.arrowSwellScale + ')', offset: .4 }, { transform: 'translateX(-50%) scale(1)' }], { duration: T.flyMs });
   }
-  const popCaption = (i) => { const c = dom.capEls[i]; if (c) popAnim(c, FXC.railPopScale, T.popMs); };
+  const popCaption = (i) => { const c = dom.actEls[i]; if (c) popAnim(c, FXC.railPopScale, T.popMs); };
   function installHandlers() {
     const EH = U.EVENT_HANDLERS;
     const wrap = (name, fn) => {            // fn(ev, orig, run) must call orig(ev) exactly once and return its promise

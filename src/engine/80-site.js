@@ -69,7 +69,7 @@ function sitePreview(site, evaluation) {
     sow = { points: evaluation.totals.SOW, pips: Math.max(SR.sowMin, Math.floor(evaluation.totals.SOW / SR.sowDivisor)) };
   }
   const mk = {
-    DIG: () => reveal && parts.push(reveal === 'all' ? T.searchAll : fmt(T.search, { n: reveal })),
+    DIG: () => reveal && parts.push(reveal === 'all' ? CONFIG.text.revealTotals.facesAll : fmt(CONFIG.text.revealTotals.faces, { n: reveal })),
     PRUNE: () => prune && parts.push(prune.noise === 0 ? fmt(T.forceQuiet, { n: prune.points }) : fmt(T.force, { n: prune.points, noise: prune.noise })),
     SOW: () => sow && parts.push(fmt(T.coax, { n: sow.pips })),
   };

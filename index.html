@@ -12,6 +12,8 @@
     --bg:#0b0b10; --panel:#16161f; --line:#2a2a3a; --text:#e8e6f0; --dim:#8a88a0;
     --lit:#ffe36b; --status:#ffd36b; --danger:#ff3b3b; --glow:#ffffff; --pip:#e8e6f0; --broken:#5a5a66; --turned:#4fe06a; --tiletext:#0b0b10;
     --lift:1.07;
+    /* readability scale (encounter screen): no game text below --fs-min; rail sizes are tuned in the #sentence block */
+    --fs-min:13px; --fs-sm:15px; --fs-md:17px; --fs-lg:20px; --note:#a9dcff; --note-fs:15px;
     --display:"Bungee", Impact, "Arial Black", "Helvetica Neue", sans-serif; }
   * { box-sizing: border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden;
@@ -49,11 +51,11 @@
   #enemy { position:absolute; left:0; top:40px; width:100%; height:232px; padding:8px 24px; display:flex; gap:40px; }
   /* fixed rows (label, meta, intent tile, intent line, action sentence, foresight queue) so long texts wrap inside their own box instead of overlapping */
   #intentPanel { width:520px; height:216px; display:flex; flex-direction:column; gap:3px; position:relative; overflow:hidden; }
-  #enemyMeta { min-height:16px; font-size:13px; letter-spacing:.08em; color:var(--dim); display:flex; gap:10px; align-items:center; }
-  #enemyMeta .chip { border:2px solid var(--line); padding:0 6px; font-size:12px; letter-spacing:.12em; text-transform:uppercase; }
+  #enemyMeta { min-height:16px; font-size:13px; letter-spacing:.04em; color:var(--dim); display:flex; flex-wrap:wrap; gap:2px 10px; align-items:center; flex:none; }
+  #enemyMeta .chip { border:2px solid var(--line); padding:0 6px; font-size:var(--fs-min); letter-spacing:.12em; text-transform:uppercase; }
   #bag { position:absolute; right:0; top:-2px; display:flex; align-items:center; gap:6px; }
   #bag.hidden { display:none; }
-  #bag .tile { font-size:12px; padding:4px 6px; border-width:2px; }
+  #bag .tile { font-size:var(--fs-min); padding:4px 6px; border-width:2px; }
   .vb { cursor:help; }
   .lbl { font-size:13px; letter-spacing:.2em; color:var(--dim); }
   #intentRow { display:flex; align-items:flex-end; gap:20px; height:66px; flex:none; }
@@ -70,7 +72,7 @@
   .efc.is-current { border-color:var(--glow); }
   .efc.is-next { border:3px dashed var(--dim); }
   .efc.is-then { border:3px dotted var(--line); }
-  .efc .tag { position:absolute; top:-18px; left:0; width:100%; text-align:center; font-size:11px; letter-spacing:.15em; color:var(--dim); }
+  .efc .tag { position:absolute; top:-18px; left:0; width:100%; text-align:center; font-size:var(--fs-min); letter-spacing:.15em; color:var(--dim); }
   .efc.is-current .tag { color:var(--glow); }
   .pips { display:flex; gap:8px; }
   .pip { width:18px; height:18px; border:3px solid #000; background:var(--pip); }
@@ -78,22 +80,30 @@
   .pip.turned { background:var(--turned); border-radius:50%; }
 
   /* sentence rail: interlocking chevron steps, FIRST / THEN / LAST labels, MIND band, per-step captions, totals */
-  #sentence { position:absolute; left:0; top:272px; width:100%; height:232px; padding:0 24px; display:flex; flex-direction:column; align-items:flex-start;
-    --sw:330px; --pt:26px; --ov:20px; --pitch:calc(var(--sw) - var(--ov)); --slotH:76px; }
-  #railHead { display:flex; align-items:baseline; gap:14px; height:22px; font-size:13px; letter-spacing:.25em; }
+  #sentence { position:absolute; left:0; top:272px; width:100%; height:292px; padding:0 24px; display:flex; flex-direction:column; align-items:flex-start;
+    --sw-max:425px; --sw:425px; --pt:34px; --ov:26px; --pitch:calc(var(--sw) - var(--ov)); --slotH:100px;   /* --sw is re-fitted by JS for more than 3 slots */
+    --fs-label:16px; --fs-action:30px; --fs-action-long:24px; --fs-cap:17px; --fs-total:24px; --fs-narr:19px; }
+  #railHead { display:flex; align-items:baseline; gap:16px; height:30px; width:100%; font-size:var(--fs-sm); letter-spacing:.2em; }
   #railTitle { color:var(--dim); }
-  #railShape { color:var(--lit); font-family:var(--display); font-weight:400; font-size:15px; letter-spacing:.14em; }
+  /* totals: big and prominent, right end of the header row */
+  #rtotals { margin-left:auto; flex:1 1 0; min-width:0; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:0;
+    font-size:var(--fs-total); line-height:1.15; color:var(--text); }
+  #rtotals .eq { font-family:var(--display); font-weight:400; color:var(--lit); font-size:var(--fs-total); margin-right:6px; }
+  #rtotals.pending { color:var(--dim); }
+  #rtotals.pending .eq { color:var(--dim); }
+  #rtotals .rx { color:var(--note); }
+  #railShape { color:var(--lit); font-family:var(--display); font-weight:400; font-size:22px; letter-spacing:.12em; }
   #slots { position:relative; display:flex; align-items:flex-start; }
   .rstep { position:relative; width:var(--sw); flex:none; }
   .rstep + .rstep { margin-left:calc(var(--ov) * -1); }
-  .rlabel { height:15px; line-height:15px; padding-left:var(--pt); font-size:12px; letter-spacing:.3em; color:var(--text); opacity:.8; }
+  .rlabel { height:22px; line-height:22px; padding-left:var(--pt); font-size:var(--fs-label); letter-spacing:.3em; color:var(--text); }
   .rstep.first .rlabel { padding-left:8px; }
-  .rband { height:13px; margin:0 0 2px; font-size:10px; line-height:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--tiletext);
+  .rband { height:19px; margin:0 0 3px; font-size:var(--fs-min); line-height:19px; letter-spacing:.14em; text-transform:uppercase; color:var(--tiletext);
     padding-left:var(--pt); white-space:nowrap; }
   .rstep.first .rband { padding-left:8px; }
   .rband.on { clip-path:polygon(0 0, 100% 0, 100% 100%, 0 100%); }
   .rstep.last .rband.on { clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%); }
-  .rband.tag { display:block; width:max-content; margin-left:var(--pt); padding:0 7px; border:1px solid; font-weight:700; font-size:10px; line-height:11px; height:13px; }
+  .rband.tag { display:block; width:max-content; margin-left:var(--pt); padding:0 9px; border:2px solid; font-weight:700; font-size:var(--fs-min); line-height:15px; height:19px; }
   .rstep.first .rband.tag { margin-left:8px; }
   .rband.tag.none { color:var(--dim); border-color:var(--line); border-style:dashed; }
   .rband.tag.none, .rband.tag { background:transparent; }
@@ -103,9 +113,9 @@
   .slot .chev { background:#3a3a52; pointer-events:none; }
   .slot .chev::after { content:''; inset:3px; background:var(--bg); }
   .rstep:not(.first) .slot .chev::after { }
-  .slot .num { position:absolute; left:calc(var(--pt) + 10px); top:50%; transform:translateY(-50%); font-size:30px; font-family:var(--display); font-weight:400; color:#2c2c3e; pointer-events:none; }
+  .slot .num { position:absolute; left:calc(var(--pt) + 10px); top:50%; transform:translateY(-50%); font-size:40px; font-family:var(--display); font-weight:400; color:#2c2c3e; pointer-events:none; }
   .rstep.first .slot .num { left:18px; }
-  .slot .empty { font-size:12px; letter-spacing:.2em; color:var(--dim); text-transform:uppercase; pointer-events:none; opacity:.7; }
+  .slot .empty { font-size:var(--fs-sm); letter-spacing:.2em; color:var(--dim); text-transform:uppercase; pointer-events:none; }
   .slot.full .empty, .slot.full .num { display:none; }
   .slot.full .chev { background:var(--line); }
   .slot.full .chev::after { background:var(--panel); }
@@ -115,51 +125,46 @@
   .slot.acting .chev { background:var(--glow); }
   .slot.acting .chev::after { background:#34344a; }
   #slots.complete .slot.full .chev { background:var(--lit); }
-  .rstep > .rlink { position:relative; height:14px; }
+  .rstep > .rlink { position:relative; height:16px; }
   .carry { position:absolute; left:calc(var(--sw) / 2 + 12px); top:6px; height:0; border-top:3px solid; }
   .carry::after { content:''; position:absolute; right:-2px; top:-6.5px; border:5px solid transparent; border-right:0; border-left:9px solid currentColor; }
-  .carry b { position:absolute; left:50%; top:-10px; transform:translateX(-50%); padding:0 6px; background:var(--bg); font-size:13px; line-height:16px; }
-  .rcap { height:30px; padding:0 var(--ov) 0 var(--pt); text-align:center; font-size:13px; line-height:16px; overflow:hidden; }
+  .carry b { position:absolute; left:50%; top:-11px; transform:translateX(-50%); padding:0 6px; background:var(--bg); font-size:var(--fs-sm); line-height:18px; }
+  .rcap { height:26px; padding:0 var(--ov) 0 var(--pt); text-align:center; font-size:var(--note-fs); line-height:22px; overflow:hidden; }
   .rstep.first .rcap { padding-left:8px; }
-  .rcap .cl1 { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .rcap .cl2 { font-size:11px; line-height:14px; font-weight:400; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rcap .cl1 { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--note); font-weight:700; }   /* annotations: one consistent style */
+  .rcap .cl2 { font-size:var(--fs-min); line-height:14px; font-weight:400; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .rcap .cn { text-transform:none; }
   .rcap .cp { font-family:var(--display); font-weight:400; font-size:15px; letter-spacing:.02em; }
   .rcap .cin { color:var(--turned); }
   .rcap.mind .cl1 { color:var(--dim); }
-  #rtotals { flex:none; align-self:flex-start; margin:30px 0 0 14px; height:var(--slotH); min-width:210px; display:flex; align-items:center; gap:8px;
-    font-size:18px; line-height:1.2; padding-left:10px; border-left:3px solid var(--lit); }
-  #rtotals .eq { font-family:var(--display); font-weight:400; color:var(--lit); font-size:24px; }
-  #rtotals.pending { border-left-color:var(--line); }
-  #rtotals.pending .eq { color:var(--dim); }
-  #playhead { position:absolute; left:calc(var(--ph, 0) * var(--pitch) + var(--pt)); top:15px; width:calc(var(--sw) - var(--pt) - var(--ov)); height:13px;
+  #playhead { position:absolute; left:calc(var(--ph, 0) * var(--pitch) + var(--pt)); top:22px; width:calc(var(--sw) - var(--pt) - var(--ov)); height:19px;
     background:var(--glow); box-shadow:0 0 14px 2px color-mix(in srgb, var(--glow) 70%, transparent); opacity:0; pointer-events:none; z-index:3;
     transition:left var(--ph-ms, .16s) ease-out, opacity .1s; }
   #playhead.on { opacity:.85; }
-  #narration { margin-top:2px; height:44px; flex:none; width:100%; max-width:1200px; font-size:17px; line-height:22px; color:var(--text); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-  #preview { margin-top:0; min-height:18px; width:100%; }
-  #previewText { font-size:16px; line-height:1.25; max-width:1200px; }
+  #narration { margin-top:2px; height:50px; flex:none; width:100%; max-width:1232px; font-size:var(--fs-narr); line-height:25px; color:var(--text); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  #preview { margin-top:0; min-height:22px; width:100%; }
+  #previewText { font-size:var(--fs-md); line-height:22px; max-width:1232px; }
   #previewText.hint { color:var(--dim); }
 
   /* bottom: dice lying loose on the table */
-  #bottom { position:absolute; left:0; top:504px; width:100%; height:200px; }
+  #bottom { position:absolute; left:0; top:564px; width:100%; height:156px; }
   #tray { display:flex; justify-content:center; gap:34px; }
-  .cell { width:232px; height:106px; display:flex; align-items:center; justify-content:center; border-radius:20px; }
+  .cell { width:232px; height:86px; display:flex; align-items:center; justify-content:center; border-radius:20px; }
   .cell:empty { border:2px dashed color-mix(in srgb, var(--line) 30%, transparent); }
   .cell.over, #tray.over .cell:empty { border-color:var(--glow); }
-  .die { width:222px; height:96px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  .die { width:222px; height:78px; display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:5px; position:relative; touch-action:none; cursor:grab; rotate:var(--tilt, 0deg);
     border-radius:18px; border:3px solid #3a3a52; background:linear-gradient(160deg, #262638, #15151f);
     box-shadow:0 5px 0 rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.07); }
-  .die .meta { display:flex; align-items:center; gap:8px; height:20px; }
-  .die .cap { font-size:11px; letter-spacing:.2em; color:var(--dim); }
-  .die .held { position:absolute; right:10px; top:-9px; font-size:12px; letter-spacing:.1em; color:var(--tiletext);
+  .die .meta { display:flex; align-items:center; gap:8px; height:20px; line-height:1; }
+  .die .cap { font-size:var(--fs-min); letter-spacing:.2em; color:var(--dim); }
+  .die .held { position:absolute; right:10px; top:-9px; font-size:var(--fs-min); letter-spacing:.1em; color:var(--tiletext);
     background:var(--lit); padding:2px 6px; display:none; }
   .die.held .held { display:block; }
   .die.held { border-color:var(--lit); box-shadow:0 5px 0 rgba(0,0,0,.55), 0 0 14px 1px color-mix(in srgb, var(--lit) 40%, transparent); translate:0 -5px; }
   .die.held .faceRow { transform:none; }
   .die.dim .faceRow { opacity:.35; }
-  .die .frz { position:absolute; left:10px; top:-9px; font-size:12px; letter-spacing:.1em; color:#06222c; background:#8fe0ff;
+  .die .frz { position:absolute; left:10px; top:-9px; font-size:var(--fs-min); letter-spacing:.1em; color:#06222c; background:#8fe0ff;
     padding:2px 5px; display:none; }
   .die.frozen { border-color:#8fe0ff; background:color-mix(in srgb, #8fe0ff 12%, #15151f);
     box-shadow:0 5px 0 rgba(0,0,0,.55), inset 0 0 22px #8fe0ff88; cursor:not-allowed; }
@@ -172,21 +177,37 @@
   /* a die on the rail is a word step: no die frame, same face tiles */
   .die.in-slot { width:100%; height:100%; border:0; border-radius:0; background:none; box-shadow:none; rotate:0deg; translate:none; gap:2px; z-index:2; }
   .die.in-slot .tile { font-size:21px; padding:8px 11px; }
+  #tray .die:not(.dragging) .tile { font-size:20px; padding:7px 11px; }
   .die.in-slot .held { top:2px; right:calc(var(--pt) + 4px); }
   .die.in-slot .frz { top:2px; left:calc(var(--pt) + 4px); }
   .rstep.first .die.in-slot .frz { left:12px; }
+  /* slot action: the action the die performs is the slot's main content; the die face shrinks to a small strip */
+  .slot .sact { position:absolute; inset:0; z-index:3; pointer-events:none; display:none; flex-direction:column; align-items:center; justify-content:flex-start;
+    padding:8px var(--pt) 0; text-align:center; }
+  .rstep.first .slot .sact { padding-left:12px; }
+  .slot.acts .sact { display:flex; }
+  .sact .an { font-family:var(--display); font-weight:400; font-size:var(--fs-action); line-height:1.02; letter-spacing:.02em; text-transform:uppercase; white-space:normal;
+    max-height:2.1em; overflow:hidden; text-shadow:0 2px 0 rgba(0,0,0,.6); }
+  .sact .an.long { font-size:var(--fs-action-long); }
+  .sact .ap { font-size:1.12em; }
+  .sact .cin { color:var(--turned); }
+  .slot.acts .die.in-slot { justify-content:flex-end; }
+  .slot.acts .die.in-slot .faceRow { position:absolute; left:0; right:0; bottom:6px; opacity:1; }
+  .slot.acts .die.in-slot .tile { font-size:var(--fs-min); padding:3px 7px; border-width:2px; box-shadow:none; }
+  .slot.acts .die.in-slot .meta { position:absolute; right:calc(var(--pt) + 2px); top:2px; height:16px; }
+  .slot.acts .die.in-slot .cap { display:none; }
   .die.dragging { position:fixed; z-index:60; cursor:grabbing; background:linear-gradient(160deg, #262638, #15151f); border:3px solid var(--glow);
     border-radius:18px; box-shadow:0 12px 0 rgba(0,0,0,.5); pointer-events:none; translate:none; }
   .die.dragging .ctl { display:none; }
   .die.dragging .tile { font-size:24px; padding:10px 14px; }
-  #buttons { margin-top:8px; display:flex; justify-content:center; align-items:center; gap:18px; }
-  .btn { background:var(--panel); border:3px solid var(--glow); padding:12px 26px; font-size:20px; letter-spacing:.12em;
+  #buttons { margin-top:6px; display:flex; justify-content:center; align-items:center; gap:18px; }
+  .btn { background:var(--panel); border:3px solid var(--glow); padding:7px 26px; font-size:19px; letter-spacing:.12em;
     box-shadow:0 4px 0 rgba(0,0,0,.6); }
   .btn:disabled { opacity:.3; cursor:default; border-color:var(--line); }
   .btn:not(:disabled):hover { background:var(--glow); color:var(--tiletext); }
   .btn.primary { background:var(--lit); color:var(--tiletext); border-color:#000; }
-  #status { color:var(--status); font-size:15px; min-width:210px; }
-  #help { position:absolute; left:0; bottom:8px; width:100%; text-align:center; font-size:13px; color:var(--dim); padding:0 40px; }
+  #status { color:var(--status); font-size:var(--fs-sm); min-width:210px; }
+  #help { position:absolute; left:0; bottom:2px; width:100%; text-align:center; font-size:var(--fs-min); color:var(--dim); padding:0 24px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
   /* popover */
   #pop { position:absolute; z-index:40; display:none; background:#000; border:3px solid var(--glow); padding:8px 10px;
@@ -194,8 +215,8 @@
   #pop .row { display:flex; gap:8px; align-items:center; }
   #pop .f { padding:4px; border:3px solid transparent; }
   #pop .f.cur { border-color:var(--glow); }
-  #pop .tile { font-size:12px; padding:5px 6px; border-width:2px; box-shadow:none; }
-  #pop .ttl { font-size:11px; letter-spacing:.2em; color:var(--dim); margin-bottom:6px; }
+  #pop .tile { font-size:var(--fs-min); padding:5px 6px; border-width:2px; box-shadow:none; }
+  #pop .ttl { font-size:var(--fs-min); letter-spacing:.2em; color:var(--dim); margin-bottom:6px; }
 
   /* overlay */
   #overlay { position:absolute; inset:0; z-index:80; background:rgba(5,5,8,.82); display:none;
@@ -278,7 +299,7 @@
 
   /* ===== V1-3: placement screen / die nets ===== */
   #pop { z-index:58; }
-  #pop .ftip { font-size:12px; font-weight:400; min-width:230px; }
+  #pop .ftip { font-size:var(--fs-min); font-weight:400; min-width:230px; }
   #pop .ftip .vr { display:flex; gap:10px; align-items:baseline; padding:2px 0; }
   #pop .ftip .vr b { width:52px; letter-spacing:.04em; }
   #pop .ftip .vr .nm { flex:1; }
@@ -365,11 +386,11 @@
   #stage.site #enemyMeta .chip { white-space:nowrap; }
   #stage.site #intentRow { height:48px; align-items:center; }
   .efc.site { cursor:pointer; }
-  .efc.site .tile { font-size:12px; padding:8px 4px; white-space:normal; line-height:1.15; min-height:52px; display:flex; align-items:center; justify-content:center; text-align:center; }
+  .efc.site .tile { font-size:var(--fs-min); padding:8px 4px; white-space:normal; line-height:1.15; min-height:52px; display:flex; align-items:center; justify-content:center; text-align:center; }
   .efc.site.opened { opacity:.5; cursor:default; }
   .efc.site:not(.opened):hover { background:rgba(255,255,255,.05); }
-  .efc.site .sfn { position:absolute; right:5px; bottom:2px; font-size:10px; color:var(--dim); font-weight:400; }
-  .efc.site .sub { font-size:10px; letter-spacing:.08em; font-weight:400; color:var(--dim); min-height:12px; text-align:center; }
+  .efc.site .sfn { position:absolute; right:5px; bottom:2px; font-size:var(--fs-min); color:var(--dim); font-weight:400; }
+  .efc.site .sub { font-size:var(--fs-min); letter-spacing:.08em; font-weight:400; color:var(--dim); min-height:12px; text-align:center; }
   .efc.site .tile.ghost { outline:2px dashed var(--dim); outline-offset:1px; opacity:.75; }
   .efc.site .tile.strike { text-decoration:line-through; }
   .mapwrap { width:100%; max-width:1200px; display:flex; flex-direction:column; gap:14px; align-items:stretch; }
@@ -405,7 +426,7 @@
   .coldflash { position:absolute; inset:0; z-index:72; pointer-events:none; box-shadow:inset 0 0 120px 30px rgba(255,59,59,.55); }
 
   /* debug / tuning drawer (overlay on the right, closed by default) */
-  #btnDebug { background:transparent; border:2px solid var(--line); padding:2px 8px; font-size:12px; letter-spacing:.1em; color:var(--dim); }
+  #btnDebug { background:transparent; border:2px solid var(--line); padding:2px 8px; font-size:var(--fs-min); letter-spacing:.1em; color:var(--dim); }
   #btnDebug.on { border-color:var(--status); color:var(--status); }
   #dbg { position:absolute; right:0; top:40px; bottom:0; width:300px; z-index:90; background:rgba(10,10,16,.97);
     border-left:2px solid var(--status); padding:10px 12px 12px; overflow-y:auto; font-size:12px; font-weight:400;
@@ -442,7 +463,7 @@
     <div id="faceStrip"></div>
   </section>
   <section id="sentence">
-    <div id="railHead"><span id="railTitle"></span><span id="railShape"></span></div>
+    <div id="railHead"><span id="railTitle"></span><span id="railShape"></span><span id="rtotals"></span></div>
     <div id="slots"></div>
     <div id="narration"></div>
     <div id="preview"><div id="previewText"></div></div>
@@ -806,13 +827,16 @@ Object.assign(CONFIG, {
       // after resolution: what it did to them (one clause per face touched; {face} = its action name, {n} pips)
       faceBroken: '{its} {face} breaks.', faceTurned: '{its} {face} turns friendly.',
       facePartBroken: '{n} of {its} {face} pips break.', facePartTurned: '{n} of {its} {face} pips turn.',   // {its} is capitalised at a sentence start
+      // appended to the sentence when it reveals something ({its} = pronoun, {n})
+      reveal: { intent: 'You see {its} next move.', intents: 'You see {its} next {n} moves.', faces: 'You peek into {n} spots.', facesAll: 'You peek into every spot.' },
       siteOpened: 'You open {what}.', nothing: 'It barely notices.',
     },
     // the sentence rail (src/ui/10-render.js renderSlots): title, step labels by slot count, per-step tags / captions
     rail: {
       title: 'WHAT YOU DO', empty: 'drop a die', totalsPrefix: '=', totalsPending: '…',
       steps: { 1: ['ONLY'], 2: ['FIRST', 'THEN'], 3: ['FIRST', 'THEN', 'LAST'] },   // more slots than listed: FIRST, THEN, THEN…
-      mind: 'MIND: sets {verb}', mindIdle: 'MIND: sets {verb}, nothing to act', mindHold: 'MIND: keep one die',
+      mindSets: 'SETS {verb}', mindHoldAction: 'HOLD', mindIdle: 'nothing to act', mindHold: 'keeps one die for next turn',
+      scarRed: 'SCARRED', scarTip: 'SCAR: 0 points, does nothing.',
       mindTip: 'The MIND sets the verb for every die after it.',
       instinct: 'instinct', noInstinct: 'no instinct',
       instinctTip: 'Acts on instinct (before the MIND, or no MIND): its favourite verb {verb}.',
@@ -820,7 +844,9 @@ Object.assign(CONFIG, {
       directedTip: 'Acts with the MIND\'s verb {verb}.',
       carryTip: 'DIG passes its points on to the next die.',
     },
-    help: 'ROLL, hold & reroll, drag dice into the sentence slots, COMMIT. The MIND die (optional) sets the verb for dice after it; dice before it, or with no MIND, act on instinct.',
+    help: 'ROLL, hold & reroll, drag dice into the slots, COMMIT. The MIND die sets the verb for dice after it; earlier dice act on instinct.',
+    // reveal part of the totals ('= PRUNE 6 · REVEAL next intent'): fights reveal intents, sites reveal faces
+    revealTotals: { intent: 'REVEAL next intent', intents: 'REVEAL next {n} intents', faces: 'REVEAL {n} faces', facesAll: 'REVEAL all faces' },
     reveal: '(reveal)', noEffect: 'nothing happens', scar: 'SCAR', idleText: 'nothing happens', holdText: 'hold one die for the next turn',
     belly: 'your belly was exposed', lostDie: 'your {die} gave out',   // `scar` is also the face key of a scarred face
     beaten: 'BEATEN', befriended: 'BEFRIENDED', lost: 'YOU FLEE, SCARRED', tripComplete: 'TRIP COMPLETE',
@@ -858,6 +884,7 @@ Object.assign(CONFIG, {
     },
     site: {                                    // preview / status strings for scavenge sites ({n} {noise} {pips})
       force: 'force {n} (+{noise} noise)', forceQuiet: 'force {n} (no noise)', coax: 'coax {n} pips', search: 'search: reveals {n}',
+      noiseOnly: '+{n} noise', noNoise: 'no noise',   // site hint line once the sentence is full (the totals already name PRUNE / REVEAL)
       searchAll: 'search: reveals all', nothing: 'nothing happens', left: 'LEFT', guardian: 'GUARDIAN', noise: 'NOISE',
     },
     // V1-5: start screen, map and site screen strings ({n} {c} {max} {item} {name})
@@ -872,7 +899,7 @@ Object.assign(CONFIG, {
       visitedTip: 'visited', seenTip: 'revealed by the dog', hereTip: 'You are here',
       typeLabel: { CHARACTER: 'FIGHT', SCAVENGE: 'SITE', CAMPFIRE: 'REST', EMPTY: '', START: '', GATE: 'EXIT' },
       coldMsg: 'THE COLD bites.', coldDestroyed: '{item} destroyed by the cold.', revealedMsg: '{n} fogged tiles are now visible.',
-      siteLabel: 'SCAVENGE SITE', guardian: 'guardian', rulesLine: 'each turn +1 noise · PRUNE +1 per point · full = guardian',
+      siteLabel: 'SCAVENGE SITE', guardian: 'guardian', rulesLine: 'each turn +1 noise · PRUNE +1/point · full = guardian',
       noise: 'NOISE', found: 'FOUND', target: 'TARGET', first: 'FIRST',
       targetTip: 'Click to aim your points at this face first (click again to clear).', hiddenTip: 'Hidden: DIG reveals it, PRUNE / SOW open it.',
       seen: 'SEEN', got: 'TAKEN', brokeInto: '{item} → JUNK', nothingLeft: 'Nothing left here. LEAVE when you are ready.',
@@ -894,7 +921,7 @@ Object.assign(CONFIG, {
 
 Object.assign(CONFIG, {
   colors: {
-    bg: '#0b0b10', panel: '#16161f', line: '#2a2a3a', text: '#e8e6f0', textDim: '#8a88a0',
+    bg: '#0b0b10', panel: '#16161f', line: '#2a2a3a', text: '#e8e6f0', textDim: '#a9a7c0',
     // verbs carry meaning: PRUNE = red (force), SOW = blue (intellect / persuasion), DIG = amber (curiosity / search)
     verb: { PRUNE: '#ff4a4a', SOW: '#3d8bff', DIG: '#ffb21f' },
     // body parts: a muted, neutral bone / sand / clay family so they never read as verbs
@@ -1206,11 +1233,25 @@ function evaluateSentence(faces, ctx) {
   });
   const parts = order.map(v => v + ' ' + totals[v] + (mods[v] ? ' (' + mods[v].source + ' ' + signed(mods[v].mod) + ')' : '') +
     (taxed[v] ? ' (' + fmt(CONFIG.notes.taxed, { n: taxed[v].amount }) + ')' : ''));
+  // reveal effect: fights reveal the next `revealDepth` intents; sites reveal faces (DIG total / NOSE / GLASSES depth, SPADE = all)
+  let revealText = '', revealFaces = 0;
+  if (ctx.site) {
+    steps.forEach(s => {
+      const k = siteRevealCount(s);
+      if (!k) return;
+      if (s.reveal && s.item && specialOf(s.item) === 'spade') revealFaces = 'all';
+      else if (revealFaces !== 'all') revealFaces = Math.max(revealFaces, k);
+    });
+    if (revealFaces) revealText = revealFaces === 'all' ? CONFIG.text.revealTotals.facesAll : fmt(CONFIG.text.revealTotals.faces, { n: revealFaces });
+  } else if (revealDepth > 0) {
+    revealText = revealDepth === 1 ? CONFIG.text.revealTotals.intent : fmt(CONFIG.text.revealTotals.intents, { n: revealDepth });
+  }
+  if (revealText) parts.push(revealText);
   const totalsText = parts.length ? parts.join(' · ') : CONFIG.text.noEffect;
   const text = steps.length ? shape + ': ' + stepsText + ' → ' + totalsText
     : shape + ': ' + (holds ? CONFIG.text.holdText : CONFIG.text.idleText);
   return { shape, slots: n, mindIndex, verb, holds, steps, totals, order, reveal, revealDepth, mods, taxed, shears, pendingSow,
-    spends, forbidden, triggers, pipeLast: triggers.pipeLast, totalsText, text };
+    spends, forbidden, triggers, pipeLast: triggers.pipeLast, revealText, revealFaces, totalsText, text };
 }
 
 /* ===== src/engine/20-player.js ===== */
@@ -2310,7 +2351,7 @@ function sitePreview(site, evaluation) {
     sow = { points: evaluation.totals.SOW, pips: Math.max(SR.sowMin, Math.floor(evaluation.totals.SOW / SR.sowDivisor)) };
   }
   const mk = {
-    DIG: () => reveal && parts.push(reveal === 'all' ? T.searchAll : fmt(T.search, { n: reveal })),
+    DIG: () => reveal && parts.push(reveal === 'all' ? CONFIG.text.revealTotals.facesAll : fmt(CONFIG.text.revealTotals.faces, { n: reveal })),
     PRUNE: () => prune && parts.push(prune.noise === 0 ? fmt(T.forceQuiet, { n: prune.points }) : fmt(T.force, { n: prune.points, noise: prune.noise })),
     SOW: () => sow && parts.push(fmt(T.coax, { n: sow.pips })),
   };
@@ -2662,7 +2703,7 @@ const viewScars = () => Object.keys(view.dice).reduce((n, id) => n + view.dice[i
 // Classic script: top-level names are shared with the other src/ui/*.js files (formerly one IIFE).
 
 // ---------- static DOM ----------
-const dom = { slotEls: [], stepEls: [], capEls: [], cellEls: {}, dieEls: {}, efc: [] };
+const dom = { slotEls: [], stepEls: [], capEls: [], actEls: [], cellEls: {}, dieEls: {}, efc: [] };
 function buildDOM() {
   // the sentence rail: one strip of interlocking chevron steps (label, MIND band / instinct tag, slot, carry link, caption) + totals + playhead
   const slots = $('slots');
@@ -2671,12 +2712,12 @@ function buildDOM() {
     const st = document.createElement('div');
     st.className = 'rstep'; st.style.setProperty('--i', i);
     st.innerHTML = '<div class="rlabel"></div><div class="rband"></div>' +
-      '<div class="slot" data-slot="' + i + '"><div class="chev"></div><span class="num">' + (i + 1) + '</span><span class="empty">' + esc(C.text.rail.empty) + '</span></div>' +
+      '<div class="slot" data-slot="' + i + '"><div class="chev"></div><span class="num">' + (i + 1) + '</span><span class="empty">' + esc(C.text.rail.empty) + '</span><div class="sact"></div></div>' +
       '<div class="rlink"></div><div class="rcap"></div>';
     slots.appendChild(st);
-    dom.stepEls.push(st); dom.slotEls.push(st.querySelector('.slot')); dom.capEls.push(st.querySelector('.rcap'));
+    dom.stepEls.push(st); dom.slotEls.push(st.querySelector('.slot')); dom.capEls.push(st.querySelector('.rcap')); dom.actEls.push(st.querySelector('.sact'));
   }
-  slots.insertAdjacentHTML('beforeend', '<div id="rtotals"></div><div id="playhead"></div>');
+  slots.insertAdjacentHTML('beforeend', '<div id="playhead"></div>');
   // tray cells + dice
   ui.slots = emptySlots();
   C.playerDice.forEach(d => {
@@ -2853,14 +2894,24 @@ function renderDice() {
 // ---- the sentence rail ----
 const stepLabelsFor = (n) => C.text.rail.steps[n] || Array.from({ length: n }, (_, i) => (i === 0 ? 'FIRST' : 'THEN'));
 const verbSpan = (v) => '<span class="vb" style="color:' + C.colors.verb[v] + '" title="' + esc(C.verbInfo[v]) + '">' + v + '</span>';
-// caption of one evaluated step: 'Stab 4+2' / '(knife +1)' (reached = the playhead got here; else the caption stays hidden)
-function stepCaption(s) {
+// what the slot itself shows once a die sits on it: the action it performs, big, in the verb's colour, with its points
+function slotAction(s, ev) {
+  const RT = C.text.rail;
+  if (s === 'mind') {
+    const txt = ev.holds ? RT.mindHoldAction : RT.mindSets.replace('{verb}', ev.verb);
+    return { html: '<span class="an" style="color:' + C.colors.verb[ev.verb] + '">' + esc(txt) + '</span>', title: txt + '. ' + RT.mindTip };
+  }
+  if (s.role === 'scar') return { html: '<span class="an scar" style="color:' + C.colors.scarText + '">' + esc(RT.scarRed) + ' <span class="ap">' + s.base + '</span></span>', title: RT.scarTip };
   const col = s.verb ? C.colors.verb[s.verb] : C.colors.textDim;
-  const pts = s.base + (s.carryIn > 0 ? '<span class="cin" title="' + esc(C.text.rail.carryTip) + '">+' + s.carryIn + '</span>' : '');
+  const pts = s.base + (s.carryIn > 0 ? '<span class="cin" title="' + esc(RT.carryTip) + '">+' + s.carryIn + '</span>' : '');
+  return { html: '<span class="an' + (s.name.length > 13 ? ' long' : '') + '" style="color:' + col + '">' + esc(s.name) + ' <span class="ap">' + pts + '</span></span>',
+    title: s.name + ' ' + s.base + (s.carryIn > 0 ? '+' + s.carryIn : '') + (s.verb ? ' (' + s.verb + ')' : '') };
+}
+// caption below a step: only the annotations ('(knife +1) (reveal)'); the action and points live in the slot
+function stepCaption(s) {
   const notes = s.notes.slice(); if (s.reveal) notes.unshift(C.text.reveal.replace(/[()]/g, ''));
   const plain = s.name + ' ' + s.base + (s.carryIn > 0 ? '+' + s.carryIn : '') + notes.map(n => ' (' + n + ')').join('');
-  return { html: '<div class="cl1"><span class="cn">' + esc(s.name) + '</span> <span class="cp" style="color:' + col + '">' + pts + '</span></div>' +
-    '<div class="cl2">' + (notes.length ? esc(notes.map(n => '(' + n + ')').join(' ')) : '&nbsp;') + '</div>', title: plain };
+  return { html: '<div class="cl1">' + (notes.length ? esc(notes.map(n => '(' + n + ')').join(' ')) : '&nbsp;') + '</div>', title: plain };
 }
 function renderSlots() {
   const n = slotCount(), RT = C.text.rail;
@@ -2869,6 +2920,15 @@ function renderSlots() {
   const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy';
   const ev = live && p.ev && p.ev.slots === n ? p.ev : null;
   const play = ui.phase === 'resolving' || ui.phase === 'enemy' ? ui.railPlay : null;
+  // partial sentence: evaluate the placed dice (empty slots padded with a scar, which does nothing) so each slot already shows its action
+  let pev = null;
+  if (!ev && ui.phase === 'arranging' && placedCount() > 0) {
+    const faces = []; for (let i = 0; i < n; i++) faces.push(ui.slots[i] ? viewFace(ui.slots[i]) : C.text.scar);
+    try { pev = E.evaluateSentence(faces, isSite() ? { site: true } : { enemy: ui.game.enemy, tax: ui.game.tax || 0 }); } catch (e) { pev = null; }
+  }
+  // fit the chevrons to the page width (CSS --sw is the 3-slot size; more slots shrink it)
+  const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 425, ovPx = 26;
+  sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1232 + (n - 1) * ovPx) / n)) + 'px');
   const labels = stepLabelsFor(n), mi = ev ? ev.mindIndex : -1, mcol = ev && ev.verb ? C.colors.verb[ev.verb] : null;
   dom.stepEls.forEach((st, i) => {
     st.style.display = i < n ? '' : 'none';
@@ -2893,12 +2953,16 @@ function renderSlots() {
       if (v) { band.style.color = C.colors.verb[v]; band.style.borderColor = C.colors.verb[v]; band.title = RT.instinctTip.replace('{verb}', v); band.textContent = RT.instinct + ' · ' + v; }
       else { band.classList.add('none'); band.title = RT.noInstinctTip; band.textContent = RT.noInstinct; }
     }
-    // caption
+    // the action in the slot (live, also while the sentence is still being filled) + caption (annotations only)
+    const act = dom.actEls[i], sev = ev || pev, sstep = sev && ui.slots[i] ? sev.steps.find(x => x.slot === i) : null;
+    let sa = null;
+    if (sev && ui.slots[i]) sa = (sev.mindIndex === i) ? slotAction('mind', sev) : (sstep ? slotAction(sstep, sev) : null);
+    if (sa) { act.innerHTML = sa.html; act.title = sa.title; } else { act.innerHTML = ''; act.removeAttribute('title'); }
+    sl.classList.toggle('acts', !!sa);
     cap.style.visibility = ev && reached ? '' : 'hidden';
     cap.classList.toggle('mind', !!ev && i === mi);
     if (ev && i === mi) {
-      const txt = ev.holds ? RT.mindHold : (n === 1 ? RT.mindIdle : RT.mind);
-      cap.innerHTML = '<div class="cl1">' + txt.split('{verb}').map(esc).join(verbSpan(ev.verb)) + '</div><div class="cl2">&nbsp;</div>';
+      cap.innerHTML = '<div class="cl1">' + (ev.holds ? esc(RT.mindHold) : (n === 1 ? esc(RT.mindIdle) : '&nbsp;')) + '</div>';
       cap.title = RT.mindTip;
     } else if (step) { const c = stepCaption(step); cap.innerHTML = c.html; cap.title = c.title; }
     else { cap.innerHTML = ''; cap.removeAttribute('title'); }
@@ -2930,7 +2994,11 @@ function currentPreview() {
       const ev = E.evaluateSentence(faces, { site: true });
       const sp = E.sitePreview(ui.game, ev);
       const tg = ui.game.target !== null ? ' (' + MT().target.toLowerCase() + ': ' + (ui.game.target + 1) + ')' : '';
-      return { shape: ev.shape, triggers: ev.triggers, ev, text: sp.text + tg };
+      // totals already name PRUNE / SOW / REVEAL; the hint line only adds what they don't: the noise and the coax pips
+      const ST = C.text.site, bits = [];
+      if (sp.prune) bits.push(sp.prune.noise ? fmt(ST.noiseOnly, { n: sp.prune.noise }) : ST.noNoise);
+      if (sp.sow) bits.push(fmt(ST.coax, { n: sp.sow.pips }));
+      return { shape: ev.shape, triggers: ev.triggers, ev, text: bits.join(' · ') + tg };
     }
     const ev = E.evaluateSentence(faces, { enemy: ui.game.enemy, tax: ui.game.tax || 0 });
     return { shape: ev.shape, triggers: ev.triggers, ev, text: '' };
@@ -2965,7 +3033,13 @@ function narrateSentence(ev) {
   });
   let out = parts[0];
   for (let i = 1; i < parts.length; i++) out += (i === parts.length - 1 && parts.length > 2 ? N.joinLast : N.joinThen) + parts[i];
-  return N.you.replace('{steps}', out);
+  let txt = N.you.replace('{steps}', out);
+  if (ev.revealText) {
+    const R = N.reveal, d = ev.revealDepth, f = ev.revealFaces;
+    const t = ev.slots && f ? (f === 'all' ? R.facesAll : R.faces.replace('{n}', f)) : (d === 1 ? R.intent : R.intents.replace('{n}', d));
+    txt += ' ' + t.replace('{its}', pr.its);
+  }
+  return txt;
 }
 // what the committed sentence did to the enemy's faces so far (from the pip events the player has seen)
 function narrateResult(hits) {
@@ -4580,7 +4654,7 @@ document.addEventListener('DOMContentLoaded', init);
     const el = dom.stepEls[from] && dom.stepEls[from].querySelector('.carry b');
     if (el) motion(el, [{ transform: 'translateX(-50%) scale(1)' }, { transform: 'translateX(-50%) scale(' + FXC.arrowSwellScale + ')', offset: .4 }, { transform: 'translateX(-50%) scale(1)' }], { duration: T.flyMs });
   }
-  const popCaption = (i) => { const c = dom.capEls[i]; if (c) popAnim(c, FXC.railPopScale, T.popMs); };
+  const popCaption = (i) => { const c = dom.actEls[i]; if (c) popAnim(c, FXC.railPopScale, T.popMs); };
   function installHandlers() {
     const EH = U.EVENT_HANDLERS;
     const wrap = (name, fn) => {            // fn(ev, orig, run) must call orig(ev) exactly once and return its promise

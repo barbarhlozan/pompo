@@ -50,13 +50,16 @@ Object.assign(CONFIG, {
       // after resolution: what it did to them (one clause per face touched; {face} = its action name, {n} pips)
       faceBroken: '{its} {face} breaks.', faceTurned: '{its} {face} turns friendly.',
       facePartBroken: '{n} of {its} {face} pips break.', facePartTurned: '{n} of {its} {face} pips turn.',   // {its} is capitalised at a sentence start
+      // appended to the sentence when it reveals something ({its} = pronoun, {n})
+      reveal: { intent: 'You see {its} next move.', intents: 'You see {its} next {n} moves.', faces: 'You peek into {n} spots.', facesAll: 'You peek into every spot.' },
       siteOpened: 'You open {what}.', nothing: 'It barely notices.',
     },
     // the sentence rail (src/ui/10-render.js renderSlots): title, step labels by slot count, per-step tags / captions
     rail: {
       title: 'WHAT YOU DO', empty: 'drop a die', totalsPrefix: '=', totalsPending: '…',
       steps: { 1: ['ONLY'], 2: ['FIRST', 'THEN'], 3: ['FIRST', 'THEN', 'LAST'] },   // more slots than listed: FIRST, THEN, THEN…
-      mind: 'MIND: sets {verb}', mindIdle: 'MIND: sets {verb}, nothing to act', mindHold: 'MIND: keep one die',
+      mindSets: 'SETS {verb}', mindHoldAction: 'HOLD', mindIdle: 'nothing to act', mindHold: 'keeps one die for next turn',
+      scarRed: 'SCARRED', scarTip: 'SCAR: 0 points, does nothing.',
       mindTip: 'The MIND sets the verb for every die after it.',
       instinct: 'instinct', noInstinct: 'no instinct',
       instinctTip: 'Acts on instinct (before the MIND, or no MIND): its favourite verb {verb}.',
@@ -64,7 +67,9 @@ Object.assign(CONFIG, {
       directedTip: 'Acts with the MIND\'s verb {verb}.',
       carryTip: 'DIG passes its points on to the next die.',
     },
-    help: 'ROLL, hold & reroll, drag dice into the sentence slots, COMMIT. The MIND die (optional) sets the verb for dice after it; dice before it, or with no MIND, act on instinct.',
+    help: 'ROLL, hold & reroll, drag dice into the slots, COMMIT. The MIND die sets the verb for dice after it; earlier dice act on instinct.',
+    // reveal part of the totals ('= PRUNE 6 · REVEAL next intent'): fights reveal intents, sites reveal faces
+    revealTotals: { intent: 'REVEAL next intent', intents: 'REVEAL next {n} intents', faces: 'REVEAL {n} faces', facesAll: 'REVEAL all faces' },
     reveal: '(reveal)', noEffect: 'nothing happens', scar: 'SCAR', idleText: 'nothing happens', holdText: 'hold one die for the next turn',
     belly: 'your belly was exposed', lostDie: 'your {die} gave out',   // `scar` is also the face key of a scarred face
     beaten: 'BEATEN', befriended: 'BEFRIENDED', lost: 'YOU FLEE, SCARRED', tripComplete: 'TRIP COMPLETE',
@@ -102,6 +107,7 @@ Object.assign(CONFIG, {
     },
     site: {                                    // preview / status strings for scavenge sites ({n} {noise} {pips})
       force: 'force {n} (+{noise} noise)', forceQuiet: 'force {n} (no noise)', coax: 'coax {n} pips', search: 'search: reveals {n}',
+      noiseOnly: '+{n} noise', noNoise: 'no noise',   // site hint line once the sentence is full (the totals already name PRUNE / REVEAL)
       searchAll: 'search: reveals all', nothing: 'nothing happens', left: 'LEFT', guardian: 'GUARDIAN', noise: 'NOISE',
     },
     // V1-5: start screen, map and site screen strings ({n} {c} {max} {item} {name})
@@ -116,7 +122,7 @@ Object.assign(CONFIG, {
       visitedTip: 'visited', seenTip: 'revealed by the dog', hereTip: 'You are here',
       typeLabel: { CHARACTER: 'FIGHT', SCAVENGE: 'SITE', CAMPFIRE: 'REST', EMPTY: '', START: '', GATE: 'EXIT' },
       coldMsg: 'THE COLD bites.', coldDestroyed: '{item} destroyed by the cold.', revealedMsg: '{n} fogged tiles are now visible.',
-      siteLabel: 'SCAVENGE SITE', guardian: 'guardian', rulesLine: 'each turn +1 noise · PRUNE +1 per point · full = guardian',
+      siteLabel: 'SCAVENGE SITE', guardian: 'guardian', rulesLine: 'each turn +1 noise · PRUNE +1/point · full = guardian',
       noise: 'NOISE', found: 'FOUND', target: 'TARGET', first: 'FIRST',
       targetTip: 'Click to aim your points at this face first (click again to clear).', hiddenTip: 'Hidden: DIG reveals it, PRUNE / SOW open it.',
       seen: 'SEEN', got: 'TAKEN', brokeInto: '{item} → JUNK', nothingLeft: 'Nothing left here. LEAVE when you are ready.',

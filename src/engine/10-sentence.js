@@ -199,9 +199,23 @@ function evaluateSentence(faces, ctx) {
   });
   const parts = order.map(v => v + ' ' + totals[v] + (mods[v] ? ' (' + mods[v].source + ' ' + signed(mods[v].mod) + ')' : '') +
     (taxed[v] ? ' (' + fmt(CONFIG.notes.taxed, { n: taxed[v].amount }) + ')' : ''));
+  // reveal effect: fights reveal the next `revealDepth` intents; sites reveal faces (DIG total / NOSE / GLASSES depth, SPADE = all)
+  let revealText = '', revealFaces = 0;
+  if (ctx.site) {
+    steps.forEach(s => {
+      const k = siteRevealCount(s);
+      if (!k) return;
+      if (s.reveal && s.item && specialOf(s.item) === 'spade') revealFaces = 'all';
+      else if (revealFaces !== 'all') revealFaces = Math.max(revealFaces, k);
+    });
+    if (revealFaces) revealText = revealFaces === 'all' ? CONFIG.text.revealTotals.facesAll : fmt(CONFIG.text.revealTotals.faces, { n: revealFaces });
+  } else if (revealDepth > 0) {
+    revealText = revealDepth === 1 ? CONFIG.text.revealTotals.intent : fmt(CONFIG.text.revealTotals.intents, { n: revealDepth });
+  }
+  if (revealText) parts.push(revealText);
   const totalsText = parts.length ? parts.join(' · ') : CONFIG.text.noEffect;
   const text = steps.length ? shape + ': ' + stepsText + ' → ' + totalsText
     : shape + ': ' + (holds ? CONFIG.text.holdText : CONFIG.text.idleText);
   return { shape, slots: n, mindIndex, verb, holds, steps, totals, order, reveal, revealDepth, mods, taxed, shears, pendingSow,
-    spends, forbidden, triggers, pipeLast: triggers.pipeLast, totalsText, text };
+    spends, forbidden, triggers, pipeLast: triggers.pipeLast, revealText, revealFaces, totalsText, text };
 }

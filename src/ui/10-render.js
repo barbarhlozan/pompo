@@ -2,7 +2,7 @@
 // Classic script: top-level names are shared with the other src/ui/*.js files (formerly one IIFE).
 
 // ---------- static DOM ----------
-const dom = { slotEls: [], stepEls: [], capEls: [], cellEls: {}, dieEls: {}, efc: [] };
+const dom = { slotEls: [], stepEls: [], capEls: [], actEls: [], cellEls: {}, dieEls: {}, efc: [] };
 function buildDOM() {
   // the sentence rail: one strip of interlocking chevron steps (label, MIND band / instinct tag, slot, carry link, caption) + totals + playhead
   const slots = $('slots');
@@ -11,12 +11,12 @@ function buildDOM() {
     const st = document.createElement('div');
     st.className = 'rstep'; st.style.setProperty('--i', i);
     st.innerHTML = '<div class="rlabel"></div><div class="rband"></div>' +
-      '<div class="slot" data-slot="' + i + '"><div class="chev"></div><span class="num">' + (i + 1) + '</span><span class="empty">' + esc(C.text.rail.empty) + '</span></div>' +
+      '<div class="slot" data-slot="' + i + '"><div class="chev"></div><span class="num">' + (i + 1) + '</span><span class="empty">' + esc(C.text.rail.empty) + '</span><div class="sact"></div></div>' +
       '<div class="rlink"></div><div class="rcap"></div>';
     slots.appendChild(st);
-    dom.stepEls.push(st); dom.slotEls.push(st.querySelector('.slot')); dom.capEls.push(st.querySelector('.rcap'));
+    dom.stepEls.push(st); dom.slotEls.push(st.querySelector('.slot')); dom.capEls.push(st.querySelector('.rcap')); dom.actEls.push(st.querySelector('.sact'));
   }
-  slots.insertAdjacentHTML('beforeend', '<div id="rtotals"></div><div id="playhead"></div>');
+  slots.insertAdjacentHTML('beforeend', '<div id="playhead"></div>');
   // tray cells + dice
   ui.slots = emptySlots();
   C.playerDice.forEach(d => {
@@ -193,14 +193,24 @@ function renderDice() {
 // ---- the sentence rail ----
 const stepLabelsFor = (n) => C.text.rail.steps[n] || Array.from({ length: n }, (_, i) => (i === 0 ? 'FIRST' : 'THEN'));
 const verbSpan = (v) => '<span class="vb" style="color:' + C.colors.verb[v] + '" title="' + esc(C.verbInfo[v]) + '">' + v + '</span>';
-// caption of one evaluated step: 'Stab 4+2' / '(knife +1)' (reached = the playhead got here; else the caption stays hidden)
-function stepCaption(s) {
+// what the slot itself shows once a die sits on it: the action it performs, big, in the verb's colour, with its points
+function slotAction(s, ev) {
+  const RT = C.text.rail;
+  if (s === 'mind') {
+    const txt = ev.holds ? RT.mindHoldAction : RT.mindSets.replace('{verb}', ev.verb);
+    return { html: '<span class="an" style="color:' + C.colors.verb[ev.verb] + '">' + esc(txt) + '</span>', title: txt + '. ' + RT.mindTip };
+  }
+  if (s.role === 'scar') return { html: '<span class="an scar" style="color:' + C.colors.scarText + '">' + esc(RT.scarRed) + ' <span class="ap">' + s.base + '</span></span>', title: RT.scarTip };
   const col = s.verb ? C.colors.verb[s.verb] : C.colors.textDim;
-  const pts = s.base + (s.carryIn > 0 ? '<span class="cin" title="' + esc(C.text.rail.carryTip) + '">+' + s.carryIn + '</span>' : '');
+  const pts = s.base + (s.carryIn > 0 ? '<span class="cin" title="' + esc(RT.carryTip) + '">+' + s.carryIn + '</span>' : '');
+  return { html: '<span class="an' + (s.name.length > 13 ? ' long' : '') + '" style="color:' + col + '">' + esc(s.name) + ' <span class="ap">' + pts + '</span></span>',
+    title: s.name + ' ' + s.base + (s.carryIn > 0 ? '+' + s.carryIn : '') + (s.verb ? ' (' + s.verb + ')' : '') };
+}
+// caption below a step: only the annotations ('(knife +1) (reveal)'); the action and points live in the slot
+function stepCaption(s) {
   const notes = s.notes.slice(); if (s.reveal) notes.unshift(C.text.reveal.replace(/[()]/g, ''));
   const plain = s.name + ' ' + s.base + (s.carryIn > 0 ? '+' + s.carryIn : '') + notes.map(n => ' (' + n + ')').join('');
-  return { html: '<div class="cl1"><span class="cn">' + esc(s.name) + '</span> <span class="cp" style="color:' + col + '">' + pts + '</span></div>' +
-    '<div class="cl2">' + (notes.length ? esc(notes.map(n => '(' + n + ')').join(' ')) : '&nbsp;') + '</div>', title: plain };
+  return { html: '<div class="cl1">' + (notes.length ? esc(notes.map(n => '(' + n + ')').join(' ')) : '&nbsp;') + '</div>', title: plain };
 }
 function renderSlots() {
   const n = slotCount(), RT = C.text.rail;
@@ -209,6 +219,15 @@ function renderSlots() {
   const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy';
   const ev = live && p.ev && p.ev.slots === n ? p.ev : null;
   const play = ui.phase === 'resolving' || ui.phase === 'enemy' ? ui.railPlay : null;
+  // partial sentence: evaluate the placed dice (empty slots padded with a scar, which does nothing) so each slot already shows its action
+  let pev = null;
+  if (!ev && ui.phase === 'arranging' && placedCount() > 0) {
+    const faces = []; for (let i = 0; i < n; i++) faces.push(ui.slots[i] ? viewFace(ui.slots[i]) : C.text.scar);
+    try { pev = E.evaluateSentence(faces, isSite() ? { site: true } : { enemy: ui.game.enemy, tax: ui.game.tax || 0 }); } catch (e) { pev = null; }
+  }
+  // fit the chevrons to the page width (CSS --sw is the 3-slot size; more slots shrink it)
+  const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 425, ovPx = 26;
+  sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1232 + (n - 1) * ovPx) / n)) + 'px');
   const labels = stepLabelsFor(n), mi = ev ? ev.mindIndex : -1, mcol = ev && ev.verb ? C.colors.verb[ev.verb] : null;
   dom.stepEls.forEach((st, i) => {
     st.style.display = i < n ? '' : 'none';
@@ -233,12 +252,16 @@ function renderSlots() {
       if (v) { band.style.color = C.colors.verb[v]; band.style.borderColor = C.colors.verb[v]; band.title = RT.instinctTip.replace('{verb}', v); band.textContent = RT.instinct + ' · ' + v; }
       else { band.classList.add('none'); band.title = RT.noInstinctTip; band.textContent = RT.noInstinct; }
     }
-    // caption
+    // the action in the slot (live, also while the sentence is still being filled) + caption (annotations only)
+    const act = dom.actEls[i], sev = ev || pev, sstep = sev && ui.slots[i] ? sev.steps.find(x => x.slot === i) : null;
+    let sa = null;
+    if (sev && ui.slots[i]) sa = (sev.mindIndex === i) ? slotAction('mind', sev) : (sstep ? slotAction(sstep, sev) : null);
+    if (sa) { act.innerHTML = sa.html; act.title = sa.title; } else { act.innerHTML = ''; act.removeAttribute('title'); }
+    sl.classList.toggle('acts', !!sa);
     cap.style.visibility = ev && reached ? '' : 'hidden';
     cap.classList.toggle('mind', !!ev && i === mi);
     if (ev && i === mi) {
-      const txt = ev.holds ? RT.mindHold : (n === 1 ? RT.mindIdle : RT.mind);
-      cap.innerHTML = '<div class="cl1">' + txt.split('{verb}').map(esc).join(verbSpan(ev.verb)) + '</div><div class="cl2">&nbsp;</div>';
+      cap.innerHTML = '<div class="cl1">' + (ev.holds ? esc(RT.mindHold) : (n === 1 ? esc(RT.mindIdle) : '&nbsp;')) + '</div>';
       cap.title = RT.mindTip;
     } else if (step) { const c = stepCaption(step); cap.innerHTML = c.html; cap.title = c.title; }
     else { cap.innerHTML = ''; cap.removeAttribute('title'); }
@@ -270,7 +293,11 @@ function currentPreview() {
       const ev = E.evaluateSentence(faces, { site: true });
       const sp = E.sitePreview(ui.game, ev);
       const tg = ui.game.target !== null ? ' (' + MT().target.toLowerCase() + ': ' + (ui.game.target + 1) + ')' : '';
-      return { shape: ev.shape, triggers: ev.triggers, ev, text: sp.text + tg };
+      // totals already name PRUNE / SOW / REVEAL; the hint line only adds what they don't: the noise and the coax pips
+      const ST = C.text.site, bits = [];
+      if (sp.prune) bits.push(sp.prune.noise ? fmt(ST.noiseOnly, { n: sp.prune.noise }) : ST.noNoise);
+      if (sp.sow) bits.push(fmt(ST.coax, { n: sp.sow.pips }));
+      return { shape: ev.shape, triggers: ev.triggers, ev, text: bits.join(' · ') + tg };
     }
     const ev = E.evaluateSentence(faces, { enemy: ui.game.enemy, tax: ui.game.tax || 0 });
     return { shape: ev.shape, triggers: ev.triggers, ev, text: '' };
@@ -305,7 +332,13 @@ function narrateSentence(ev) {
   });
   let out = parts[0];
   for (let i = 1; i < parts.length; i++) out += (i === parts.length - 1 && parts.length > 2 ? N.joinLast : N.joinThen) + parts[i];
-  return N.you.replace('{steps}', out);
+  let txt = N.you.replace('{steps}', out);
+  if (ev.revealText) {
+    const R = N.reveal, d = ev.revealDepth, f = ev.revealFaces;
+    const t = ev.slots && f ? (f === 'all' ? R.facesAll : R.faces.replace('{n}', f)) : (d === 1 ? R.intent : R.intents.replace('{n}', d));
+    txt += ' ' + t.replace('{its}', pr.its);
+  }
+  return txt;
 }
 // what the committed sentence did to the enemy's faces so far (from the pip events the player has seen)
 function narrateResult(hits) {
