@@ -59,7 +59,7 @@ function enterStage() {
     ui.screen = 'encounter'; ui.phase = 'await-roll';
     ui.slots = emptySlots(); ui.holdPick = false;
     ui.pipRec = site.faces.map(() => []);
-    ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
+    ui.previewOverride = null; ui.narr = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
     hooks.onRestart();
     buildSitePanel();
     syncView();
@@ -71,7 +71,7 @@ function enterStage() {
     ? pending : E.startEncounter(t, t.stage, Math.random);
   ui.screen = 'encounter'; ui.phase = 'await-roll';
   ui.slots = emptySlots(); ui.holdPick = false;
-  ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
+  ui.previewOverride = null; ui.narr = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
   hooks.onRestart();
   buildEnemyPanel();
   syncView();

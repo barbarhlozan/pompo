@@ -21,6 +21,37 @@ Object.assign(CONFIG, {
     noItems: '0 items',
   },
   text: {
+    // plain-language narration under the rail (src/ui/10-render.js narrateSentence / narrateResult). {them} = the enemy's shortName
+    // (or the site's shortName); from the second mention it is the pronoun N.pron / enemy.pron. A step's phrase = actions[action name] (items and bare parts share the name space), else the lower-cased action name.
+    narration: {
+      you: 'You {steps}.', joinThen: ', then ', joinLast: ', and finally ', youIdle: 'You do nothing much.', pron: { them: 'it', its: 'its' }, idle: 'stand around', scar: 'flail with a scarred limb',
+      mind: ' (MIND: {verb})',
+      actions: {
+        Hit: 'punch {them}', Gesture: 'gesture at {them}', Search: 'pat down {them}',
+        Swing: 'swing an arm at {them}', Wave: 'wave at {them}', Reach: 'reach out to {them}',
+        Insult: 'insult {them}', 'Small talk': 'make small talk with {them}', Ask: 'ask {them} a question',
+        Glare: 'glare at {them}', 'Kind look': 'give {them} a kind look', Look: 'look {them} over',
+        'Tune out': 'tune {them} out', 'Hear out': 'hear {them} out', Listen: 'listen to {them}',
+        Snort: 'snort at {them}', 'Sniff kindly': 'sniff kindly at {them}', 'Sniff out': 'sniff {them} out',
+        Shove: 'shove {them} with your back', Lean: 'lean against {them}', Hunch: 'hunch your back at {them}', Brace: 'brace yourself',
+        Bump: 'bump {them} with your belly', Laugh: 'laugh at {them}', Rumble: 'rumble at {them}', Clench: 'clench your belly',
+        Stab: 'stab at {them} with your knife', Threaten: 'threaten {them} with your knife', Pry: 'pry at {them} with your knife',
+        Snip: 'snip at {them} with your shears', 'Offer to trim': 'offer {them} a trim', 'Cut open': 'cut {them} open',
+        Whack: 'whack {them} with your spade', 'Lean and chat': 'lean on your spade and chat with {them}', Dig: 'dig around {them}',
+        Splash: 'splash {them}', 'Water their plant': 'water {them}\'s plant', 'Flood out': 'flood {them} out',
+        'Light up': 'light {them} up', 'Offer a light': 'offer {them} a light', Shine: 'shine a light on {them}',
+        Smack: 'smack {them} with the forbidden book', Quote: 'quote the forbidden book at {them}', 'Look up': 'look {them} up in the forbidden book',
+        Glint: 'glint at {them} through your glasses', 'Look learned': 'look learned at {them}', 'Read the fine print': 'read the fine print',
+        Dazzle: 'dazzle {them}', 'Warm light': 'cast a warm light on {them}',
+        'Listen closely': 'listen closely to {them}', Eavesdrop: 'eavesdrop on {them}',
+        Shriek: 'shriek at {them}', 'Call softly': 'call softly to {them}', Echo: 'echo {them}',
+        'Blow smoke': 'blow smoke at {them}', 'Calm chat': 'chat calmly with {them}', Ponder: 'ponder {them} over your pipe',
+      },
+      // after resolution: what it did to them (one clause per face touched; {face} = its action name, {n} pips)
+      faceBroken: '{its} {face} breaks.', faceTurned: '{its} {face} turns friendly.',
+      facePartBroken: '{n} of {its} {face} pips break.', facePartTurned: '{n} of {its} {face} pips turn.',   // {its} is capitalised at a sentence start
+      siteOpened: 'You open {what}.', nothing: 'It barely notices.',
+    },
     // the sentence rail (src/ui/10-render.js renderSlots): title, step labels by slot count, per-step tags / captions
     rail: {
       title: 'WHAT YOU DO', empty: 'drop a die', totalsPrefix: '=', totalsPending: '…',

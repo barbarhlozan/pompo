@@ -118,7 +118,7 @@ async function onRoll() {
   syncView();                                     // pre-turn picture: a pending watering-can SOW plays from here
   const st = E.startTurn(g, Math.random);
   ui.slots = emptySlots();
-  ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
+  ui.previewOverride = null; ui.narr = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
   newTilts(g.player.dice.map(d => d.id));
   if (st.events.length) {
     const run = ++ui.runId;

@@ -12,6 +12,7 @@ const EVENT_HANDLERS = {
     ui.previewOverride = { shape: ev.evaluation.shape, triggers: ev.evaluation.triggers, ev: ev.evaluation, text: ev.preview ? ev.preview.text : '' };
     // the rail plays left -> right; a MIND in slot 0 is "reached" first, otherwise the playhead starts at the first step
     ui.railPlay = { idx: ev.evaluation.mindIndex === 0 ? 0 : -1, totals: !ev.evaluation.steps.length };
+    ui.narr = { sentence: narrateSentence(ev.evaluation), hits: [] };
     renderPreview(); renderSlots();
     await sleep(T.resolveStepMs / 2);
   },
@@ -31,7 +32,8 @@ const EVENT_HANDLERS = {
   },
   async pip(ev) {
     view.enemy.faces[ev.faceIdx].pips[ev.pipIdx] = ev.to;
-    renderEnemy();
+    if (ui.narr) ui.narr.hits.push({ faceIdx: ev.faceIdx, to: ev.to });
+    renderEnemy(); renderPreview();
     await sleep(T.resolveStepMs / 2.5);
   },
   async faceResolved(ev) {
@@ -54,7 +56,7 @@ const EVENT_HANDLERS = {
   async enemyAct(ev) {
     ui.phase = 'enemy';
     ui.verbFlash = ''; ui.actingSlot = null;
-    ui.enemyText = ui.game.enemy.name + ' ' + ev.text;
+    ui.enemyText = enemyActSentence(ev);
     renderEnemy(); renderSlots(); renderControls();
     await sleep(T.enemyActMs);
   },
@@ -191,6 +193,7 @@ const hooks = {
 async function playEvents(events, run) {
   for (const ev of events) {
     if (ui.runId !== run) return false;
+    if (ev.type === 'enemyAct' && T.preEnemyMs) await sleep(T.preEnemyMs);   // a beat between your sentence and the enemy's action
     const h = EVENT_HANDLERS[ev.type];
     if (h) await h(ev);
   }

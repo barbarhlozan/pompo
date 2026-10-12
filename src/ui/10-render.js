@@ -282,8 +282,70 @@ function currentPreview() {
   }
   return { hint: true, shape: '', text: '' };
 }
+// ---- plain-language narration (CONFIG.text.narration): what you do to them, then what it did ----
+const capFirst = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const themName = () => {
+  const g = ui.game;
+  if (g && g.enemy) return g.enemy.shortName || g.enemy.logName || g.enemy.name.toLowerCase();
+  const st = g && C.sites[g.siteId];
+  return (st && st.shortName) || (g && g.name ? g.name.toLowerCase() : 'it');
+};
+const pronouns = () => Object.assign({}, C.text.narration.pron, ui.game && ui.game.enemy && ui.game.enemy.pron || {});
+function narrateSentence(ev) {
+  const N = C.text.narration, them = themName();
+  if (!ev || !ev.steps.length) return N.youIdle;
+  const pr = pronouns();
+  let named = false;
+  const parts = ev.steps.map(s => {
+    const t = s.role === 'scar' ? N.scar : (N.actions[s.name] || (s.idle ? N.idle : s.name.toLowerCase()));
+    if (t.indexOf('{them}') < 0) return t;
+    const r = t.replace(/\{them\}/g, named ? pr.them : them);   // the name once, then the pronoun
+    named = true;
+    return r;
+  });
+  let out = parts[0];
+  for (let i = 1; i < parts.length; i++) out += (i === parts.length - 1 && parts.length > 2 ? N.joinLast : N.joinThen) + parts[i];
+  return N.you.replace('{steps}', out);
+}
+// what the committed sentence did to the enemy's faces so far (from the pip events the player has seen)
+function narrateResult(hits) {
+  const N = C.text.narration, order = [], byFace = {};
+  hits.forEach(h => {
+    if (!byFace[h.faceIdx]) { byFace[h.faceIdx] = { broken: 0, turned: 0 }; order.push(h.faceIdx); }
+    byFace[h.faceIdx][h.to === 'turned' ? 'turned' : 'broken']++;
+  });
+  const out = order.map(fi => {
+    const f = view.enemy.faces[fi], h = byFace[fi], kind = h.turned > h.broken ? 'turned' : 'broken';
+    const all = f.pips.every(p => p !== 'intact');
+    const tpl = all ? (kind === 'turned' ? N.faceTurned : N.faceBroken) : (kind === 'turned' ? N.facePartTurned : N.facePartBroken);
+    return capFirst(tpl.replace('{its}', pronouns().its).replace('{face}', f.name).replace('{n}', h[kind] || (h.broken + h.turned)));
+  });
+  return out.join(' ');
+}
+function narrationText() {
+  const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy' || ui.phase === 'await-roll';
+  if (!live || !ui.game) return '';
+  if (ui.phase === 'arranging') {
+    if (placedCount() < slotCount()) return '';
+    const faces = ui.slots.slice(0, slotCount()).map(id => viewFace(id));
+    return narrateSentence(E.evaluateSentence(faces, isSite() ? { site: true } : { enemy: ui.game.enemy, tax: ui.game.tax || 0 }));
+  }
+  const n = ui.narr;
+  if (!n) return '';
+  return n.sentence + (view.enemy && n.hits.length ? ' ' + narrateResult(n.hits) : '');
+}
+// the enemy's action as one full sentence (act templates; fallback "<shortName> <text>.")
+function enemyActSentence(ev) {
+  const en = ui.game.enemy, A = en.act || {};
+  const key = ev.skipped ? ev.reason : (ev.nothing ? 'noItem' : ev.face);
+  let t = A[key];
+  if (!t) t = capFirst(en.shortName || en.logName) + ' ' + ev.text + '.';
+  return t.replace('{item}', ev.item ? itemName(ev.item).toLowerCase() : C.text.itemWord);
+}
 function renderPreview() {
   const p = currentPreview();
+  const nr = $('narration'), nt = narrationText();
+  nr.textContent = nt || ' '; nr.title = nt;
   $('railShape').textContent = p.shape ? p.shape.toUpperCase() : '';
   const t = $('previewText');
   t.innerHTML = p.text ? verbify(p.text) : '&nbsp;';

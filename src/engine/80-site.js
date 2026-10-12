@@ -17,7 +17,7 @@ function createSite(trip, siteId, rng, at) {
     pips: c.pips, pipsLeft: c.pips, revealed: false, opened: false, brokenItem: null }));
   const site = { siteId, name: c.name, word: c.word, at: at || null, faces, noise: 0, noiseMax: CONFIG.noiseMax,
     turn: 1, rerolls: 0, rerollPenalty: 0, rerollBonus: 0, pendingSow: 0, player: trip.player, target: null,
-    slots: c.slots || CONFIG.defaultSlots, holdPending: false, gained: [], guardian: c.guardian, over: null, log: [] };
+    slots: Math.max(CONFIG.minSlots || 1, c.slots || CONFIG.defaultSlots), holdPending: false, gained: [], guardian: c.guardian, over: null, log: [] };
   Object.defineProperty(site, 'trip', { value: trip, enumerable: false, writable: true });
   return site;
 }

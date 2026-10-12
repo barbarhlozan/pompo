@@ -36,8 +36,9 @@
   .faceRow .tile + .tile { margin-left:-3px; }
 
   /* enemy */
-  #enemy { position:absolute; left:0; top:40px; width:100%; height:232px; padding:16px 24px; display:flex; gap:40px; }
-  #intentPanel { width:520px; display:flex; flex-direction:column; gap:4px; position:relative; }
+  #enemy { position:absolute; left:0; top:40px; width:100%; height:232px; padding:8px 24px; display:flex; gap:40px; }
+  /* fixed rows (label, meta, intent tile, intent line, action sentence, foresight queue) so long texts wrap inside their own box instead of overlapping */
+  #intentPanel { width:520px; height:216px; display:flex; flex-direction:column; gap:3px; position:relative; overflow:hidden; }
   #enemyMeta { min-height:16px; font-size:13px; letter-spacing:.08em; color:var(--dim); display:flex; gap:10px; align-items:center; }
   #enemyMeta .chip { border:2px solid var(--line); padding:0 6px; font-size:12px; letter-spacing:.12em; text-transform:uppercase; }
   #bag { position:absolute; right:0; top:-2px; display:flex; align-items:center; gap:6px; }
@@ -45,13 +46,13 @@
   #bag .tile { font-size:12px; padding:4px 6px; border-width:2px; }
   .vb { cursor:help; }
   .lbl { font-size:13px; letter-spacing:.2em; color:var(--dim); }
-  #intentRow { display:flex; align-items:flex-end; gap:20px; height:84px; }
-  #intentTile { font-size:40px; padding:16px 22px; }
-  #intentText { min-height:22px; font-size:18px; }
-  #nextWrap { display:flex; align-items:center; gap:10px; min-height:40px; }
+  #intentRow { display:flex; align-items:flex-end; gap:20px; height:66px; flex:none; }
+  #intentTile { font-size:34px; padding:12px 20px; }
+  #intentText { height:22px; flex:none; font-size:16px; line-height:22px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #nextWrap { display:flex; align-items:center; gap:10px; height:36px; flex:none; overflow:hidden; }
   #nextWrap .q { opacity:.5; display:flex; align-items:center; gap:8px; }
   #nextWrap.hidden { visibility:hidden; }
-  #enemyText { min-height:22px; font-size:18px; color:var(--status); }
+  #enemyText { height:44px; flex:none; font-size:17px; line-height:22px; color:var(--status); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
   #faceStrip { flex:1; display:flex; gap:10px; align-items:flex-start; padding-top:22px; }
   .efc { flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 4px 8px;
     border:3px solid transparent; position:relative; }
@@ -67,7 +68,7 @@
   .pip.turned { background:var(--turned); border-radius:50%; }
 
   /* sentence rail: interlocking chevron steps, FIRST / THEN / LAST labels, MIND band, per-step captions, totals */
-  #sentence { position:absolute; left:0; top:272px; width:100%; height:196px; padding:0 24px; display:flex; flex-direction:column; align-items:flex-start;
+  #sentence { position:absolute; left:0; top:272px; width:100%; height:232px; padding:0 24px; display:flex; flex-direction:column; align-items:flex-start;
     --sw:330px; --pt:26px; --ov:20px; --pitch:calc(var(--sw) - var(--ov)); --slotH:76px; }
   #railHead { display:flex; align-items:baseline; gap:14px; height:22px; font-size:13px; letter-spacing:.25em; }
   #railTitle { color:var(--dim); }
@@ -125,12 +126,13 @@
     background:var(--glow); box-shadow:0 0 14px 2px color-mix(in srgb, var(--glow) 70%, transparent); opacity:0; pointer-events:none; z-index:3;
     transition:left var(--ph-ms, .16s) ease-out, opacity .1s; }
   #playhead.on { opacity:.85; }
-  #preview { margin-top:2px; min-height:22px; width:100%; }
+  #narration { margin-top:2px; height:44px; flex:none; width:100%; max-width:1200px; font-size:17px; line-height:22px; color:var(--text); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  #preview { margin-top:0; min-height:18px; width:100%; }
   #previewText { font-size:16px; line-height:1.25; max-width:1200px; }
   #previewText.hint { color:var(--dim); }
 
   /* bottom: dice lying loose on the table */
-  #bottom { position:absolute; left:0; top:468px; width:100%; height:200px; }
+  #bottom { position:absolute; left:0; top:504px; width:100%; height:200px; }
   #tray { display:flex; justify-content:center; gap:34px; }
   .cell { width:232px; height:106px; display:flex; align-items:center; justify-content:center; border-radius:20px; }
   .cell:empty { border:2px dashed color-mix(in srgb, var(--line) 30%, transparent); }
@@ -167,7 +169,7 @@
     border-radius:18px; box-shadow:0 12px 0 rgba(0,0,0,.5); pointer-events:none; translate:none; }
   .die.dragging .ctl { display:none; }
   .die.dragging .tile { font-size:24px; padding:10px 14px; }
-  #buttons { margin-top:22px; display:flex; justify-content:center; align-items:center; gap:18px; }
+  #buttons { margin-top:8px; display:flex; justify-content:center; align-items:center; gap:18px; }
   .btn { background:var(--panel); border:3px solid var(--glow); padding:12px 26px; font-size:20px; letter-spacing:.12em;
     box-shadow:0 4px 0 rgba(0,0,0,.6); }
   .btn:disabled { opacity:.3; cursor:default; border-color:var(--line); }

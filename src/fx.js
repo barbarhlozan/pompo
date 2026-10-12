@@ -259,7 +259,7 @@
       await p;
     });
     wrap('verb', async (ev, orig) => {
-      const p = orig(ev); popAnim($('verbFlash'), 1.4, 220); await p;
+      const p = orig(ev); popAnim($('verbFlash'), 1.4, 350); await p;
     });
     wrap('pip', async (ev, orig) => {
       const p = orig(ev);
@@ -303,7 +303,7 @@
           { transform: 'translateY(' + FXC.lungeDownPx + 'px) scale(1.3)', offset: .55 }, { transform: 'translateY(0) scale(1)' }], { duration: T.lungeMs, easing: 'ease-in-out' });
         burst({ x: at.x, y: at.y + FXC.lungeDownPx }, C.colors.hostile, FXC.burstCounts.lunge);
       } else if (ev.anim === 'growl') {
-        shake(tile, FXC.growlShakePx, T.enemyActMs * .8);
+        shake(tile, FXC.growlShakePx, T.lungeMs * 1.2);
       } else if (ev.anim === 'sniff') {
         motion(tile, [{ transform: 'rotate(0)' }, { transform: 'rotate(-6deg) translateY(4px)', offset: .25 }, { transform: 'rotate(4deg)', offset: .5 },
           { transform: 'rotate(-5deg) translateY(4px)', offset: .75 }, { transform: 'rotate(0)' }], { duration: FXC.sniffMs, easing: 'linear' });
@@ -395,7 +395,7 @@
           const a = n.animate([
             { transform: at0, opacity: 1 },
             { transform: at0 + ' translate(' + (h[1] * 6) + 'px,-8px) rotate(' + (h[1] * 8) + 'deg)', opacity: 1, offset: .2 },
-            { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 640, easing: 'ease-in' });
+            { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 1020, easing: 'ease-in' });
           a.onfinish = a.oncancel = () => sweep(n);
         });
       }
@@ -406,14 +406,14 @@
     wrap('mod', async (ev, orig) => {
       const p = orig(ev);
       const v = $('verbFlash');
-      popAnim(v, 1.3, 260);
+      popAnim(v, 1.3, 415);
       floatText(ev.source.toUpperCase() + ' ' + (ev.mod < 0 ? '−' : '+') + Math.abs(ev.mod), ctr(v), verbColor(ev.verb), { small: false });
       await p;
     });
     wrap('taxed', async (ev, orig) => {
       const p = orig(ev);
       const v = $('verbFlash');
-      popAnim(v, 1.3, 260);
+      popAnim(v, 1.3, 415);
       floatText(C.text.taxFloat.replace('{n}', ev.amount), ctr(v), C.colors.status, { small: false });
       burst(ctr(v), C.colors.status, FXC.burstCounts.pip);
       await p;
@@ -515,7 +515,7 @@
         const at0 = 'translate(' + at.x + 'px,' + at.y + 'px) translate(-50%,-50%)';
         const a = n.animate([{ transform: at0, opacity: 1 },
           { transform: at0 + ' translate(' + (h[1] * 6) + 'px,-8px) rotate(' + (h[1] * 8) + 'deg)', opacity: 1, offset: .2 },
-          { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 640, easing: 'ease-in' });
+          { transform: at0 + ' translate(' + (h[1] * 46) + 'px,70px) rotate(' + (h[1] * 55) + 'deg)', opacity: 0 }], { duration: 1020, easing: 'ease-in' });
         a.onfinish = a.oncancel = () => sweep(n);
       });
     };
@@ -546,7 +546,7 @@
     wrap('noise', async (ev, orig) => {
       const p = orig(ev);
       const nb = $('noiseTrack').querySelectorAll('.nb')[ev.total - 1];
-      if (nb) motion(nb, [{ transform: 'scale(1.8)' }, { transform: 'scale(1)' }], { duration: 220 });
+      if (nb) motion(nb, [{ transform: 'scale(1.8)' }, { transform: 'scale(1)' }], { duration: 350 });
       if (ev.cause === 'RATS') floatText('+' + ev.amount + ' NOISE', ctr($('noiseTrack')), C.colors.status, { small: false });
       await p;
     });
@@ -575,7 +575,7 @@
     });
     wrap('guardian', async (ev, orig) => {
       const p = orig(ev);
-      shake($('noiseTrack'), FXC.shakePx + 3, 500);
+      shake($('noiseTrack'), FXC.shakePx + 3, 800);
       shake($('stage'), FXC.loseShakePx, FXC.loseShakeMs);
       floatText(ev.name, ctr($('noiseTrack')), C.colors.verb.PRUNE, { small: false });
       await p;

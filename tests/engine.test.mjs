@@ -30,12 +30,18 @@ const ctx = leg.ctx;
 
 // Tests check rules, not tuning: pin the tuning they were written against (pre-V1-6 balance preset), so designers can
 // retune CONFIG (pips, maxScars, daylight) without breaking tests. The engine reads CONFIG at call time.
+// v1 original pips per enemy face (face order); the shipped CONFIG is tuned separately (~1.5x these), tests pin the originals
+const V1_PIPS = { DOG: [2, 2, 2, 2, 2, 2], PLUMBER: [3, 3, 1, 1, 1, 1], ACCOUNTANT: [2, 2, 3, 1, 2, 1], BRIDGE: [2, 2, 2, 3, 1, 1], CROWS: [1, 1, 1, 2, 1, 1] };
+function pinV1Pips(C) {
+  for (const [id, pips] of Object.entries(V1_PIPS)) C.enemies[id].faces.forEach((f, i) => { f.pips = pips[i]; });
+}
 function applyLegacyFixture(C) {
   C.maxScars = 6;
   C.loseRule = 'maxScars';
   C.scarTargets = null; C.mindAloneHolds = false; C.defaultSlots = 3;
   C.map.daylight = 12;
-  for (const en of Object.values(C.enemies)) { for (const f of en.faces) f.pips = f.pips / 2; en.slots = 3; }
+  for (const en of Object.values(C.enemies)) en.slots = 3;
+  pinV1Pips(C);
   for (const st of Object.values(C.sites)) st.slots = 3;
   C.playerDice.length = 0;
   C.playerDice.push(
@@ -78,7 +84,7 @@ const SHIPPED_LOSE = { rule: NCFG.loseRule, max: NCFG.maxScars };   // asserted 
 NCFG.maxScars = 6;
 NCFG.loseRule = 'dieLost';                 // the v2 tests below exercise dieLost on N; maxScars is tested via fresh()
 NCFG.map.daylight = 12;
-for (const en of Object.values(NCFG.enemies)) for (const f of en.faces) f.pips = f.pips / 2;
+pinV1Pips(NCFG);
 
 // Most legacy tests were written for the v1 kit (KNIFE on HAND face 0, GLASSES on HEAD face 0) and the fixed
 // DOG, PLUMBER, CAMPFIRE, CROWS sequence (PLUMBER = old GARDENER mods). `E` kits the dice and fixes the sequence;
@@ -2294,7 +2300,7 @@ test('V1-5 UI data: every map tile type, site content, site, enemy and item has 
 function fresh() {
   const x = loadEngine();
   x.CFG.maxScars = 6; x.CFG.loseRule = 'dieLost'; x.CFG.map.daylight = 12;
-  for (const en of Object.values(x.CFG.enemies)) for (const f of en.faces) f.pips = f.pips / 2;
+  pinV1Pips(x.CFG);
   return x;
 }
 const nev = (...faces) => N.evaluateSentence(faces);
@@ -2343,7 +2349,7 @@ test('v2 CONFIG: dice, body parts, items, slots, rewards, pools, flags', () => {
     assert.ok(['PRUNE', 'SOW', 'DIG'].every(v => v in it.names), id + ' names');
   }
   deepEq(Object.fromEntries(Object.keys(NCFG.enemies).map(k => [k, NCFG.enemies[k].slots])),
-    { DOG: 3, PLUMBER: 3, ACCOUNTANT: 2, BRIDGE: 1, CROWS: 2 });
+    { DOG: 3, PLUMBER: 3, ACCOUNTANT: 2, BRIDGE: 2, CROWS: 2 });
   deepEq(Object.fromEntries(Object.keys(NCFG.sites).map(k => [k, NCFG.sites[k].slots])), { HEAP: 3, SHED: 3, WELL: 2, HUT: 3 });
   deepEq(NCFG.startingInventory, ['KNIFE', 'GLASSES', 'SEED_POUCH']);
   assert.equal(NCFG.mindAloneHolds, false); assert.equal(SHIPPED_LOSE.rule, 'maxScars'); assert.equal(SHIPPED_LOSE.max, 4); assert.equal(NCFG.scarTargets, null);
@@ -2394,8 +2400,8 @@ test('lone MIND with mindAloneHolds is HOLD; the chosen die keeps its face into 
   assert.equal(X.E.evaluateSentence(['PRUNE']).holds, true);
   assert.equal(X.E.evaluateSentence(['PRUNE']).text, 'Hold: hold one die for the next turn');
   assert.equal(X.E.evaluateSentence(['PRUNE', 'PALM']).holds, false);          // only a lone MIND holds
-  const g = nenc('BRIDGE', 3, X.E);                                           // BRIDGE: 1 slot
-  assert.equal(g.slots, 1);
+  const g = nenc('BRIDGE', 3, X.E);                                           // BRIDGE: 2 slots shipped; force the 1-slot path
+  assert.equal(g.slots, 2); g.slots = 1; g.enemy.slots = 1;
   g.enemy.current = { faceIdx: 5, wag: false };                               // CALM WATER: harmless
   X.E.startTurn(g, X.E.makeRng(1));
   nset(g, { MIND: 'SOW' });
@@ -2435,6 +2441,7 @@ test('lone MIND with mindAloneHolds is HOLD; the chosen die keeps its face into 
   assert.equal(g.holdPending, false);
   // default (false): lone MIND does nothing and offers no hold
   const h = nenc('BRIDGE', 3);
+  h.slots = 1; h.enemy.slots = 1;
   h.enemy.current = { faceIdx: 5, wag: false };
   N.startTurn(h, N.makeRng(1)); nset(h, { MIND: 'SOW' });
   const o2 = N.resolveTurn(h, ['MIND'], N.makeRng(2));
@@ -2818,7 +2825,8 @@ test('scar targets: scarTargets config; ACCOUNTANT scarHead hits the HEAD die; t
 
 test('slots: resolveTurn takes exactly `slots` dice (any subset); unused dice do nothing', () => {
   assert.equal(nenc('DOG').slots, 3); assert.equal(nenc('ACCOUNTANT').slots, 2);
-  assert.equal(nenc('CROWS').slots, 2); assert.equal(nenc('BRIDGE').slots, 1);
+  assert.equal(nenc('CROWS').slots, 2); assert.equal(nenc('BRIDGE').slots, 2);
+  assert.equal(NCFG.minSlots, 2);
   const a = nenc('ACCOUNTANT', 1);
   bigEnemy(a);
   a.enemy.current = { faceIdx: 5, wag: false };                                // FILES: harmless
@@ -2840,8 +2848,9 @@ test('slots: resolveTurn takes exactly `slots` dice (any subset); unused dice do
   assert.equal(o2.evaluation.shape, 'Reflex');
   assert.equal(o2.evaluation.text, 'Reflex: Hit 2 · Small talk 2 → PRUNE 2 (crows +1) · SOW 0 (crows −2)'.replace('PRUNE 2 (crows +1) · SOW 0 (crows −2)', o2.evaluation.totalsText));
   assert.equal(o2.evaluation.totals.PRUNE, 3);                                 // crows pruneMod +1
-  // a 1-slot BRIDGE: one careful step
+  // a 1-slot BRIDGE (forced via state: shipped slots are clamped to minSlots)
   const b = nenc('BRIDGE', 1);
+  b.slots = 1; b.enemy.slots = 1;                                              // 1-slot path still works (unreachable by default: minSlots 2)
   b.enemy.current = { faceIdx: 5, wag: false };
   N.startTurn(b, N.makeRng(1)); nset(b, { TORSO: 'PALM' });
   assert.equal(N.resolveTurn(b, ['TORSO'], N.makeRng(1)).evaluation.shape, 'Reflex');
@@ -3050,4 +3059,23 @@ test('default loseRule is maxScars (4): lost at the 4th scar anywhere; dieLost s
   assert.equal(out.over, 'lost');
   assert.equal(out.events.find(e => e.type === 'lose').rule, 'maxScars');
   assert.equal(g.lostDie, null);
+});
+
+test('minSlots clamps enemy / site slots; narration phrases and enemy act lines cover the shipped data', () => {
+  const X = fresh();
+  X.CFG.enemies.BRIDGE.slots = 1; X.CFG.sites.WELL.slots = 1;
+  assert.equal(X.E.createEnemy('BRIDGE').slots, 2);
+  assert.equal(X.E.startSite(X.E.createTrip(X.E.makeRng(1), ['WELL']), 'WELL', X.E.makeRng(2)).slots, 2);
+  X.CFG.minSlots = 1;
+  assert.equal(X.E.createEnemy('BRIDGE').slots, 1);                            // the 1-slot path stays reachable by config
+  const A = NCFG.text.narration.actions;
+  const names = new Set();
+  Object.values(NCFG.actionNames).forEach(o => Object.values(o).forEach(n => names.add(n)));
+  Object.values(NCFG.items).forEach(it => Object.values(it.names).forEach(n => { if (n) names.add(n); }));
+  for (const n of names) assert.ok(A[n], 'narration phrase for ' + n);
+  for (const [id, en] of Object.entries(NCFG.enemies)) {
+    assert.ok(en.shortName, id + ' shortName');
+    en.faces.forEach(f => assert.ok(en.act[f.name], id + ' act line for ' + f.name));
+    assert.ok(en.act.wag && en.act.broken, id + ' wag / broken act lines');
+  }
 });

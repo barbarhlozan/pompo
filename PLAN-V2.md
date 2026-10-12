@@ -50,7 +50,7 @@ may override this later (default null).
 
 **Slots and choosing dice.**
 - Each enemy and site has `slots` (default 3). Values: DOG 3, PLUMBER 3, ACCOUNTANT 2 ("he talks, you nod"),
-  CROWS 2, BRIDGE 1 ("one careful step"); sites HEAP 3, SHED 3, WELL 2, HUT 3. All in CONFIG; debug can change it.
+  CROWS 2, BRIDGE 2 (was 1; playtest: **minimum 2 slots**, `CONFIG.minSlots: 2`); sites HEAP 3, SHED 3, WELL 2, HUT 3. All in CONFIG; debug can set 2–3.
 - The sentence has exactly `slots` positions; COMMIT is enabled when **all slots are filled**. Dice not in the
   sentence do nothing (but count for the belly check).
 - `evaluateSentence(faces, ctx)`: `faces` has 1–3 entries, **0 or 1** verb faces.
@@ -159,7 +159,7 @@ ACCOUNTANT → exposed belly ended the run ("Every face of your TORSO is scarred
 | `items[ID]` | `{name, part, names:{PRUNE,SOW,DIG}` (null = part's name)`, special, info, uses?, forbidden?}` |
 | `itemRules` | `knifePruneBonus, matchesPruneBonus, forbiddenBookSowBonus, glassesRevealDepth, defaultRevealDepth, noseRevealDepth, whistleMultiplier, whistleTag, wateringCanNow, wateringCanSow, earTrumpetBonus, earTrumpetPart, pipeWanted` |
 | `shapeNames` | `{first:'Plan', middle:'Situation', last:'Impulse', reflex:'Reflex', idle:'Idle', hold:'Hold'}` (title case; the UI may upper-case) |
-| `defaultSlots: 3`, `enemies[ID].slots`, `sites[ID].slots` | DOG 3 PLUMBER 3 ACCOUNTANT 2 CROWS 2 BRIDGE 1; HEAP 3 SHED 3 WELL 2 HUT 3 |
+| `minSlots: 2`, `defaultSlots: 3`, `enemies[ID].slots`, `sites[ID].slots` | DOG 3 PLUMBER 3 ACCOUNTANT 2 CROWS 2 BRIDGE 2; HEAP 3 SHED 3 WELL 2 HUT 3; createEnemy / createSite clamp to `minSlots` |
 | `mindAloneHolds: false`, `loseRule: 'maxScars'` (**default, user decision**) `\|'dieLost'`, `maxScars: 4`, `scarTargets: null\|[dieIds]` | |
 | `effectRules.scarHeadDie: 'HEAD'` | die ACCOUNTANT's `scarHead` hits |
 | `startingInventory: [KNIFE, GLASSES, SEED_POUCH]` | placed on the intro screen |
@@ -278,3 +278,15 @@ Playtest: the sentence did not read as steps one after another and empty slots l
 - Drop target = nearest chevron centre (chevrons overlap by `--ov`). Rail sizes are CSS vars on `#sentence` (`--sw --pt --ov --slotH`).
 - Browser (1280×720, 0 console errors): 1-slot BRIDGE, 2-slot REFLEX (instinct tags + DIG carry), 3-slot PLAN with MIND band, site (HEAP) commit, real drag onto a slot. Screenshot: side-session-notes `rail-3slot-plan.jpg`.
 - Not done: no rail view of the last turn after the dice go `?` (the "Last:" line covers it); `.rcap` notes ellipsise if very long (full text in the tooltip).
+
+### V2-4 notes (playtest fixes: min 2 slots, slower playback, shorter fights, narration, enemy-area layout)
+
+Tests 115/115 (new: minSlots clamp, narration/act data coverage). Browser (1280×720, 0 console errors): 2-slot BRIDGE, 3-slot DOG / PLUMBER, 2-slot WELL site.
+- **minSlots**: `CONFIG.minSlots: 2`; `createEnemy` / `createSite` clamp `slots`; BRIDGE 2; debug slots input min 2. 1-slot paths untouched (tests force `g.slots = 1`; `minSlots: 1` re-enables).
+- **Timing** (`70-timing.js`): commit / enemy playback ~1.6× (resolve, rail, pip, fly, shake, lunge, float, burst, scar…); `enemyActMs` 1500 (action line readable ≥1.5 s), new `preEnemyMs` 500 before the enemy acts (in `playEvents`). Drag / snap / roll / hold unchanged.
+- **Pips** ~1.5× v1 rounded (DOG 3; PLUMBER 5/2/2; ACCOUNTANT 3/5/2/3/2; BRIDGE 3/3/5/2/2; CROWS 2/2/3/2). Test harness `pinV1Pips` pins each face to its v1 original (no more `/ 2`).
+- **Narration** (`#narration`, `narrateSentence` / `narrateResult` in `ui/10-render.js`): "You glare at the stray dog, then punch him. 3 of his BORROW pips break." Phrases = `text.narration.actions[action name]` with `{them}`
+  (fallback: lower-cased action name); the name is used once, later mentions use `enemy.pron` (default it / its). Enemy `shortName`, `pron`, site `shortName`. Result clauses come from the pip events seen so far; sites get the sentence only.
+- **Enemy action line** = `enemy.act[FACE|noItem|wag|broken]` full sentences (`{item}`), fallback `shortName + text`; engine event gains `item` for BORROW / STEAL / DROP.
+- **Layout**: `#intentPanel` has fixed rows (66 label/tile row, 22 intent line ellipsis, 44 action sentence clamped to 2 lines, 36 queue) and `overflow:hidden`; `#sentence` 196→232 and `#bottom` moved 36px down (buttons margin 22→8) to fit the 2-line narration.
+- Open: narration for sites has no result clause; phrases are English-only; a mid-lunge intent tile can still scale over the intent line for a moment (FX, unchanged).
