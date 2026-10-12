@@ -3140,3 +3140,40 @@ test('evaluatePartial: empty slots skipped, role / carry provisional, label only
   assert.equal(P(...full).complete, true);
   assert.throws(() => N.evaluateSentence(['EYE', null], { enemy }));
 });
+
+test('previewHits: current intent first, spill by priority, no mutation, win flag', () => {
+  const e = E.createEnemy('DOG');
+  e.current = { faceIdx: 3, wag: false };               // second GROWL
+  const before = JSON.stringify(e.faces);
+  const p = E.previewHits(e, { order: ['PRUNE'], totals: { PRUNE: 5 }, shears: 0 });
+  deepEq(p.hits.map(h => [h.faceIdx, h.pipIdx, h.to]), [[3, 0, 'broken'], [3, 1, 'broken'], [0, 0, 'broken'], [0, 1, 'broken'], [1, 0, 'broken']]);
+  deepEq(p.resolves.map(r => [r.faceIdx, r.resolved]), [[3, 'broken'], [0, 'broken']]);
+  assert.equal(p.win, null);
+  assert.equal(JSON.stringify(e.faces), before);        // clone only
+  const all = E.previewHits(e, { order: ['SOW'], totals: { SOW: 99 }, shears: 0 });
+  assert.equal(all.win, CFG.text.befriended);
+  assert.equal(E.previewHits(e, { order: [], totals: {}, shears: 0 }).hits.length, 0);
+  assert.equal(E.previewHits(e, null).win, null);
+});
+
+test('previewHits: SHEARS split and mixed verbs match what resolveTurn does', () => {
+  const e = E.createEnemy('DOG');
+  e.current = { faceIdx: 0, wag: false };
+  const p = E.previewHits(e, { order: ['PRUNE'], totals: { PRUNE: 5 }, shears: 3 });
+  deepEq(p.hits.map(h => h.faceIdx), [0, 1, 0, 1, 2]);
+  // mixed sentence through the real pipeline: preview equals the committed pip events
+  const g = enc('DOG');
+  g.enemy.current = { faceIdx: 0, wag: false };
+  setFaces(g, 'PRUNE', 'HAND', 'EYE');
+  g.player.dice[1].faces[g.player.dice[1].idx] = 'HAND+SHEARS';
+  const faces = ['PRUNE', 'HAND+SHEARS', 'EYE'].map((f, i) => g.player.dice[i].faces[g.player.dice[i].idx]);
+  const ev = E.evaluateSentence(faces, { enemy: g.enemy, tax: g.tax || 0 });
+  const pv = E.previewHits(g.enemy, ev);
+  const out = E.resolveTurn(g, ['MIND', 'HAND', 'HEAD'], E.makeRng(3));
+  assert.equal(JSON.stringify(pv.hits.map(h => [h.faceIdx, h.pipIdx, h.to])), JSON.stringify(pips(out.events).map(x => [x.faceIdx, x.pipIdx, x.to])));
+  assert.equal(JSON.stringify(pv.resolves.map(r => [r.faceIdx, r.resolved])), JSON.stringify(out.events.filter(x => x.type === 'faceResolved').map(x => [x.faceIdx, x.resolved])));
+  // mods are already in the totals: PLUMBER prune -1 / sow +1
+  const pl = E.createEnemy('PLUMBER'); pl.current = { faceIdx: 0, wag: false };
+  const pe = E.evaluateSentence(['SOW', 'EYE', 'PALM'], { enemy: pl, tax: 0 });
+  assert.equal(E.previewHits(pl, pe).hits.length, pe.totals.SOW);
+});

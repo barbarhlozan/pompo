@@ -81,10 +81,14 @@ function buildEnemyPanel() {
   const strip = $('faceStrip');
   strip.innerHTML = '';
   dom.efc.length = 0;
+  const ST = C.text.strip;
+  $('stripHead').innerHTML = '<b>' + esc(ST.head) + '</b> · ' + esc(ST.goal) + '<span class="legend">' + esc(ST.legend) + '</span>';
   cfg.faces.forEach((cf) => {
     const el = document.createElement('div');
     el.className = 'efc';
-    el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div>';
+    const info = cf.hostile ? ((cfg.info && cfg.info[cf.name]) || ST.effects[cf.effect] || ST.hostileNone) : ST.harmless;
+    el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div><div class="info">' + esc(info) + '</div><div class="fstate"></div>';
+    el.classList.toggle('harmless', !cf.hostile);
     const pips = el.querySelector('.pips');
     for (let p = 0; p < cf.pips; p++) { const sp = document.createElement('span'); sp.className = 'pip'; pips.appendChild(sp); }
     strip.appendChild(el); dom.efc.push(el);
@@ -132,6 +136,8 @@ function renderEnemy() {
     el.classList.toggle('is-next', !isCur && qi === 0);
     el.classList.toggle('is-then', !isCur && qi >= 1);
     el.dataset.status = st;
+    el.querySelector('.fstate').textContent = ui.hidePips ? '' : (st === 'broken' ? C.text.strip.broken : (st === 'turned' ? C.text.strip.turned : ''));
+    el.classList.toggle('resolved', !ui.hidePips && (st === 'broken' || st === 'turned'));
     el.querySelector('.tag').textContent = isCur ? C.text.now : (qi === 0 ? C.text.next : (qi >= 1 ? C.text.then : ''));
   });
   // intent
@@ -167,6 +173,39 @@ function renderEnemy() {
     }
   }
   $('verbFlash').textContent = ui.verbFlash || '';
+  renderGhosts();
+}
+// Hit preview on the enemy strip while arranging: ghost marks on the pips the sentence (so far) would break / turn,
+// outlines on faces that would resolve, a WIN hint. Provisional (partial sentence) ghosts are dimmer. Gone during playback.
+function renderGhosts() {
+  if (isSite() || !dom.efc.length) return;
+  const ST = C.text.strip;
+  const legend = $('stripHead').querySelector('.legend');
+  dom.efc.forEach(el => {
+    el.classList.remove('would-break', 'would-turn');
+    el.querySelectorAll('.pip').forEach(p => p.classList.remove('ghost-broken', 'ghost-turned', 'prov'));
+  });
+  legend.classList.remove('win'); legend.textContent = ST.legend;
+  if (ui.phase !== 'arranging' || ui.hidePips || !ui.game.enemy) return;
+  const ev = partialEvaluation();
+  if (!ev || !ev.placed) return;
+  const pv = E.previewHits(ui.game.enemy, ev);
+  const prov = !ev.complete;
+  pv.hits.forEach(h => {
+    const pip = dom.efc[h.faceIdx].querySelectorAll('.pip')[h.pipIdx];
+    pip.classList.add(h.to === 'turned' ? 'ghost-turned' : 'ghost-broken');
+    pip.classList.toggle('prov', prov);
+  });
+  pv.resolves.forEach(r => {
+    const el = dom.efc[r.faceIdx];
+    el.classList.add(r.resolved === 'turned' ? 'would-turn' : 'would-break');
+    el.classList.toggle('prov', prov);
+    el.querySelector('.fstate').textContent = r.resolved === 'turned' ? ST.wouldTurn : ST.wouldBreak;
+  });
+  if (pv.win) {
+    legend.classList.add('win');
+    legend.textContent = (pv.win === C.text.beaten ? ST.winBeaten : ST.winBefriended) + (prov ? ' ' + ST.provisional : '');
+  }
 }
 
 function renderDice() {
@@ -223,6 +262,7 @@ function renderSlots() {
   const ev = full || (ui.phase === 'arranging' && placedCount() > 0 ? partialEvaluation() : null);
   const partial = !!ev && !ev.complete;
   $('sentence').classList.toggle('partial', partial);
+  renderGhosts();
   // fit the chevrons to the page width (CSS --sw is the 3-slot size; more slots shrink it)
   const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 425, ovPx = 26;
   sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1232 + (n - 1) * ovPx) / n)) + 'px');
@@ -332,27 +372,33 @@ function phraseFor(name, tags) {
   for (let i = 0; i < (tags || []).length; i++) if (by[tags[i]] && by[tags[i]][name]) return by[tags[i]][name];
   return N.actions[name];
 }
+// -> HTML: each step's phrase in its verb colour, the item named in its item colour, the opponent's name plain
 function narrateSentence(ev) {
   const N = C.text.narration, them = themName();
-  if (!ev || !ev.steps.length) return ev && !ev.complete ? '' : N.youIdle;
+  if (!ev || !ev.steps.length) return ev && !ev.complete ? '' : esc(N.youIdle);
   const partial = !ev.complete;
   const pr = pronouns();
   let named = false;
   const parts = ev.steps.map(s => {
     const t = s.role === 'scar' ? N.scar : (phraseFor(s.name, ev.tags) || (s.idle ? N.idle : s.name.toLowerCase()));
-    if (t.indexOf('{them}') < 0) return t;
-    const r = t.replace(/\{them\}/g, named ? pr.them : them);   // the name once, then the pronoun
-    named = true;
-    return r;
+    let h = esc(t);
+    const item = s.face && s.face.indexOf('+') > 0 ? s.face.slice(s.face.indexOf('+') + 1) : null;
+    if (item && C.colors.item[item]) {
+      const nm = esc(itemName(item).toLowerCase());
+      if (nm && h.indexOf(nm) >= 0) h = h.replace(nm, '<span class="ni" style="color:' + C.colors.item[item] + '">' + nm + '</span>');
+    }
+    h = h.replace(/\{them\}/g, () => { const r = '<span class="nm">' + esc(named ? pr.them : them) + '</span>'; named = true; return r; });   // the name once, then the pronoun
+    const col = s.verb && C.colors.verb[s.verb];
+    return '<span class="nv"' + (col ? ' style="color:' + col + '"' : '') + '>' + h + '</span>';
   });
   let out = parts[0];
-  for (let i = 1; i < parts.length; i++) out += (i === parts.length - 1 && parts.length > 2 && !partial ? N.joinLast : N.joinThen) + parts[i];
-  if (partial) return N.youPartial.replace('{steps}', out);
-  let txt = N.you.replace('{steps}', out);
+  for (let i = 1; i < parts.length; i++) out += esc(i === parts.length - 1 && parts.length > 2 && !partial ? N.joinLast : N.joinThen) + parts[i];
+  if (partial) return esc(N.youPartial).replace('{steps}', () => out);
+  let txt = esc(N.you).replace('{steps}', () => out);
   if (ev.revealText) {
     const R = N.reveal, d = ev.revealDepth, f = ev.revealFaces;
     const t = ev.slots && f ? (f === 'all' ? R.facesAll : R.faces.replace('{n}', f)) : (d === 1 ? R.intent : R.intents.replace('{n}', d));
-    txt += ' ' + t.replace('{its}', pr.its);
+    txt += ' <span class="nv" style="color:' + C.colors.verb[C.revealVerb] + '">' + esc(t.replace('{its}', pr.its)) + '</span>';
   }
   return txt;
 }
@@ -367,7 +413,7 @@ function narrateResult(hits) {
     const f = view.enemy.faces[fi], h = byFace[fi], kind = h.turned > h.broken ? 'turned' : 'broken';
     const all = f.pips.every(p => p !== 'intact');
     const tpl = all ? (kind === 'turned' ? N.faceTurned : N.faceBroken) : (kind === 'turned' ? N.facePartTurned : N.facePartBroken);
-    return capFirst(tpl.replace('{its}', pronouns().its).replace('{face}', f.name).replace('{n}', h[kind] || (h.broken + h.turned)));
+    return '<span class="nres ' + kind + '">' + esc(capFirst(tpl.replace('{its}', pronouns().its).replace('{face}', f.name).replace('{n}', h[kind] || (h.broken + h.turned)))) + '</span>';
   });
   return out.join(' ');
 }
@@ -393,7 +439,7 @@ function enemyActSentence(ev) {
 function renderPreview() {
   const p = currentPreview();
   const nr = $('narration'), nt = narrationText();
-  nr.textContent = nt || ' '; nr.title = nt;
+  nr.innerHTML = '<span class="nbox">' + (nt || '&nbsp;') + '</span>'; nr.title = nt.replace(/<[^>]+>/g, '');
   $('railShape').textContent = p.shape ? p.shape.toUpperCase() : '';
   const t = $('previewText');
   t.innerHTML = p.text ? verbify(p.text) : '&nbsp;';
@@ -401,6 +447,7 @@ function renderPreview() {
 }
 function renderControls() {
   const g = ui.game, ph = ui.phase;
+  $('stage').dataset.phase = ph;
   $('btnRoll').disabled = ph !== 'await-roll' || nothingLeft() || ui.holdPick;
   $('btnLeave').disabled = !(ph === 'await-roll' || ph === 'arranging');
   $('btnLeave').classList.toggle('primary', nothingLeft());

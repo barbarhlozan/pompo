@@ -81,6 +81,26 @@ function applyVerb(enemy, verb, amount, opts) {
   return events;
 }
 
+// What `evaluation` (full or partial; uses totals, order, shears) would do to the enemy right now, on a clone: the same verb
+// order and applyVerb calls as resolveTurn, nothing is mutated.
+// -> { hits:[{faceIdx,pipIdx,to,verb}], resolves:[{faceIdx,resolved}], win: result string | null }
+function previewHits(enemy, evaluation) {
+  const sim = { faces: enemy.faces.map(f => ({ name: f.name, hostile: f.hostile, effect: f.effect, pips: f.pips.slice() })),
+    current: enemy.current ? { faceIdx: enemy.current.faceIdx, wag: enemy.current.wag } : null, targetPriority: enemy.targetPriority };
+  const out = { hits: [], resolves: [], win: null };
+  if (!evaluation) return out;
+  (evaluation.order || []).forEach(v => {
+    const amount = (evaluation.totals || {})[v];
+    if (!amount || amount <= 0) return;
+    applyVerb(sim, v, amount, { alternate: v === 'PRUNE' ? evaluation.shears || 0 : 0 }).forEach(e => {
+      if (e.type === 'pip') out.hits.push({ faceIdx: e.faceIdx, pipIdx: e.pipIdx, to: e.to, verb: e.verb });
+      else if (e.type === 'faceResolved') out.resolves.push({ faceIdx: e.faceIdx, resolved: e.resolved });
+    });
+  });
+  out.win = out.hits.length ? checkWin(sim) : null;
+  return out;
+}
+
 // Pick a random non-broken face. Turned face => wag intent.
 function rollIntent(enemy, rng) {
   let idxs = [];

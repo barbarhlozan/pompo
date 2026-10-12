@@ -48,7 +48,7 @@
   .faceRow .tile + .tile { margin-left:-3px; }
 
   /* enemy */
-  #enemy { position:absolute; left:0; top:40px; width:100%; height:232px; padding:8px 24px; display:flex; gap:40px; }
+  #enemy { position:absolute; left:0; top:40px; width:100%; height:218px; padding:8px 24px; display:flex; gap:40px; }
   /* fixed rows (label, meta, intent tile, intent line, action sentence, foresight queue) so long texts wrap inside their own box instead of overlapping */
   #intentPanel { width:520px; height:216px; display:flex; flex-direction:column; gap:3px; position:relative; overflow:hidden; }
   #enemyMeta { min-height:16px; font-size:13px; letter-spacing:.04em; color:var(--dim); display:flex; flex-wrap:wrap; gap:2px 10px; align-items:center; flex:none; }
@@ -65,24 +65,44 @@
   #nextWrap .q { opacity:.5; display:flex; align-items:center; gap:8px; }
   #nextWrap.hidden { visibility:hidden; }
   #enemyText { height:44px; flex:none; font-size:17px; line-height:22px; color:var(--status); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-  #faceStrip { flex:1; display:flex; gap:10px; align-items:flex-start; padding-top:22px; }
-  .efc { flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 4px 8px;
+  #stripWrap { flex:1; display:flex; flex-direction:column; min-width:0; }
+  #stripHead { height:36px; flex:none; font-size:13px; line-height:18px; letter-spacing:.06em; color:var(--dim); overflow:hidden; }
+  #stripHead b { color:var(--text); letter-spacing:.14em; }
+  #stripHead .legend { display:block; letter-spacing:.02em; white-space:nowrap; }
+  #stripHead .legend.win { color:var(--turned); font-weight:700; letter-spacing:.08em; }
+  #faceStrip { flex:1; display:flex; gap:8px; align-items:flex-start; padding-top:20px; }
+  .efc .info { font-size:13px; line-height:15px; height:45px; width:100%; text-align:center; color:var(--dim); overflow:hidden; }
+  .efc .fstate { font-size:12px; font-weight:700; letter-spacing:.08em; height:15px; color:var(--dim); white-space:nowrap; }
+  .efc.harmless { opacity:.6; }
+  .efc.harmless .tile { outline:2px dashed var(--dim); outline-offset:-5px; }
+  .efc.resolved .info { color:var(--dim); text-decoration:line-through; }
+  .efc.would-break { border-color:var(--danger); } .efc.would-break .fstate { color:var(--danger); }
+  .efc.would-turn { border-color:var(--turned); } .efc.would-turn .fstate { color:var(--turned); }
+  .efc.would-break.is-current, .efc.would-turn.is-current { border-style:double; }
+  .efc.prov.would-break, .efc.prov.would-turn { border-style:dashed; opacity:.85; }
+  .pip.ghost-broken { background:var(--danger); border-color:#000; transform:rotate(45deg) scale(.7); box-shadow:0 0 0 2px var(--danger); }
+  .pip.ghost-turned { background:var(--turned); border-radius:50%; box-shadow:0 0 0 2px var(--turned); }
+  .pip.ghost-broken.prov, .pip.ghost-turned.prov { opacity:.5; box-shadow:none; }
+  .efc { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; padding:6px 3px 4px; min-width:0;
     border:3px solid transparent; position:relative; }
-  .efc .tile { font-size:16px; padding:10px 6px; width:100%; text-align:center; }
+  .efc .tile { font-size:15px; padding:8px 4px; width:100%; text-align:center; }
   .efc.is-current { border-color:var(--glow); }
   .efc.is-next { border:3px dashed var(--dim); }
   .efc.is-then { border:3px dotted var(--line); }
   .efc .tag { position:absolute; top:-18px; left:0; width:100%; text-align:center; font-size:var(--fs-min); letter-spacing:.15em; color:var(--dim); }
   .efc.is-current .tag { color:var(--glow); }
-  .pips { display:flex; gap:8px; }
+  .pips { display:flex; gap:6px; flex-wrap:wrap; justify-content:center; min-height:24px; }
   .pip { width:18px; height:18px; border:3px solid #000; background:var(--pip); }
   .pip.broken { background:var(--broken); transform:rotate(45deg) scale(.7); }
   .pip.turned { background:var(--turned); border-radius:50%; }
 
   /* sentence rail: interlocking chevron steps, FIRST / THEN / LAST labels, MIND band, per-step captions, totals */
-  #sentence { position:absolute; left:0; top:272px; width:100%; height:292px; padding:0 24px; display:flex; flex-direction:column; align-items:flex-start;
+  #sentence { position:absolute; left:0; top:258px; width:100%; height:318px; padding:6px 24px 0; display:flex; flex-direction:column; align-items:flex-start;
     --sw-max:425px; --sw:425px; --pt:34px; --ov:26px; --pitch:calc(var(--sw) - var(--ov)); --slotH:100px;   /* --sw is re-fitted by JS for more than 3 slots */
-    --fs-label:16px; --fs-action:30px; --fs-action-long:24px; --fs-cap:17px; --fs-total:24px; --fs-narr:19px; }
+    --fs-label:16px; --fs-action:30px; --fs-action-long:24px; --fs-cap:17px; --fs-total:24px; --fs-narr:29px; --narr-h:70px; --focus:var(--lit); }
+  /* focal zone: the sentence (headline + rail + totals) sits on a lit band across the full width */
+  #sentence { background:linear-gradient(180deg, color-mix(in srgb, var(--focus) 9%, transparent), color-mix(in srgb, var(--focus) 3%, transparent));
+    border-top:2px solid color-mix(in srgb, var(--focus) 45%, transparent); border-bottom:2px solid color-mix(in srgb, var(--focus) 25%, transparent); }
   #railHead { display:flex; align-items:baseline; gap:16px; height:30px; width:100%; font-size:var(--fs-sm); letter-spacing:.2em; }
   #railTitle { color:var(--dim); }
   /* totals: big and prominent, right end of the header row */
@@ -144,19 +164,24 @@
   #playhead { position:absolute; left:calc(var(--ph, 0) * var(--pitch) + var(--pt)); top:22px; width:calc(var(--sw) - var(--pt) - var(--ov)); height:19px;
     background:var(--glow); box-shadow:0 0 14px 2px color-mix(in srgb, var(--glow) 70%, transparent); opacity:0; pointer-events:none; z-index:3;
     transition:left var(--ph-ms, .16s) ease-out, opacity .1s; }
-  #playhead.on { opacity:.85; }
-  #narration { margin-top:2px; height:50px; flex:none; width:100%; max-width:1232px; font-size:var(--fs-narr); line-height:25px; color:var(--text); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  #playhead.on { opacity:1; }
+  #stage[data-phase=resolving] #sentence { --focus:var(--glow); }
+  #narration { height:var(--narr-h); flex:none; width:100%; max-width:1232px; font-size:var(--fs-narr); line-height:35px; color:var(--text); text-align:center; font-weight:700;
+    overflow:hidden; display:grid; align-content:center; text-shadow:0 2px 0 rgba(0,0,0,.6); }
+  #narration .nbox { display:block; max-height:70px; overflow:hidden; } #narration .nm, #narration .nres { color:var(--text); } #narration .ni { text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:4px; }
+  #narration .nres { font-weight:400; font-size:.7em; color:var(--dim); }
   #preview { margin-top:0; min-height:22px; width:100%; }
   #previewText { font-size:var(--fs-md); line-height:22px; max-width:1232px; }
   #previewText.hint { color:var(--dim); }
 
   /* bottom: dice lying loose on the table */
-  #bottom { position:absolute; left:0; top:564px; width:100%; height:156px; }
+  #bottom { position:absolute; left:0; top:580px; width:100%; height:140px; }
+  #stage[data-phase=resolving] #bottom, #stage[data-phase=enemy] #bottom { opacity:.45; transition:opacity .15s; }
   #tray { display:flex; justify-content:center; gap:34px; }
-  .cell { width:232px; height:86px; display:flex; align-items:center; justify-content:center; border-radius:20px; }
+  .cell { width:210px; height:70px; display:flex; align-items:center; justify-content:center; border-radius:20px; }
   .cell:empty { border:2px dashed color-mix(in srgb, var(--line) 30%, transparent); }
   .cell.over, #tray.over .cell:empty { border-color:var(--glow); }
-  .die { width:222px; height:78px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  .die { width:200px; height:64px; display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:5px; position:relative; touch-action:none; cursor:grab; rotate:var(--tilt, 0deg);
     border-radius:18px; border:3px solid #3a3a52; background:linear-gradient(160deg, #262638, #15151f);
     box-shadow:0 5px 0 rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.07); }
@@ -181,7 +206,7 @@
   /* a die on the rail is a word step: no die frame, same face tiles */
   .die.in-slot { width:100%; height:100%; border:0; border-radius:0; background:none; box-shadow:none; rotate:0deg; translate:none; gap:2px; z-index:2; }
   .die.in-slot .tile { font-size:21px; padding:8px 11px; }
-  #tray .die:not(.dragging) .tile { font-size:20px; padding:7px 11px; }
+  #tray .die:not(.dragging) .tile { font-size:17px; padding:5px 9px; }
   .die.in-slot .held { top:2px; right:calc(var(--pt) + 4px); }
   .die.in-slot .frz { top:2px; left:calc(var(--pt) + 4px); }
   .rstep.first .die.in-slot .frz { left:12px; }
@@ -204,14 +229,15 @@
     border-radius:18px; box-shadow:0 12px 0 rgba(0,0,0,.5); pointer-events:none; translate:none; }
   .die.dragging .ctl { display:none; }
   .die.dragging .tile { font-size:24px; padding:10px 14px; }
-  #buttons { margin-top:6px; display:flex; justify-content:center; align-items:center; gap:18px; }
-  .btn { background:var(--panel); border:3px solid var(--glow); padding:7px 26px; font-size:19px; letter-spacing:.12em;
+  #buttons { margin-top:4px; display:flex; justify-content:center; align-items:center; gap:18px; }
+  .btn { background:var(--panel); border:2px solid var(--line); padding:4px 20px; font-size:16px; letter-spacing:.12em;
     box-shadow:0 4px 0 rgba(0,0,0,.6); }
   .btn:disabled { opacity:.3; cursor:default; border-color:var(--line); }
+  #btnCommit:not(:disabled), #btnRoll:not(:disabled) { border-color:var(--lit); }
   .btn:not(:disabled):hover { background:var(--glow); color:var(--tiletext); }
   .btn.primary { background:var(--lit); color:var(--tiletext); border-color:#000; }
   #status { color:var(--status); font-size:var(--fs-sm); min-width:210px; }
-  #help { position:absolute; left:0; bottom:2px; width:100%; text-align:center; font-size:var(--fs-min); color:var(--dim); padding:0 24px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #help { position:absolute; left:0; bottom:2px; width:100%; text-align:center; font-size:var(--fs-min); color:var(--dim); opacity:.7; padding:0 24px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
   /* popover */
   #pop { position:absolute; z-index:40; display:none; background:#000; border:3px solid var(--glow); padding:8px 10px;
@@ -382,6 +408,7 @@
   #noiseTrack .nb.on.hot { background:var(--danger); }
   #btnLeave { display:none; }
   #stage.site #intentTile { display:none; }
+  #stage.site #stripHead { visibility:hidden; }
   #stage.site #noiseTrack { display:flex; }
   #stage.site #btnLeave { display:inline-block; }
   #stage.site #intentPanel { width:400px; }
@@ -464,12 +491,12 @@
       <div id="enemyText"></div>
       <div id="nextWrap" class="hidden"></div>
     </div>
-    <div id="faceStrip"></div>
+    <div id="stripWrap"><div id="stripHead"></div><div id="faceStrip"></div></div>
   </section>
   <section id="sentence">
+    <div id="narration"></div>
     <div id="railHead"><span id="railTitle"></span><span id="railShape"></span><span id="rtotals"></span></div>
     <div id="slots"></div>
-    <div id="narration"></div>
     <div id="preview"><div id="previewText"></div></div>
   </section>
   <section id="bottom">
@@ -872,6 +899,14 @@ Object.assign(CONFIG, {
     reveal: '(reveal)', noEffect: 'nothing happens', scar: 'SCAR', idleText: 'nothing happens', holdText: 'hold one die for the next turn',
     belly: 'your belly was exposed', lostDie: 'your {die} gave out',   // `scar` is also the face key of a scarred face
     beaten: 'BEATEN', befriended: 'BEFRIENDED', lost: 'YOU FLEE, SCARRED', tripComplete: 'TRIP COMPLETE',
+    // enemy die strip: header, per-face explanation (by effect; an enemy may override per face name with `info: { NAME: '…' }`), ghost hit preview
+    strip: {
+      head: 'ITS DIE', goal: 'break or turn every hostile face to win', legend: 'NOW = acts this turn · NEXT / THEN = foreseen',
+      harmless: 'harmless', hostileNone: 'no effect, but it still counts', broken: 'BROKEN', turned: 'TURNED', wouldBreak: 'WOULD BREAK', wouldTurn: 'WOULD TURN',
+      win: 'THIS WINS THE FIGHT', winBeaten: 'WIN · beaten', winBefriended: 'WIN · befriended', provisional: '(so far)',
+      effects: { scar: 'scars one of your faces', rerollPenalty: '1 fewer reroll', takeItem: 'takes an item', loseItem: 'an item is lost for good',
+        scarHead: 'scars a HEAD face', tax: 'every verb −1 next turn', freezeDie: 'freezes one of your dice', none: '' },
+    },
     // --- UI labels / messages ({n} is replaced by a number) ---
     buttons: { roll: 'ROLL', reroll: 'REROLL ({n} left)', commit: 'COMMIT', restart: 'RESTART TRIP', continue: 'CONTINUE' },
     title: 'SMUGGLER', turn: 'TURN', scarsLabel: 'SCARS', intentLabel: 'INTENT', now: 'NOW', next: 'NEXT', nextPrefix: 'next:',
@@ -1437,6 +1472,26 @@ function applyVerb(enemy, verb, amount, opts) {
     if (left <= 0) break;
   }
   return events;
+}
+
+// What `evaluation` (full or partial; uses totals, order, shears) would do to the enemy right now, on a clone: the same verb
+// order and applyVerb calls as resolveTurn, nothing is mutated.
+// -> { hits:[{faceIdx,pipIdx,to,verb}], resolves:[{faceIdx,resolved}], win: result string | null }
+function previewHits(enemy, evaluation) {
+  const sim = { faces: enemy.faces.map(f => ({ name: f.name, hostile: f.hostile, effect: f.effect, pips: f.pips.slice() })),
+    current: enemy.current ? { faceIdx: enemy.current.faceIdx, wag: enemy.current.wag } : null, targetPriority: enemy.targetPriority };
+  const out = { hits: [], resolves: [], win: null };
+  if (!evaluation) return out;
+  (evaluation.order || []).forEach(v => {
+    const amount = (evaluation.totals || {})[v];
+    if (!amount || amount <= 0) return;
+    applyVerb(sim, v, amount, { alternate: v === 'PRUNE' ? evaluation.shears || 0 : 0 }).forEach(e => {
+      if (e.type === 'pip') out.hits.push({ faceIdx: e.faceIdx, pipIdx: e.pipIdx, to: e.to, verb: e.verb });
+      else if (e.type === 'faceResolved') out.resolves.push({ faceIdx: e.faceIdx, resolved: e.resolved });
+    });
+  });
+  out.win = out.hits.length ? checkWin(sim) : null;
+  return out;
 }
 
 // Pick a random non-broken face. Turned face => wag intent.
@@ -2605,7 +2660,7 @@ function leaveSite(trip) {
 globalThis.SmugEngine = {
   makeRng, parseFace, scoreBodyFace, scoreDetail, evaluateSentence, evaluatePartial, actionName,
   createPlayer, currentFace, rollDie, toggleHold, rerollUnheld, countScars,
-  createEnemy, faceStatus, isResolved, isHostile, applyVerb, rollIntent, enemyAct, checkWin, checkLose,
+  createEnemy, faceStatus, isResolved, isHostile, applyVerb, previewHits, rollIntent, enemyAct, checkWin, checkLose,
   createGame, startTurn, resolveTurn,
   createTrip, randomSequence, labelFor, tripScars, startEncounter, rewardsFor, claimReward, addToInventory,
   beginPlacement, endPlacement, canPlace, isLocked, placeItem, moveItem, unplaceItem, healScar, oddsSummary,
@@ -2833,10 +2888,14 @@ function buildEnemyPanel() {
   const strip = $('faceStrip');
   strip.innerHTML = '';
   dom.efc.length = 0;
+  const ST = C.text.strip;
+  $('stripHead').innerHTML = '<b>' + esc(ST.head) + '</b> · ' + esc(ST.goal) + '<span class="legend">' + esc(ST.legend) + '</span>';
   cfg.faces.forEach((cf) => {
     const el = document.createElement('div');
     el.className = 'efc';
-    el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div>';
+    const info = cf.hostile ? ((cfg.info && cfg.info[cf.name]) || ST.effects[cf.effect] || ST.hostileNone) : ST.harmless;
+    el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div><div class="info">' + esc(info) + '</div><div class="fstate"></div>';
+    el.classList.toggle('harmless', !cf.hostile);
     const pips = el.querySelector('.pips');
     for (let p = 0; p < cf.pips; p++) { const sp = document.createElement('span'); sp.className = 'pip'; pips.appendChild(sp); }
     strip.appendChild(el); dom.efc.push(el);
@@ -2884,6 +2943,8 @@ function renderEnemy() {
     el.classList.toggle('is-next', !isCur && qi === 0);
     el.classList.toggle('is-then', !isCur && qi >= 1);
     el.dataset.status = st;
+    el.querySelector('.fstate').textContent = ui.hidePips ? '' : (st === 'broken' ? C.text.strip.broken : (st === 'turned' ? C.text.strip.turned : ''));
+    el.classList.toggle('resolved', !ui.hidePips && (st === 'broken' || st === 'turned'));
     el.querySelector('.tag').textContent = isCur ? C.text.now : (qi === 0 ? C.text.next : (qi >= 1 ? C.text.then : ''));
   });
   // intent
@@ -2919,6 +2980,39 @@ function renderEnemy() {
     }
   }
   $('verbFlash').textContent = ui.verbFlash || '';
+  renderGhosts();
+}
+// Hit preview on the enemy strip while arranging: ghost marks on the pips the sentence (so far) would break / turn,
+// outlines on faces that would resolve, a WIN hint. Provisional (partial sentence) ghosts are dimmer. Gone during playback.
+function renderGhosts() {
+  if (isSite() || !dom.efc.length) return;
+  const ST = C.text.strip;
+  const legend = $('stripHead').querySelector('.legend');
+  dom.efc.forEach(el => {
+    el.classList.remove('would-break', 'would-turn');
+    el.querySelectorAll('.pip').forEach(p => p.classList.remove('ghost-broken', 'ghost-turned', 'prov'));
+  });
+  legend.classList.remove('win'); legend.textContent = ST.legend;
+  if (ui.phase !== 'arranging' || ui.hidePips || !ui.game.enemy) return;
+  const ev = partialEvaluation();
+  if (!ev || !ev.placed) return;
+  const pv = E.previewHits(ui.game.enemy, ev);
+  const prov = !ev.complete;
+  pv.hits.forEach(h => {
+    const pip = dom.efc[h.faceIdx].querySelectorAll('.pip')[h.pipIdx];
+    pip.classList.add(h.to === 'turned' ? 'ghost-turned' : 'ghost-broken');
+    pip.classList.toggle('prov', prov);
+  });
+  pv.resolves.forEach(r => {
+    const el = dom.efc[r.faceIdx];
+    el.classList.add(r.resolved === 'turned' ? 'would-turn' : 'would-break');
+    el.classList.toggle('prov', prov);
+    el.querySelector('.fstate').textContent = r.resolved === 'turned' ? ST.wouldTurn : ST.wouldBreak;
+  });
+  if (pv.win) {
+    legend.classList.add('win');
+    legend.textContent = (pv.win === C.text.beaten ? ST.winBeaten : ST.winBefriended) + (prov ? ' ' + ST.provisional : '');
+  }
 }
 
 function renderDice() {
@@ -2975,6 +3069,7 @@ function renderSlots() {
   const ev = full || (ui.phase === 'arranging' && placedCount() > 0 ? partialEvaluation() : null);
   const partial = !!ev && !ev.complete;
   $('sentence').classList.toggle('partial', partial);
+  renderGhosts();
   // fit the chevrons to the page width (CSS --sw is the 3-slot size; more slots shrink it)
   const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 425, ovPx = 26;
   sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1232 + (n - 1) * ovPx) / n)) + 'px');
@@ -3084,27 +3179,33 @@ function phraseFor(name, tags) {
   for (let i = 0; i < (tags || []).length; i++) if (by[tags[i]] && by[tags[i]][name]) return by[tags[i]][name];
   return N.actions[name];
 }
+// -> HTML: each step's phrase in its verb colour, the item named in its item colour, the opponent's name plain
 function narrateSentence(ev) {
   const N = C.text.narration, them = themName();
-  if (!ev || !ev.steps.length) return ev && !ev.complete ? '' : N.youIdle;
+  if (!ev || !ev.steps.length) return ev && !ev.complete ? '' : esc(N.youIdle);
   const partial = !ev.complete;
   const pr = pronouns();
   let named = false;
   const parts = ev.steps.map(s => {
     const t = s.role === 'scar' ? N.scar : (phraseFor(s.name, ev.tags) || (s.idle ? N.idle : s.name.toLowerCase()));
-    if (t.indexOf('{them}') < 0) return t;
-    const r = t.replace(/\{them\}/g, named ? pr.them : them);   // the name once, then the pronoun
-    named = true;
-    return r;
+    let h = esc(t);
+    const item = s.face && s.face.indexOf('+') > 0 ? s.face.slice(s.face.indexOf('+') + 1) : null;
+    if (item && C.colors.item[item]) {
+      const nm = esc(itemName(item).toLowerCase());
+      if (nm && h.indexOf(nm) >= 0) h = h.replace(nm, '<span class="ni" style="color:' + C.colors.item[item] + '">' + nm + '</span>');
+    }
+    h = h.replace(/\{them\}/g, () => { const r = '<span class="nm">' + esc(named ? pr.them : them) + '</span>'; named = true; return r; });   // the name once, then the pronoun
+    const col = s.verb && C.colors.verb[s.verb];
+    return '<span class="nv"' + (col ? ' style="color:' + col + '"' : '') + '>' + h + '</span>';
   });
   let out = parts[0];
-  for (let i = 1; i < parts.length; i++) out += (i === parts.length - 1 && parts.length > 2 && !partial ? N.joinLast : N.joinThen) + parts[i];
-  if (partial) return N.youPartial.replace('{steps}', out);
-  let txt = N.you.replace('{steps}', out);
+  for (let i = 1; i < parts.length; i++) out += esc(i === parts.length - 1 && parts.length > 2 && !partial ? N.joinLast : N.joinThen) + parts[i];
+  if (partial) return esc(N.youPartial).replace('{steps}', () => out);
+  let txt = esc(N.you).replace('{steps}', () => out);
   if (ev.revealText) {
     const R = N.reveal, d = ev.revealDepth, f = ev.revealFaces;
     const t = ev.slots && f ? (f === 'all' ? R.facesAll : R.faces.replace('{n}', f)) : (d === 1 ? R.intent : R.intents.replace('{n}', d));
-    txt += ' ' + t.replace('{its}', pr.its);
+    txt += ' <span class="nv" style="color:' + C.colors.verb[C.revealVerb] + '">' + esc(t.replace('{its}', pr.its)) + '</span>';
   }
   return txt;
 }
@@ -3119,7 +3220,7 @@ function narrateResult(hits) {
     const f = view.enemy.faces[fi], h = byFace[fi], kind = h.turned > h.broken ? 'turned' : 'broken';
     const all = f.pips.every(p => p !== 'intact');
     const tpl = all ? (kind === 'turned' ? N.faceTurned : N.faceBroken) : (kind === 'turned' ? N.facePartTurned : N.facePartBroken);
-    return capFirst(tpl.replace('{its}', pronouns().its).replace('{face}', f.name).replace('{n}', h[kind] || (h.broken + h.turned)));
+    return '<span class="nres ' + kind + '">' + esc(capFirst(tpl.replace('{its}', pronouns().its).replace('{face}', f.name).replace('{n}', h[kind] || (h.broken + h.turned)))) + '</span>';
   });
   return out.join(' ');
 }
@@ -3145,7 +3246,7 @@ function enemyActSentence(ev) {
 function renderPreview() {
   const p = currentPreview();
   const nr = $('narration'), nt = narrationText();
-  nr.textContent = nt || ' '; nr.title = nt;
+  nr.innerHTML = '<span class="nbox">' + (nt || '&nbsp;') + '</span>'; nr.title = nt.replace(/<[^>]+>/g, '');
   $('railShape').textContent = p.shape ? p.shape.toUpperCase() : '';
   const t = $('previewText');
   t.innerHTML = p.text ? verbify(p.text) : '&nbsp;';
@@ -3153,6 +3254,7 @@ function renderPreview() {
 }
 function renderControls() {
   const g = ui.game, ph = ui.phase;
+  $('stage').dataset.phase = ph;
   $('btnRoll').disabled = ph !== 'await-roll' || nothingLeft() || ui.holdPick;
   $('btnLeave').disabled = !(ph === 'await-roll' || ph === 'arranging');
   $('btnLeave').classList.toggle('primary', nothingLeft());
