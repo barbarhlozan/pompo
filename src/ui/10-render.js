@@ -90,6 +90,7 @@ function buildEnemyPanel() {
     el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div><div class="info">' + esc(info) + '</div><div class="fstate"></div>';
     el.classList.toggle('harmless', !cf.hostile);
     const pips = el.querySelector('.pips');
+    pips.title = ST.pipTip;
     for (let p = 0; p < cf.pips; p++) { const sp = document.createElement('span'); sp.className = 'pip'; pips.appendChild(sp); }
     strip.appendChild(el); dom.efc.push(el);
   });

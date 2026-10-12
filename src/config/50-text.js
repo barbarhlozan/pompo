@@ -3,8 +3,8 @@
 
 Object.assign(CONFIG, {
   verbInfo: {
-    PRUNE: 'Force. Breaks pips. Beat them.',
-    SOW: 'Persuade. Turns pips. Befriend them.',
+    PRUNE: 'Force. Breaks pips (points of their resolve). Beat them.',
+    SOW: 'Persuade. Turns pips (points of their resolve). Befriend them.',
     DIG: 'Search. Reveals what is coming and passes its points to the next die.',
   },
   // Item special annotations shown in the preview (placeholders: {n}).
@@ -84,7 +84,9 @@ Object.assign(CONFIG, {
     beaten: 'BEATEN', befriended: 'BEFRIENDED', lost: 'YOU FLEE, SCARRED', tripComplete: 'TRIP COMPLETE',
     // enemy die strip: header, per-face explanation (by effect; an enemy may override per face name with `info: { NAME: '…' }`), ghost hit preview
     strip: {
-      head: 'ITS DIE', goal: 'break or turn every hostile face to win', legend: 'NOW = acts this turn · NEXT / THEN = foreseen',
+      head: 'ITS DIE', goal: 'clear every pip on its hostile faces to win', legend: '□ pip = 1 point of its resolve · PRUNE breaks, SOW turns · NOW = acts this turn',
+      pipTip: 'Pips: each □ is one point of this face\'s resolve. PRUNE breaks a pip (red), SOW turns it (green). When all its pips are gone the face is BROKEN or TURNED, whichever is the majority.',
+      sitePipTip: 'Pips: each □ is one layer of cover over what this face hides. Points remove pips; when all are gone the face opens.',
       harmless: 'harmless', hostileNone: 'no effect, but it still counts', broken: 'BROKEN', turned: 'TURNED', wouldBreak: 'WOULD BREAK', wouldTurn: 'WOULD TURN',
       win: 'THIS WINS THE FIGHT', winBeaten: 'WIN · beaten', winBefriended: 'WIN · befriended', provisional: '(so far)',
       effects: { scar: 'scars one of your faces', rerollPenalty: '1 fewer reroll', takeItem: 'takes an item', loseItem: 'an item is lost for good',

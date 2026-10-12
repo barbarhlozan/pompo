@@ -17,6 +17,7 @@ function buildSitePanel() {
     el.className = 'efc site'; el.dataset.idx = i;
     el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div><div class="sub"></div><span class="sfn">' + (i + 1) + '</span>';
     const pips = el.querySelector('.pips');
+    pips.title = C.text.strip.sitePipTip;
     for (let p = 0; p < f.pips; p++) { const sp = document.createElement('span'); sp.className = 'pip'; pips.appendChild(sp); }
     strip.appendChild(el); dom.efc.push(el);
   });
