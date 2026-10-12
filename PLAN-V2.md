@@ -236,3 +236,20 @@ a seeded 40-trip simulation (random subsets, holds, intro/reward placement, camp
 - `evaluateSentence` returns `mindIndex: -1` for REFLEX (was always 0..2); UI code that brackets `[MIND]` by index keeps working.
 - Bare `HEAD`/`TORSO` have no `mind`-style `label` variants; Czech `bodyParts[].label` are stored but not displayed yet.
 - Default lose rule is `maxScars` 4 (user change); under it the top bar / map keep the v1 `n/4` scar boxes, `dieLost` shows per-die scars. No balance pass; pips are still the doubled preset (the test harness halves them).
+
+## Refactor notes (code split, no behaviour change)
+The single 4,900-line `index.html` was split into `src/` (see `CLAUDE.md` for the one-line-per-file map).
+- **Layout:** `src/index.html` (markup + `<link>`/`<script>` tags in load order), `src/styles.css`, `src/config/*.js`
+  (one global `CONFIG`: the first file declares it, the rest `Object.assign` their keys), `src/engine/*.js`
+  (the old engine IIFE as plain top-level code, exports in `90-api.js`), `src/ui/*.js` (old UI IIFE, same idea),
+  `src/fx.js`, `src/debug.js` (unchanged IIFEs). Classic scripts, no modules, so `src/index.html` also opens via file://.
+- **Code was moved verbatim** (engine/ui bodies dedented by two spaces). Only glue: `CONFIG` creation, and UI's duplicate
+  `signed` helper now uses the engine's global of the same name.
+- **Build:** `node build.mjs` inlines the stylesheet and all scripts (in tag order) into the root `index.html`
+  (self-contained, shareable). Run it before finishing any phase; never hand-edit the root file.
+- **Test:** `node tests/engine.test.mjs` loads the `config/` + `engine/` scripts listed in `src/index.html` straight into
+  `node:vm` (114 tests, unchanged apart from the loader and the scar-key test patching sources instead of a slice).
+- **Dev:** `node serve.mjs` serves `src/index.html` at `/` and the built file at `/build`; the preview config uses it.
+- Because engine/ui share the global scope, a new top-level name must not clash with another file's (`const` redeclaration
+  is a load-time SyntaxError). Pick the file by topic and keep the load order in `src/index.html` in mind for load-time reads
+  (only `CONFIG` is read at load time by the engine).

@@ -4,14 +4,15 @@ import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const html = readFileSync(fileURLToPath(new URL('../index.html', import.meta.url)), 'utf8');
-const a = html.indexOf('/* CONFIG START */');
-const b = html.indexOf('/* ENGINE END */');
-assert.ok(a >= 0 && b > a, 'CONFIG/ENGINE markers present');
-const SRC = html.slice(a, b + '/* ENGINE END */'.length);
+// The engine is loaded straight from src/: every config/ and engine/ <script> of src/index.html, in page order.
+const SRC_DIR = fileURLToPath(new URL('../src/', import.meta.url));
+const pageHtml = readFileSync(SRC_DIR + 'index.html', 'utf8');
+const SCRIPTS = [...pageHtml.matchAll(/<script src="((?:config|engine)\/[^"]+)"><\/script>/g)].map((m) => m[1]);
+assert.ok(SCRIPTS.some((s) => s.startsWith('config/')) && SCRIPTS.some((s) => s.startsWith('engine/')), 'config + engine scripts listed');
+const SOURCES = SCRIPTS.map((f) => ({ f, code: readFileSync(SRC_DIR + f, 'utf8') }));
 function loadEngine() {
   const ctx = vm.createContext({});
-  vm.runInContext(SRC, ctx);
+  for (const { f, code } of SOURCES) vm.runInContext(code, ctx, { filename: 'src/' + f });
   assert.ok(ctx.SmugEngine, 'SmugEngine exported');
   return { E: ctx.SmugEngine, CFG: vm.runInContext('CONFIG', ctx), ctx };
 }
@@ -442,10 +443,14 @@ test('log/flavour lines read naturally', () => {
 });
 
 test('scar face key follows CONFIG.text.scar (engine and CONFIG agree)', () => {
-  const src = html.slice(a, b + '/* ENGINE END */'.length).replace("scar: 'SCAR',", "scar: 'WOUND',");
-  assert.notEqual(src, html.slice(a, b + '/* ENGINE END */'.length), 'replacement applied');
+  let replaced = false;
   const c2 = vm.createContext({});
-  vm.runInContext(src, c2);
+  for (const { f, code } of SOURCES) {
+    const patched = code.replace("scar: 'SCAR',", "scar: 'WOUND',");
+    if (patched !== code) replaced = true;
+    vm.runInContext(patched, c2, { filename: 'src/' + f });
+  }
+  assert.ok(replaced, 'replacement applied');
   const E2 = c2.SmugEngine;
   const g = E2.createGame();
   g.player.dice[1].faces[0] = 'WOUND';

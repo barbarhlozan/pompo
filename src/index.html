@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Smuggler — dice sentence prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="stage">
+  <header id="top"><span class="title" id="titleLabel">SMUGGLER</span><span id="stageInd"></span><span id="turn"></span><span class="spacer"></span><span id="dayInd"></span><span id="invCount"></span><span id="scars"></span></header>
+  <section id="enemy">
+    <div id="intentPanel">
+      <div class="lbl" id="enemyLbl">STRAY DOG · INTENT</div>
+      <div id="enemyMeta"></div>
+      <div id="bag" class="hidden"></div>
+      <div id="intentRow"><span id="intentTile" class="tile"></span><div id="noiseTrack"></div><span id="verbFlash" style="font-size:28px;white-space:nowrap"></span></div>
+      <div id="intentText"></div>
+      <div id="enemyText"></div>
+      <div id="nextWrap" class="hidden"></div>
+    </div>
+    <div id="faceStrip"></div>
+  </section>
+  <section id="sentence">
+    <div id="slots"></div>
+    <div id="preview"><div id="shape"></div><div id="previewText"></div></div>
+  </section>
+  <section id="bottom">
+    <div id="tray"></div>
+    <div id="buttons">
+      <button class="btn primary" id="btnRoll">ROLL</button>
+      <button class="btn" id="btnReroll">REROLL (0 left)</button>
+      <button class="btn primary" id="btnCommit">COMMIT</button>
+      <button class="btn" id="btnLeave">LEAVE</button>
+      <button class="btn" id="btnRestart">RESTART</button>
+      <span id="status"></span>
+    </div>
+  </section>
+  <div id="help"></div>
+  <div id="screen"></div>
+  <div id="pop"></div>
+  <div id="overlay"><div class="big" id="ovBig"></div><div class="sub" id="ovSub"></div><button class="btn primary" id="ovRestart">CONTINUE</button></div>
+</div>
+
+
+<script src="config/00-rules.js"></script>
+<script src="config/10-dice.js"></script>
+<script src="config/20-items.js"></script>
+<script src="config/30-enemies.js"></script>
+<script src="config/40-world.js"></script>
+<script src="config/50-text.js"></script>
+<script src="config/60-colors.js"></script>
+<script src="config/70-timing.js"></script>
+<script src="engine/00-core.js"></script>
+<script src="engine/10-sentence.js"></script>
+<script src="engine/20-player.js"></script>
+<script src="engine/30-enemy.js"></script>
+<script src="engine/40-encounter.js"></script>
+<script src="engine/50-rewards.js"></script>
+<script src="engine/60-placement.js"></script>
+<script src="engine/70-map.js"></script>
+<script src="engine/80-site.js"></script>
+<script src="engine/90-api.js"></script>
+<script src="ui/00-core.js"></script>
+<script src="ui/10-render.js"></script>
+<script src="ui/20-site.js"></script>
+<script src="ui/30-encounter.js"></script>
+<script src="ui/40-flow.js"></script>
+<script src="ui/50-map.js"></script>
+<script src="ui/60-controls.js"></script>
+<script src="ui/70-screens.js"></script>
+<script src="ui/80-placement.js"></script>
+<script src="ui/90-events.js"></script>
+<script src="ui/99-boot.js"></script>
+<script src="fx.js"></script>
+<script src="debug.js"></script>
+</body>
+</html>
