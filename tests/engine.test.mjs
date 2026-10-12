@@ -73,7 +73,9 @@ function applyLegacyFixture(C) {
 }
 applyLegacyFixture(CFG);
 // the shipped config keeps the pre-balance pips halved for the v2 tests too (rules, not tuning)
+const SHIPPED_LOSE = { rule: NCFG.loseRule, max: NCFG.maxScars };   // asserted in the v2 CONFIG test
 NCFG.maxScars = 6;
+NCFG.loseRule = 'dieLost';                 // the v2 tests below exercise dieLost on N; maxScars is tested via fresh()
 NCFG.map.daylight = 12;
 for (const en of Object.values(NCFG.enemies)) for (const f of en.faces) f.pips = f.pips / 2;
 
@@ -2286,7 +2288,7 @@ test('V1-5 UI data: every map tile type, site content, site, enemy and item has 
 // =====================================================================================
 function fresh() {
   const x = loadEngine();
-  x.CFG.maxScars = 6; x.CFG.map.daylight = 12;
+  x.CFG.maxScars = 6; x.CFG.loseRule = 'dieLost'; x.CFG.map.daylight = 12;
   for (const en of Object.values(x.CFG.enemies)) for (const f of en.faces) f.pips = f.pips / 2;
   return x;
 }
@@ -2339,7 +2341,7 @@ test('v2 CONFIG: dice, body parts, items, slots, rewards, pools, flags', () => {
     { DOG: 3, PLUMBER: 3, ACCOUNTANT: 2, BRIDGE: 1, CROWS: 2 });
   deepEq(Object.fromEntries(Object.keys(NCFG.sites).map(k => [k, NCFG.sites[k].slots])), { HEAP: 3, SHED: 3, WELL: 2, HUT: 3 });
   deepEq(NCFG.startingInventory, ['KNIFE', 'GLASSES', 'SEED_POUCH']);
-  assert.equal(NCFG.mindAloneHolds, false); assert.equal(NCFG.loseRule, 'dieLost'); assert.equal(NCFG.scarTargets, null);
+  assert.equal(NCFG.mindAloneHolds, false); assert.equal(SHIPPED_LOSE.rule, 'maxScars'); assert.equal(SHIPPED_LOSE.max, 4); assert.equal(NCFG.scarTargets, null);
   const R = NCFG.enemies;
   deepEq(R.DOG.rewards.beaten.choose, ['WHISTLE', 'SPADE']); deepEq(R.DOG.rewards.befriended.choose, ['WHISTLE', 'LANTERN']);
   deepEq(R.PLUMBER.rewards.beaten.choose, ['SHEARS', 'MATCHES']); assert.equal(R.PLUMBER.rewards.beaten.returnTaken, true);
@@ -3027,4 +3029,20 @@ test('seeded M1 trip simulation with the v2 dice: random subsets, holds, placeme
     if (/\|won\|/.test(a)) won++; else lost++;
   }
   assert.equal(won + lost, 40);
+});
+
+test('default loseRule is maxScars (4): lost at the 4th scar anywhere; dieLost stays available', () => {
+  const x = loadEngine();                                  // untouched shipped CONFIG
+  assert.equal(x.CFG.loseRule, 'maxScars'); assert.equal(x.CFG.maxScars, 4);
+  const g = nenc('CROWS', 1, x.E);
+  g.player.dice[1].faces = ['SCAR', 'SCAR', 'EYE', 'EYE', 'EYE', 'EYE'];
+  g.player.dice[2].faces = ['SCAR', 'PALM', 'PALM', 'ARM', 'ARM', 'BACK'];
+  g.slots = 3;
+  g.enemy.current = { faceIdx: 0, wag: false };            // PECK = the 4th scar
+  x.E.startTurn(g, x.E.makeRng(1));
+  nset(g, { MIND: 'DIG', HEAD: 'EYE', TORSO: 'PALM' });
+  const out = x.E.resolveTurn(g, ['MIND', 'HEAD', 'TORSO'], x.E.makeRng(2));
+  assert.equal(out.over, 'lost');
+  assert.equal(out.events.find(e => e.type === 'lose').rule, 'maxScars');
+  assert.equal(g.lostDie, null);
 });

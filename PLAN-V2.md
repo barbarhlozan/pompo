@@ -143,3 +143,96 @@ To be detailed in this file after the M1 playtest, using the Scope section above
 
 ## Phase notes
 (append below)
+
+### V2-1 notes (done — M1 engine; UI playable at every slot count, polish is V2-2)
+
+`node tests/engine.test.mjs` → **114/114 green** (v1 rule tests kept, 14 new v2 tests; both lose rules covered: the v2 tests pin `dieLost`, one test checks the shipped `maxScars` default). Browser (served by `node serve.mjs`, 1280×720,
+**0 console errors**): intro placement on both body dice → 1-slot BRIDGE → 3-slot DOG fight to BEATEN → reward → placement → 2-slot
+ACCOUNTANT → exposed belly ended the run ("Every face of your TORSO is scarred") → `mindAloneHolds` HOLD pick + kept face → M2 map → 2-slot WELL site.
+
+#### CONFIG keys (all data; engine reads them at call time)
+| Key | Meaning |
+|---|---|
+| `playerDice: [{id,label,kind:'mind'\|'body',faces}]` | MIND / HEAD / TORSO. Order = tray / `trip.dice` order. `kind:'body'` dice hold items, get scars, count for the belly |
+| `bodyParts: {PART:{favourite,fixedPoints?,revealsNext?,vulnerable?,instinctVerb?,label?}}` | see §1. `favourite:null` + `fixedPoints:1` = BACK / BELLY |
+| `actionNames[PART][PRUNE\|SOW\|DIG\|IDLE]` | `IDLE` = name when a part acts on instinct with no verb ("Brace") |
+| `items[ID]` | `{name, part, names:{PRUNE,SOW,DIG}` (null = part's name)`, special, info, uses?, forbidden?}` |
+| `itemRules` | `knifePruneBonus, matchesPruneBonus, forbiddenBookSowBonus, glassesRevealDepth, defaultRevealDepth, noseRevealDepth, whistleMultiplier, whistleTag, wateringCanNow, wateringCanSow, earTrumpetBonus, earTrumpetPart, pipeWanted` |
+| `shapeNames` | `{first:'Plan', middle:'Situation', last:'Impulse', reflex:'Reflex', idle:'Idle', hold:'Hold'}` (title case; the UI may upper-case) |
+| `defaultSlots: 3`, `enemies[ID].slots`, `sites[ID].slots` | DOG 3 PLUMBER 3 ACCOUNTANT 2 CROWS 2 BRIDGE 1; HEAP 3 SHED 3 WELL 2 HUT 3 |
+| `mindAloneHolds: false`, `loseRule: 'maxScars'` (**default, user decision**) `\|'dieLost'`, `maxScars: 4`, `scarTargets: null\|[dieIds]` | |
+| `effectRules.scarHeadDie: 'HEAD'` | die ACCOUNTANT's `scarHead` hits |
+| `startingInventory: [KNIFE, GLASSES, SEED_POUCH]` | placed on the intro screen |
+| `text.belly, text.lostDie ('your {die} gave out'), text.lostDieSub, text.holdText, text.idleText, text.holdPick, text.heldStatus`, `text.placeHint` (`{slots}`, `{n}`) | |
+Removed: `favouriteVerb, mindDieId, headDieId, itemDice, biteTargets, itemRules.wrenchSpecial/plungerPips/seedPouchRerollPerTurned`, items PIPE_WRENCH / PLUNGER, `notes.seeds / plunger`, `text.s.sturdy*`.
+Item `special` codes: `knife shears spade wateringCan matches forbiddenBook seedPouch(inert) sleevePocket(inert) glasses lantern earTrumpet whistle pipe(no-op) vest`.
+
+#### State shapes (changes only)
+```
+die       = { id, kind:'mind'|'body', label, faces[], idx, held, frozen?, heldOver? }
+trip      = + faceUses:{ 'DIE:idx': n }   // remaining charges of a PLACED item with `uses`; missing = full CONFIG uses
+              invUses:[n|undefined]       // parallel to trip.inventory; missing = full uses
+              lostDie: dieId|null         // set when a run is lost under dieLost
+encounter = + slots:n (copied from the enemy at start; the debug panel may change it), holdPending:bool, lostDie, takenUses:[n]  // parallel to `taken`
+enemy     = + slots
+site      = + slots, holdPending, lostDie
+```
+Inventory entries stay plain item ids; read charges through the helpers (never index `faceUses` by hand).
+
+#### API (SmugEngine)
+- `evaluateSentence(faces[1..N], ctx?)` → the v1 shape plus: `slots` (= faces.length), `mindIndex` (**-1 = no MIND**), `holds` (lone MIND with `mindAloneHolds`),
+  `spends:[{slot,item}]` (charges to spend; MATCHES under PRUNE), `forbidden:n` (forbidden items in the sentence), `triggers:{glassesFirst:bool, earTrumpet:[slotIdxOfTheBoostedMouth], pipeLast:bool}`, `pipeLast`.
+  `shape` ∈ Plan / Situation / Impulse / Reflex / Idle / Hold. Throws only for 0 faces or >1 verb face.
+  Step = v1 fields + **`idle:bool`** (a part with no verb: `verb:null, base:0`, name from `actionNames[PART].IDLE`, text `Brace 0`). `step.depth` = reveal depth the step contributes
+  (DIG 1, NOSE 1, GLASSES in slot 0 → 2); `step.reveal` stays "a DIG step (carries points)". Notes: `(glasses: sees 2)`, `(nose: sees 1)` (only when NOSE is not under DIG), `(+2 ear trumpet)` on the MOUTH step,
+  `(matches +2)`, `(forbidden book +2)`, `(watering can +1)` + `(+1 SOW next turn)`. Removed: `seeds`, `plungerPips`.
+  A DIG carry that lands on an idle die is lost (the step shows `Brace 0+2`). WHISTLE doubles everything incl. the EAR TRUMPET bonus.
+- `resolveTurn(enc, slotOrder, rng)` — `slotOrder` = exactly `enc.slots` different die ids / indices (any subset of the dice, MIND optional); throws otherwise.
+  Returns `{events, log, over, result, evaluation, holdPending}`. Same for `resolveSiteTurn(site, slotOrder, rng)` (uses `site.slots`).
+- `holdOver(state, dieId)` → `{ok, events:[heldOver], reason?}` (`no-hold`, `not-a-body-die`); valid while `state.holdPending`. `startTurn` then leaves that die unrolled (event `heldOver {phase:'kept'}`), clears `heldOver`, `held` stays false.
+- `usesLeft(trip, dieId, idx)` / `inventoryUses(trip, i)` → n or `null` (item has no `uses`). `addToInventory(trip, id, uses?)`.
+- `bodyDieIds()`, `mindDieIds()`, `scarTargetIds()`, `dieLabel(id)`, `favouriteOf(part)`, `failedDie(player)` (die id whose every face is SCAR, or null), `loseInfo(player)`, `actionName(parsedFace, verb)`.
+- `checkLose(player)`: `dieLost` → `failedDie !== null`; `maxScars` → `countScars >= maxScars`. Placement (`canPlace/placeItem/moveItem/unplaceItem/healScar/oddsSummary`) works for every `kind:'body'` die (`canPlace` reason `not-an-item-die` for MIND).
+- `isSturdy` is gone.
+
+#### Events (new / changed), in `resolveTurn` order
+`sentence`, `step*` (+`idle`), **`holdChoice {options:[dieIds]}`** (lone MIND with mindAloneHolds), `mod/taxed/verb/pip/faceResolved` (unchanged), **`chargeSpent {dieId,faceIdx,item,left}`** then, at 0,
+**`itemBurnedOut {dieId,faceIdx,item,becomes}`** (face becomes the bare part, item → `trip.discarded`), `reveal` (also from NOSE / GLASSES), **`bellyExposed {dieId,faceIdx,face,text}`** followed by
+`scar {dieId,faceIdx,previous,wasCurrent,by:'BELLY',cause:'belly'}` and `itemDestroyed {…,cause:'belly',by:'BELLY'}`, then `lose` | `win` | `pendingSow` + `enemyAct`… + (`lose` | `newIntent`).
+`lose {scars, dieId, dieLabel, rule, cause}` — `dieId` null under maxScars; `cause` 'belly' | 'enemy' | 'cold' | 'rats' | 'trap'. `rerollBonus` is no longer emitted (field kept at 0).
+`startTurn` events: `pendingSow{applied}`…, `heldOver {phase:'kept', dieId, face}`. `holdOver` events: `heldOver {phase:'chosen', dieId, face}`.
+Site: `siteReveal.via` ∈ 'DIG' | 'SPADE' | **'NOSE'** (a NOSE / GLASSES-first step reveals its depth in faces); belly + charges happen after the effects and **before** the turn noise.
+Log: `…, matches 2 left`, `…, matches burned out`, `…, hold one die`, `…; your belly was exposed (TORSO PALM → SCAR)`, `…; YOU FLEE, SCARRED (your TORSO gave out)`.
+
+#### Rules as implemented (where §1 left room)
+- Belly: every die whose **current** face is a `vulnerable` part without a VEST scars one random non-scar face of its own die (the BELLY face itself is a candidate). It happens after the sentence and the reveal, **before** the win check, so a sentence that wins still exposes the belly, and the belly can lose the run (lose beats win). Only a scar made by the belly itself triggers the lose check there.
+- MATCHES spends one charge per sentence face that performs PRUNE; the +2 of the last charge still counts, then it burns out. Charges are also spent on sites. Charges are lost with a scarred / lost-in-the-river / replaced item; a taken item returns with its charges (`takenUses`).
+- GLASSES triggers positionally (slot 0) under **any** verb. A GLASSES under instinct DIG elsewhere is a plain depth-1 reveal. On a site GLASSES-first reveals 2 faces (my choice; §1 only specified fights).
+- WATERING CAN: +1 own points now (`wateringCanNow`) and +1 SOW at the start of the next turn.
+- SEED POUCH / SLEEVE POCKET are inert (no `rerollBonus`). FORBIDDEN BOOK: `forbidden` is only counted (`evaluation.forbidden`). PIPE-last sets `evaluation.pipeLast`, nothing else.
+- `scarTargets` (null = all body dice) applies to scars from enemies, the cold, rats, traps; `takeItem` / `loseItem` use any item on any body die.
+- mindAloneHolds also works on sites (`site.holdPending`, `E.holdOver(site, id)`).
+
+#### What the UI supports now (V2-2 builds on this)
+- Slot row is built once with one slot per player die and shows/hides slots by `game.slots` (`slotCount()`); `ui.slots` has one entry per die, only the first `slots` are used. COMMIT needs all `slots` filled; any subset of the 3 dice can be placed
+  (▲ button, drag, or keys 1–`slots`); dice in vanished slots return to the tray. The tray shows all dice; unused dice just stay there. Preview shows label + steps (engine text, includes the order-trigger notes).
+- Intro / reward / campfire placement nets and odds are generated for `E.bodyDieIds()` (HEAD, TORSO); item tiles show `×n` charges on nets and the inventory tray.
+- Top bar scars: under `dieLost` shows `HEAD 0/6 · TORSO 2/6` (scar boxes hidden); end / map / campfire screens use the same summary. Lose overlay names the die (`lostDieSub`).
+- Event handlers added for `bellyExposed` (text flash), `chargeSpent`, `itemBurnedOut` (face reverts), `lose` (names the die). `mindAloneHolds`: after the lone-MIND commit `ui.holdPick` is true, ROLL is disabled, the status line says to click a body die (`pickHold`), then ROLL keeps that die's face.
+- Debug drawer: slots number + SET (current encounter / site, `SmugDebug.setSlots`), `mindAloneHolds` checkbox, `loseRule` select, FREEZE buttons per body die; the rest as before.
+- **Not done (V2-2):** no FX for belly / burn-out / hold / NOSE reveal (plain text flashes only); slot arrows / tray are not re-laid-out per slot count; preview does not highlight order triggers beyond the text notes; the `1`–`3` keys, `.slot` numbers and the "Fill all N slots" hint are minimal.
+
+#### Tests
+`tests/engine.test.mjs` loads the engine twice from `index.html`: **`E0/E/CFG` = the v1 three-dice kit (MIND/HAND/HEAD, v1 items/rewards) applied as fixture data** (`applyLegacyFixture`) so all 96 v1 rule tests keep running (and
+prove nothing is hard-coded), and **`N/NCFG` = the shipped v2 CONFIG** for the new tests. Deviation from "rewrite fixtures": I kept the legacy fixture instead of porting ~100 tests dice-by-dice (same rule coverage, far less risk).
+Removed (items no longer exist): seed-pouch reroll bonus, PIPE WRENCH sturdy, PLUNGER fight + site tests. Updated: step shape gains `idle`, GLASSES-only-in-slot-0, the scar-key test uses the v2 dice.
+New v2 tests: CONFIG data model; labels for 1/2/3 slots + REFLEX + IDLE; HOLD + holdOver + kept face; BACK/BELLY scoring and no-instinct 0 (+ `instinctVerb` override); NOSE (fight + site); every order trigger incl. "MIND in between breaks EAR TRUMPET";
+MATCHES / FORBIDDEN BOOK / WATERING CAN / inert items / names; charges spend, burn-out, travel (place, move, unplace, replace, scar, taken+returned); belly exposed vs VEST / in or out of the sentence / wins; dieLost vs maxScars (+ MIND counts, names the die);
+scarTargets / scarHead / takeItem; slots (subset, throws on wrong size, REFLEX on 2 slots, site slots); site charges + belly before noise; dummy 4th die via CONFIG (items, placement, odds, 4-slot labels, scars, heal, lose names it); placement/odds/heal for HEAD and TORSO;
+a seeded 40-trip simulation (random subsets, holds, intro/reward placement, campfire heal, HUT/WELL sites with guardians) run twice for determinism.
+
+#### Deviations / open points
+- Labels are title case in CONFIG (`Plan`…, as in v1 text); `REFLEX` etc. in the plan are display-only.
+- `evaluateSentence` returns `mindIndex: -1` for REFLEX (was always 0..2); UI code that brackets `[MIND]` by index keeps working.
+- Bare `HEAD`/`TORSO` have no `mind`-style `label` variants; Czech `bodyParts[].label` are stored but not displayed yet.
+- Default lose rule is `maxScars` 4 (user change); under it the top bar / map keep the v1 `n/4` scar boxes, `dieLost` shows per-die scars. No balance pass; pips are still the doubled preset (the test harness halves them).
