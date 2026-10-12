@@ -220,13 +220,12 @@
     for (const nm of U.game.enemy.targetPriority) for (let i = 0; i < en.faces.length; i++) if (en.faces[i].name === nm && ok(i)) return i;
     return en.current ? en.current.faceIdx : 0;
   }
-  function flashArrows(a, b) {
-    const arrows = document.querySelectorAll('#slots .arrow');
-    for (let i = Math.min(a, b); i < Math.max(a, b); i++) {
-      const ar = arrows[i];
-      motion(ar, [{ transform: 'scale(1)', color: C.colors.glow }, { transform: 'scale(' + FXC.arrowSwellScale + ')', color: verbColor(C.revealVerb), offset: .4 }, { transform: 'scale(1)' }], { duration: T.flyMs });
-    }
+  // DIG carry: the +N label on the arrow under the giving caption swells as the points are handed on
+  function flashCarry(from) {
+    const el = dom.stepEls[from] && dom.stepEls[from].querySelector('.carry b');
+    if (el) motion(el, [{ transform: 'translateX(-50%) scale(1)' }, { transform: 'translateX(-50%) scale(' + FXC.arrowSwellScale + ')', offset: .4 }, { transform: 'translateX(-50%) scale(1)' }], { duration: T.flyMs });
   }
+  const popCaption = (i) => { const c = dom.capEls[i]; if (c) popAnim(c, FXC.railPopScale, T.popMs); };
   function installHandlers() {
     const EH = U.EVENT_HANDLERS;
     const wrap = (name, fn) => {            // fn(ev, orig, run) must call orig(ev) exactly once and return its promise
@@ -238,14 +237,18 @@
     wrap('step', async (ev, orig) => {
       const st = ev.step, id = U.ui.slots[st.slot], die = dom.dieEls[id];
       const from = ctr(dom.slotEls[st.slot]);
+      const prev = U.ui.railPlay ? U.ui.railPlay.idx : -1;
       const p = orig(ev);
       if (die) popAnim(die);
+      popCaption(st.slot);
+      const mi = U.ui.previewOverride && U.ui.previewOverride.ev ? U.ui.previewOverride.ev.mindIndex : -1;
+      if (mi >= 0 && prev < mi && mi < st.slot) popCaption(mi);      // the playhead swept over the MIND on its way here
       const col = verbColor(st.verb);
       if (st.role === 'scar') floatText('0', from, C.colors.textDim, { small: false });
       else if (st.verb === C.revealVerb) {
         if (st.passesTo != null) {
           fly('+' + st.total, from, ctr(dom.slotEls[st.passesTo]), col, { lift: FXC.flyLiftDigPx });
-          flashArrows(st.slot, st.passesTo);
+          flashCarry(st.slot);
         } else floatText(C.text.floatReveal, from, col);
       } else {
         const ci = targetCard(), card = dom.efc[ci];
@@ -474,7 +477,11 @@
       shake($('stage'), FXC.loseShakePx, FXC.loseShakeMs);
       await p;
     });
-    wrap('sentence', async (ev, orig) => orig(ev));
+    wrap('sentence', async (ev, orig) => {
+      const p = orig(ev);
+      if (ev.evaluation.mindIndex === 0) popCaption(0);              // MIND first: the rail starts on it
+      await p;
+    });
     // exposed belly: the TORSO die lurches and flashes red before the scar lands
     wrap('bellyExposed', async (ev, orig) => {
       const el = dom.dieEls[ev.dieId], at = ctr(el);

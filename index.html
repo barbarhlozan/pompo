@@ -76,51 +76,107 @@
   .pip.broken { background:var(--broken); transform:rotate(45deg) scale(.7); }
   .pip.turned { background:var(--turned); border-radius:50%; }
 
-  /* sentence */
-  #sentence { position:absolute; left:0; top:272px; width:100%; height:190px; display:flex; flex-direction:column; align-items:center; }
-  #slots { display:flex; align-items:center; gap:14px; }
-  .slot { width:262px; height:104px; border:3px dashed var(--line); background:rgba(255,255,255,.025);
-    display:flex; align-items:center; justify-content:center; position:relative; }
-  .slot::before { content:attr(data-n); position:absolute; left:6px; top:3px; font-size:12px; color:var(--dim); z-index:1; }
-  .slot.trig { border-color:var(--glow); box-shadow:0 0 10px 1px color-mix(in srgb, var(--glow) 55%, transparent); }
-  .slot .num { position:absolute; left:6px; top:3px; font-size:12px; color:var(--dim); }
-  .slot.over { border-color:var(--glow); background:rgba(255,255,255,.1); }
-  .slot.full { border-style:solid; }
-  .slot.acting { border-color:var(--glow); background:rgba(255,255,255,.14); }
-  #slots.complete .slot { border-color:var(--lit); }
-  .arrow { font-size:26px; color:var(--dim); width:30px; text-align:center; }
-  #preview { margin-top:14px; text-align:center; min-height:62px; }
-  #shape { font-size:14px; letter-spacing:.25em; color:var(--dim); text-transform:uppercase; min-height:18px; }
-  #previewText { font-size:22px; margin:6px auto 0; max-width:1200px; line-height:1.25; }
-  #previewText.hint { color:var(--dim); font-size:18px; }
+  /* sentence rail: interlocking chevron steps, FIRST / THEN / LAST labels, MIND band, per-step captions, totals */
+  #sentence { position:absolute; left:0; top:272px; width:100%; height:196px; padding:0 24px; display:flex; flex-direction:column; align-items:flex-start;
+    --sw:330px; --pt:26px; --ov:20px; --pitch:calc(var(--sw) - var(--ov)); --slotH:76px; }
+  #railHead { display:flex; align-items:baseline; gap:14px; height:22px; font-size:13px; letter-spacing:.25em; }
+  #railTitle { color:var(--dim); }
+  #railShape { color:var(--lit); font-family:var(--display); font-weight:400; font-size:15px; letter-spacing:.14em; }
+  #slots { position:relative; display:flex; align-items:flex-start; }
+  .rstep { position:relative; width:var(--sw); flex:none; }
+  .rstep + .rstep { margin-left:calc(var(--ov) * -1); }
+  .rlabel { height:15px; line-height:15px; padding-left:var(--pt); font-size:12px; letter-spacing:.3em; color:var(--text); opacity:.8; }
+  .rstep.first .rlabel { padding-left:8px; }
+  .rband { height:13px; margin:0 0 2px; font-size:10px; line-height:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--tiletext);
+    padding-left:var(--pt); white-space:nowrap; }
+  .rstep.first .rband { padding-left:8px; }
+  .rband.on { clip-path:polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+  .rstep.last .rband.on { clip-path:polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%); }
+  .rband.tag { display:block; width:max-content; margin-left:var(--pt); padding:0 7px; border:1px solid; font-weight:700; font-size:10px; line-height:11px; height:13px; }
+  .rstep.first .rband.tag { margin-left:8px; }
+  .rband.tag.none { color:var(--dim); border-color:var(--line); border-style:dashed; }
+  .rband.tag.none, .rband.tag { background:transparent; }
+  .slot { position:relative; height:var(--slotH); display:flex; align-items:center; justify-content:center; padding:0 var(--pt); }
+  .slot .chev, .slot .chev::after { position:absolute; inset:0; clip-path:polygon(0 0, calc(100% - var(--pt)) 0, 100% 50%, calc(100% - var(--pt)) 100%, 0 100%, var(--pt) 50%); }
+  .rstep.first .slot .chev, .rstep.first .slot .chev::after { clip-path:polygon(0 0, calc(100% - var(--pt)) 0, 100% 50%, calc(100% - var(--pt)) 100%, 0 100%); }
+  .slot .chev { background:#3a3a52; pointer-events:none; }
+  .slot .chev::after { content:''; inset:3px; background:var(--bg); }
+  .rstep:not(.first) .slot .chev::after { }
+  .slot .num { position:absolute; left:calc(var(--pt) + 10px); top:50%; transform:translateY(-50%); font-size:30px; font-family:var(--display); font-weight:400; color:#2c2c3e; pointer-events:none; }
+  .rstep.first .slot .num { left:18px; }
+  .slot .empty { font-size:12px; letter-spacing:.2em; color:var(--dim); text-transform:uppercase; pointer-events:none; opacity:.7; }
+  .slot.full .empty, .slot.full .num { display:none; }
+  .slot.full .chev { background:var(--line); }
+  .slot.full .chev::after { background:var(--panel); }
+  .slot.trig .chev { background:var(--glow); }
+  .slot.over .chev { background:var(--glow); }
+  .slot.over .chev::after { background:#2a2a3c; }
+  .slot.acting .chev { background:var(--glow); }
+  .slot.acting .chev::after { background:#34344a; }
+  #slots.complete .slot.full .chev { background:var(--lit); }
+  .rstep > .rlink { position:relative; height:14px; }
+  .carry { position:absolute; left:calc(var(--sw) / 2 + 12px); top:6px; height:0; border-top:3px solid; }
+  .carry::after { content:''; position:absolute; right:-2px; top:-6.5px; border:5px solid transparent; border-right:0; border-left:9px solid currentColor; }
+  .carry b { position:absolute; left:50%; top:-10px; transform:translateX(-50%); padding:0 6px; background:var(--bg); font-size:13px; line-height:16px; }
+  .rcap { height:30px; padding:0 var(--ov) 0 var(--pt); text-align:center; font-size:13px; line-height:16px; overflow:hidden; }
+  .rstep.first .rcap { padding-left:8px; }
+  .rcap .cl1 { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rcap .cl2 { font-size:11px; line-height:14px; font-weight:400; color:var(--dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rcap .cn { text-transform:none; }
+  .rcap .cp { font-family:var(--display); font-weight:400; font-size:15px; letter-spacing:.02em; }
+  .rcap .cin { color:var(--turned); }
+  .rcap.mind .cl1 { color:var(--dim); }
+  #rtotals { flex:none; align-self:flex-start; margin:30px 0 0 14px; height:var(--slotH); min-width:210px; display:flex; align-items:center; gap:8px;
+    font-size:18px; line-height:1.2; padding-left:10px; border-left:3px solid var(--lit); }
+  #rtotals .eq { font-family:var(--display); font-weight:400; color:var(--lit); font-size:24px; }
+  #rtotals.pending { border-left-color:var(--line); }
+  #rtotals.pending .eq { color:var(--dim); }
+  #playhead { position:absolute; left:calc(var(--ph, 0) * var(--pitch) + var(--pt)); top:15px; width:calc(var(--sw) - var(--pt) - var(--ov)); height:13px;
+    background:var(--glow); box-shadow:0 0 14px 2px color-mix(in srgb, var(--glow) 70%, transparent); opacity:0; pointer-events:none; z-index:3;
+    transition:left var(--ph-ms, .16s) ease-out, opacity .1s; }
+  #playhead.on { opacity:.85; }
+  #preview { margin-top:2px; min-height:22px; width:100%; }
+  #previewText { font-size:16px; line-height:1.25; max-width:1200px; }
+  #previewText.hint { color:var(--dim); }
 
-  /* bottom */
+  /* bottom: dice lying loose on the table */
   #bottom { position:absolute; left:0; top:468px; width:100%; height:200px; }
-  #tray { display:flex; justify-content:center; gap:30px; }
-  .cell { width:262px; height:128px; border:3px solid var(--line); background:var(--panel);
-    display:flex; align-items:center; justify-content:center; }
-  .cell.over { border-color:var(--glow); }
-  .die { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:6px; position:relative; touch-action:none; cursor:grab; }
+  #tray { display:flex; justify-content:center; gap:34px; }
+  .cell { width:232px; height:106px; display:flex; align-items:center; justify-content:center; border-radius:20px; }
+  .cell:empty { border:2px dashed color-mix(in srgb, var(--line) 30%, transparent); }
+  .cell.over, #tray.over .cell:empty { border-color:var(--glow); }
+  .die { width:222px; height:96px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:5px; position:relative; touch-action:none; cursor:grab; rotate:var(--tilt, 0deg);
+    border-radius:18px; border:3px solid #3a3a52; background:linear-gradient(160deg, #262638, #15151f);
+    box-shadow:0 5px 0 rgba(0,0,0,.55), inset 0 2px 0 rgba(255,255,255,.07); }
+  .die .meta { display:flex; align-items:center; gap:8px; height:20px; }
   .die .cap { font-size:11px; letter-spacing:.2em; color:var(--dim); }
-  .die .held { position:absolute; right:4px; top:2px; font-size:12px; letter-spacing:.1em; color:var(--tiletext);
-    background:var(--lit); padding:2px 5px; display:none; }
+  .die .held { position:absolute; right:10px; top:-9px; font-size:12px; letter-spacing:.1em; color:var(--tiletext);
+    background:var(--lit); padding:2px 6px; display:none; }
   .die.held .held { display:block; }
-  .die.held .faceRow { transform:translateY(5px); }
+  .die.held { border-color:var(--lit); box-shadow:0 5px 0 rgba(0,0,0,.55), 0 0 14px 1px color-mix(in srgb, var(--lit) 40%, transparent); translate:0 -5px; }
+  .die.held .faceRow { transform:none; }
   .die.dim .faceRow { opacity:.35; }
-  .die .frz { position:absolute; left:4px; top:2px; font-size:12px; letter-spacing:.1em; color:#06222c; background:#8fe0ff;
+  .die .frz { position:absolute; left:10px; top:-9px; font-size:12px; letter-spacing:.1em; color:#06222c; background:#8fe0ff;
     padding:2px 5px; display:none; }
-  .die.frozen { outline:3px solid #8fe0ff; outline-offset:-3px; background:color-mix(in srgb, #8fe0ff 12%, transparent);
-    box-shadow:inset 0 0 22px #8fe0ff88; cursor:not-allowed; }
+  .die.frozen { border-color:#8fe0ff; background:color-mix(in srgb, #8fe0ff 12%, #15151f);
+    box-shadow:0 5px 0 rgba(0,0,0,.55), inset 0 0 22px #8fe0ff88; cursor:not-allowed; }
   .die.frozen .frz { display:block; }
   .nf .sturdy { position:absolute; right:-2px; top:-9px; font-size:10px; letter-spacing:.08em; font-weight:400; color:var(--dim);
     background:var(--panel); border:1px solid var(--line); padding:0 4px; }
-  .die .ctl button { background:var(--panel); border:2px solid var(--line); padding:0 10px; font-size:13px; line-height:18px; }
+  .die .ctl button { background:var(--panel); border:2px solid var(--line); padding:0 10px; font-size:13px; line-height:16px; }
   .die .ctl button:hover { border-color:var(--glow); }
   .die.in-slot .up, .die:not(.in-slot) .down { display:none; }
-  .die.dragging { position:fixed; z-index:60; cursor:grabbing; background:var(--panel); border:3px solid var(--glow);
-    box-shadow:0 12px 0 rgba(0,0,0,.5); pointer-events:none; }
+  /* a die on the rail is a word step: no die frame, same face tiles */
+  .die.in-slot { width:100%; height:100%; border:0; border-radius:0; background:none; box-shadow:none; rotate:0deg; translate:none; gap:2px; z-index:2; }
+  .die.in-slot .tile { font-size:21px; padding:8px 11px; }
+  .die.in-slot .held { top:2px; right:calc(var(--pt) + 4px); }
+  .die.in-slot .frz { top:2px; left:calc(var(--pt) + 4px); }
+  .rstep.first .die.in-slot .frz { left:12px; }
+  .die.dragging { position:fixed; z-index:60; cursor:grabbing; background:linear-gradient(160deg, #262638, #15151f); border:3px solid var(--glow);
+    border-radius:18px; box-shadow:0 12px 0 rgba(0,0,0,.5); pointer-events:none; translate:none; }
   .die.dragging .ctl { display:none; }
+  .die.dragging .tile { font-size:24px; padding:10px 14px; }
   #buttons { margin-top:22px; display:flex; justify-content:center; align-items:center; gap:18px; }
   .btn { background:var(--panel); border:3px solid var(--glow); padding:12px 26px; font-size:20px; letter-spacing:.12em;
     box-shadow:0 4px 0 rgba(0,0,0,.6); }
@@ -149,10 +205,9 @@
   .tile, .btn, #top .title, #overlay .big, .flyer, #pop .tile { font-family:var(--display); font-weight:400; white-space:nowrap; }
   .tile { letter-spacing:.02em; }
   .efc .tile { letter-spacing:0; }
-  .die { transition: scale .1s ease-out; }
+  .die { transition: scale .1s ease-out, translate .12s ease-out; }
   .die .faceRow { transition: transform .12s ease-out; }
   .die.dragging { scale:var(--lift); box-shadow:0 18px 0 rgba(0,0,0,.45); }
-  .die.held { background:color-mix(in srgb, var(--lit) 6%, transparent); }
   .flyer { position:absolute; left:0; top:0; z-index:70; pointer-events:none; font-size:34px; line-height:1;
     -webkit-text-stroke:2px #000; paint-order:stroke fill; text-shadow:0 4px 0 rgba(0,0,0,.6); will-change:transform; }
   .flyer.small { font-size:20px; }
@@ -160,12 +215,10 @@
   .crack { position:absolute; inset:0; pointer-events:none; z-index:5; }
   .crack svg { width:100%; height:100%; }
   .die { z-index:1; }
-  /* sentence complete: tiles + arrows light up together */
-  @keyframes litFlash { 0% { box-shadow:0 0 0 0 color-mix(in srgb, var(--lit) 95%, transparent); } 100% { box-shadow:0 0 26px 8px color-mix(in srgb, var(--lit) 0%, transparent); } }
-  @keyframes arrowLit { 0% { transform:scale(1.9); } 100% { transform:scale(1); } }
+  /* sentence complete: the rail lights up together */
+  @keyframes litFlash { 0% { filter:drop-shadow(0 0 0 var(--lit)); } 40% { filter:drop-shadow(0 0 9px var(--lit)); } 100% { filter:drop-shadow(0 0 0 transparent); } }
   @keyframes ovPop { 0% { transform:scale(.4) rotate(-6deg); opacity:0; } 60% { transform:scale(1.12) rotate(2deg); opacity:1; } 100% { transform:scale(1) rotate(0); } }
-  #slots.complete .slot { animation:litFlash .45s ease-out; background:color-mix(in srgb, var(--lit) 7%, transparent); box-shadow:0 0 14px 2px color-mix(in srgb, var(--lit) 45%, transparent); }
-  #slots.complete .arrow { color:var(--lit); animation:arrowLit .4s ease-out; text-shadow:0 0 10px color-mix(in srgb, var(--lit) 90%, transparent); }
+  #slots.complete .slot.full { animation:litFlash .45s ease-out; }
   #slots.complete .die .tile { filter:brightness(1.1) saturate(1.1); }
   #overlay.show .big { animation:ovPop .5s cubic-bezier(.2,1.4,.4,1); }
   @media (prefers-reduced-motion: reduce) {
@@ -387,8 +440,9 @@
     <div id="faceStrip"></div>
   </section>
   <section id="sentence">
+    <div id="railHead"><span id="railTitle"></span><span id="railShape"></span></div>
     <div id="slots"></div>
-    <div id="preview"><div id="shape"></div><div id="previewText"></div></div>
+    <div id="preview"><div id="previewText"></div></div>
   </section>
   <section id="bottom">
     <div id="tray"></div>
@@ -703,6 +757,18 @@ Object.assign(CONFIG, {
     noItems: '0 items',
   },
   text: {
+    // the sentence rail (src/ui/10-render.js renderSlots): title, step labels by slot count, per-step tags / captions
+    rail: {
+      title: 'WHAT YOU DO', empty: 'drop a die', totalsPrefix: '=', totalsPending: '…',
+      steps: { 1: ['ONLY'], 2: ['FIRST', 'THEN'], 3: ['FIRST', 'THEN', 'LAST'] },   // more slots than listed: FIRST, THEN, THEN…
+      mind: 'MIND: sets {verb}', mindIdle: 'MIND: sets {verb}, nothing to act', mindHold: 'MIND: keep one die',
+      mindTip: 'The MIND sets the verb for every die after it.',
+      instinct: 'instinct', noInstinct: 'no instinct',
+      instinctTip: 'Acts on instinct (before the MIND, or no MIND): its favourite verb {verb}.',
+      noInstinctTip: 'No instinct: this part does nothing on its own.',
+      directedTip: 'Acts with the MIND\'s verb {verb}.',
+      carryTip: 'DIG passes its points on to the next die.',
+    },
     help: 'ROLL, hold & reroll, drag dice into the sentence slots, COMMIT. The MIND die (optional) sets the verb for dice after it; dice before it, or with no MIND, act on instinct.',
     reveal: '(reveal)', noEffect: 'nothing happens', scar: 'SCAR', idleText: 'nothing happens', holdText: 'hold one die for the next turn',
     belly: 'your belly was exposed', lostDie: 'your {die} gave out',   // `scar` is also the face key of a scarred face
@@ -812,6 +878,8 @@ Object.assign(CONFIG, {
 Object.assign(CONFIG, {
   timing: {
     rollShuffleMs: 600, resolveStepMs: 340, enemyActMs: 560,
+    railStepMs: 280,        // one rail step (caption pops, playhead moves) during COMMIT
+    railPlayheadMs: 160,    // playhead slide between steps
     // Phase 3 (ms)
     shuffleStepMs: 55,      // one shuffle frame (also the roll-tick rate)
     settleStaggerMs: 110,   // extra shuffle time per die so they settle one after another
@@ -843,7 +911,8 @@ Object.assign(CONFIG, {
     burstDistMin: 26, burstDistRange: 40, burstMs: 380, burstMsRange: 160,
     burstCounts: { pip: 6, resolvedExtra: 4, lunge: 8, scar: 10, win: 14 },   // sparks (resolvedExtra is added to `particles`)
     cardPulseScale: 1.1, cardPulseMs: 160,          // enemy face card when a +N arrives
-    arrowSwellScale: 2.2,                           // arrows swelling as DIG points are passed on
+    arrowSwellScale: 1.5,                           // carry arrow label swelling as DIG points are passed on
+    railPopScale: 1.14,                             // a rail caption popping as its step scores
     revealSlideMs: 240,
     lungeUpPx: 16, lungeDownPx: 46, growlShakePx: 4, sniffMs: 520, whimperMs: 600,
     scarShakePx: 9, scarPopScale: 1.6, scarPopMs: 300, scarBoxPulseMs: 320,
@@ -853,6 +922,7 @@ Object.assign(CONFIG, {
   ui: {
     dragThresholdPx: 5,             // moving less than this = a click (toggle hold), not a drag
     dropSlackPx: 12,                // how far outside a slot a drop still counts
+    trayTiltDeg: 6,                 // max static tilt of a die lying in the tray (new per roll)
   },
   debug: { logRows: 10, pollMs: 120 },
 });
@@ -2430,6 +2500,8 @@ const ui = {
   previewOverride: null,       // {shape, text} while a committed sentence plays
   verbFlash: '',
   actingSlot: null,
+  railPlay: null,              // { idx, totals } while a committed sentence plays on the rail: steps up to idx are reached
+  tilt: {},                    // die id -> static tray tilt in degrees (new per roll)
   hidePips: false,             // debug panel: hide enemy pip states / resolved tile looks in the face strip
   showMap: false,              // debug: draw the whole map without fog
   showSite: false,             // debug: draw hidden site contents
@@ -2533,17 +2605,21 @@ const viewScars = () => Object.keys(view.dice).reduce((n, id) => n + view.dice[i
 // Classic script: top-level names are shared with the other src/ui/*.js files (formerly one IIFE).
 
 // ---------- static DOM ----------
-const dom = { slotEls: [], cellEls: {}, dieEls: {}, efc: [] };
+const dom = { slotEls: [], stepEls: [], capEls: [], cellEls: {}, dieEls: {}, efc: [] };
 function buildDOM() {
-  // slots + arrows
+  // the sentence rail: one strip of interlocking chevron steps (label, MIND band / instinct tag, slot, carry link, caption) + totals + playhead
   const slots = $('slots');
+  $('railTitle').textContent = C.text.rail.title;
   for (let i = 0; i < C.playerDice.length; i++) {
-    if (i > 0) { const a = document.createElement('div'); a.className = 'arrow'; a.textContent = '▶'; slots.appendChild(a); }
-    const s = document.createElement('div');
-    s.className = 'slot'; s.dataset.slot = i;
-    s.innerHTML = '<span class="num">' + (i + 1) + '</span>';
-    slots.appendChild(s); dom.slotEls.push(s);
+    const st = document.createElement('div');
+    st.className = 'rstep'; st.style.setProperty('--i', i);
+    st.innerHTML = '<div class="rlabel"></div><div class="rband"></div>' +
+      '<div class="slot" data-slot="' + i + '"><div class="chev"></div><span class="num">' + (i + 1) + '</span><span class="empty">' + esc(C.text.rail.empty) + '</span></div>' +
+      '<div class="rlink"></div><div class="rcap"></div>';
+    slots.appendChild(st);
+    dom.stepEls.push(st); dom.slotEls.push(st.querySelector('.slot')); dom.capEls.push(st.querySelector('.rcap'));
   }
+  slots.insertAdjacentHTML('beforeend', '<div id="rtotals"></div><div id="playhead"></div>');
   // tray cells + dice
   ui.slots = emptySlots();
   C.playerDice.forEach(d => {
@@ -2552,10 +2628,10 @@ function buildDOM() {
     $('tray').appendChild(cell); dom.cellEls[d.id] = cell;
     const die = document.createElement('div');
     die.className = 'die'; die.dataset.id = d.id;
-    die.innerHTML = '<div class="faceRow"></div><div class="cap">' + (d.label || d.id) + '</div><span class="held">' + C.text.held + '</span>' +
-      '<span class="frz" title="' + esc(C.text.s.frozenTip) + '">' + C.text.s.frozen + '</span>' +
+    die.innerHTML = '<div class="faceRow"></div><div class="meta"><div class="cap">' + (d.label || d.id) + '</div>' +
       '<div class="ctl"><button class="up" title="Place in leftmost empty slot">▲</button>' +
-      '<button class="down" title="Return to tray">▼</button></div>';
+      '<button class="down" title="Return to tray">▼</button></div></div>' +
+      '<span class="held">' + C.text.held + '</span><span class="frz" title="' + esc(C.text.s.frozenTip) + '">' + C.text.s.frozen + '</span>';
     die.querySelector('.up').addEventListener('click', (e) => { e.stopPropagation(); onUp(d.id); });
     die.querySelector('.down').addEventListener('click', (e) => { e.stopPropagation(); onDown(d.id); });
     die.addEventListener('pointerdown', (e) => onPointerDown(e, d.id));
@@ -2572,7 +2648,7 @@ function buildDOM() {
   const root = document.documentElement.style, K = C.colors;
   [['bg', K.bg], ['panel', K.panel], ['line', K.line], ['text', K.text], ['dim', K.textDim], ['lit', K.lit], ['status', K.status],
    ['danger', K.scarText], ['glow', K.glow], ['pip', K.pipIntact], ['broken', K.broken], ['turned', K.turned], ['tiletext', K.tileText],
-   ['lift', C.fx.liftScale]].forEach(kv => { if (kv[1] != null) root.setProperty('--' + kv[0], kv[1]); });
+   ['lift', C.fx.liftScale], ['ph-ms', C.timing.railPlayheadMs + 'ms']].forEach(kv => { if (kv[1] != null) root.setProperty('--' + kv[0], kv[1]); });
   $('titleLabel').textContent = C.text.title;
   $('btnRoll').textContent = C.text.buttons.roll;
   $('btnCommit').textContent = C.text.buttons.commit;
@@ -2708,6 +2784,7 @@ function renderDice() {
       el.dataset.face = face;
       el.querySelector('.faceRow').innerHTML = hidden ? '<span class="tile" style="background:' + C.colors.unknownBg + ';color:' + C.colors.unknownFg + '">' + C.text.unknownFace + '</span>' : faceHTML(face);
     }
+    el.style.setProperty('--tilt', (ui.tilt[d.id] || 0) + 'deg');
     el.classList.toggle('in-slot', si >= 0);
     el.classList.toggle('held', (d.held || !!d.heldOver) && !hidden);
     el.classList.toggle('frozen', !!vd.frozen);
@@ -2716,25 +2793,79 @@ function renderDice() {
     el.querySelector('.ctl').style.visibility = canInteract() ? 'visible' : 'hidden';
   });
 }
+// ---- the sentence rail ----
+const stepLabelsFor = (n) => C.text.rail.steps[n] || Array.from({ length: n }, (_, i) => (i === 0 ? 'FIRST' : 'THEN'));
+const verbSpan = (v) => '<span class="vb" style="color:' + C.colors.verb[v] + '" title="' + esc(C.verbInfo[v]) + '">' + v + '</span>';
+// caption of one evaluated step: 'Stab 4+2' / '(knife +1)' (reached = the playhead got here; else the caption stays hidden)
+function stepCaption(s) {
+  const col = s.verb ? C.colors.verb[s.verb] : C.colors.textDim;
+  const pts = s.base + (s.carryIn > 0 ? '<span class="cin" title="' + esc(C.text.rail.carryTip) + '">+' + s.carryIn + '</span>' : '');
+  const notes = s.notes.slice(); if (s.reveal) notes.unshift(C.text.reveal.replace(/[()]/g, ''));
+  const plain = s.name + ' ' + s.base + (s.carryIn > 0 ? '+' + s.carryIn : '') + notes.map(n => ' (' + n + ')').join('');
+  return { html: '<div class="cl1"><span class="cn">' + esc(s.name) + '</span> <span class="cp" style="color:' + col + '">' + pts + '</span></div>' +
+    '<div class="cl2">' + (notes.length ? esc(notes.map(n => '(' + n + ')').join(' ')) : '&nbsp;') + '</div>', title: plain };
+}
 function renderSlots() {
-  const n = slotCount();
+  const n = slotCount(), RT = C.text.rail;
   for (let i = n; i < ui.slots.length; i++) ui.slots[i] = null;           // a debug change of the slot count empties the hidden slots
-  const arrows = document.querySelectorAll('#slots .arrow');
-  dom.slotEls.forEach((s, i) => {
-    s.style.display = i < n ? '' : 'none';
-    if (arrows[i - 1]) arrows[i - 1].style.display = i < n ? '' : 'none';
-    s.classList.toggle('full', !!ui.slots[i]);
-    s.classList.toggle('acting', ui.actingSlot === i);
-    s.dataset.n = i + 1;
+  const p = currentPreview(), tg = p.triggers || {}, last = n - 1;
+  const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy';
+  const ev = live && p.ev && p.ev.slots === n ? p.ev : null;
+  const play = ui.phase === 'resolving' || ui.phase === 'enemy' ? ui.railPlay : null;
+  const labels = stepLabelsFor(n), mi = ev ? ev.mindIndex : -1, mcol = ev && ev.verb ? C.colors.verb[ev.verb] : null;
+  dom.stepEls.forEach((st, i) => {
+    st.style.display = i < n ? '' : 'none';
+    if (i >= n) return;
+    st.classList.toggle('first', i === 0);
+    st.classList.toggle('last', i === last);
+    st.querySelector('.rlabel').textContent = labels[i];
+    const sl = dom.slotEls[i], band = st.querySelector('.rband'), cap = dom.capEls[i], link = st.querySelector('.rlink');
+    sl.classList.toggle('full', !!ui.slots[i]);
+    sl.classList.toggle('acting', ui.actingSlot === i);
+    sl.classList.toggle('trig', !!((tg.glassesFirst && i === 0) || (tg.earTrumpet && tg.earTrumpet.indexOf(i) >= 0) || (tg.pipeLast && i === last)));
+    const step = ev ? ev.steps.find(x => x.slot === i) : null;
+    const reached = !play || i <= play.idx;
+    // MIND band (this slot and everything after it) / instinct tag (before the MIND, or every slot without one)
+    band.className = 'rband'; band.innerHTML = ''; band.removeAttribute('title'); band.style.cssText = '';
+    if (ev && mcol && i >= mi && mi >= 0) {
+      band.classList.add('on'); band.style.background = mcol; band.title = RT.directedTip.replace('{verb}', ev.verb);
+      band.innerHTML = '<span>' + ev.verb + '</span>';
+    } else if (step && step.role === 'instinct') {
+      const v = step.verb;
+      band.classList.add('tag');
+      if (v) { band.style.color = C.colors.verb[v]; band.style.borderColor = C.colors.verb[v]; band.title = RT.instinctTip.replace('{verb}', v); band.textContent = RT.instinct + ' · ' + v; }
+      else { band.classList.add('none'); band.title = RT.noInstinctTip; band.textContent = RT.noInstinct; }
+    }
+    // caption
+    cap.style.visibility = ev && reached ? '' : 'hidden';
+    cap.classList.toggle('mind', !!ev && i === mi);
+    if (ev && i === mi) {
+      const txt = ev.holds ? RT.mindHold : (n === 1 ? RT.mindIdle : RT.mind);
+      cap.innerHTML = '<div class="cl1">' + txt.split('{verb}').map(esc).join(verbSpan(ev.verb)) + '</div><div class="cl2">&nbsp;</div>';
+      cap.title = RT.mindTip;
+    } else if (step) { const c = stepCaption(step); cap.innerHTML = c.html; cap.title = c.title; }
+    else { cap.innerHTML = ''; cap.removeAttribute('title'); }
+    // DIG carry: an arrow from the giving caption to the receiving one
+    link.innerHTML = '';
+    if (step && step.passesTo != null && reached) {
+      const d = step.passesTo - i, col = C.colors.verb[C.revealVerb];
+      link.innerHTML = '<span class="carry" style="width:calc(var(--pitch) * ' + d + ' - 30px);border-color:' + col + ';color:' + col + '" title="' + esc(RT.carryTip) + '"><b>+' + step.total + '</b></span>';
+    }
   });
-  const tg = (currentPreview().triggers) || {}, last = n - 1;
-  dom.slotEls.forEach((s, i) => {
-    s.classList.toggle('trig', !!(i < n && ((tg.glassesFirst && i === 0) || (tg.earTrumpet && tg.earTrumpet.indexOf(i) >= 0) || (tg.pipeLast && i === last))));
-  });
+  // totals at the right end of the rail
+  const tot = $('rtotals');
+  tot.innerHTML = ev ? '<span class="eq">' + esc(RT.totalsPrefix) + '</span> ' + verbify(ev.totalsText) : '<span class="eq">' + esc(RT.totalsPrefix) + ' ' + esc(RT.totalsPending) + '</span>';
+  tot.style.visibility = ev && play && !play.totals ? 'hidden' : '';
+  tot.classList.toggle('pending', !ev);
+  // playhead: slides left -> right along the band row while a commit plays
+  const ph = $('playhead');
+  ph.classList.toggle('on', !!(play && play.idx >= 0 && ui.phase === 'resolving'));
+  if (play && play.idx >= 0) ph.style.setProperty('--ph', play.idx);
   $('slots').classList.toggle('complete', placedCount() === slotCount() && (ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy'));
 }
+// -> { hint?, shape, triggers?, ev? (evaluation, when the sentence is complete), text } ; `text` is the compact line under the rail
 function currentPreview() {
-  if (ui.previewOverride) return ui.previewOverride;
+  if (ui.previewOverride && ui.phase !== 'await-roll') return ui.previewOverride;
   if (ui.phase === 'arranging') {
     if (placedCount() < slotCount()) return { hint: true, shape: '', text: C.text.placeHint.replace(/\{slots\}/g, slotCount()).replace('{n}', placedCount()) };
     const faces = ui.slots.slice(0, slotCount()).map(id => viewFace(id));
@@ -2742,10 +2873,10 @@ function currentPreview() {
       const ev = E.evaluateSentence(faces, { site: true });
       const sp = E.sitePreview(ui.game, ev);
       const tg = ui.game.target !== null ? ' (' + MT().target.toLowerCase() + ': ' + (ui.game.target + 1) + ')' : '';
-      return { shape: ev.shape, triggers: ev.triggers, text: ev.text + '  ⇒  ' + sp.text + tg, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+      return { shape: ev.shape, triggers: ev.triggers, ev, text: sp.text + tg };
     }
     const ev = E.evaluateSentence(faces, { enemy: ui.game.enemy, tax: ui.game.tax || 0 });
-    return { shape: ev.shape, triggers: ev.triggers, text: ev.text, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+    return { shape: ev.shape, triggers: ev.triggers, ev, text: '' };
   }
   if (ui.phase === 'await-roll') {
     const log = ui.game.log;
@@ -2756,7 +2887,7 @@ function currentPreview() {
 }
 function renderPreview() {
   const p = currentPreview();
-  $('shape').textContent = p.sentence ? (p.shape ? p.shape + ' · ' : '') + p.sentence : (p.shape || '');
+  $('railShape').textContent = p.shape ? p.shape.toUpperCase() : '';
   const t = $('previewText');
   t.innerHTML = p.text ? verbify(p.text) : '&nbsp;';
   t.classList.toggle('hint', !!p.hint);
@@ -3033,11 +3164,16 @@ function onPointerDown(e, id) {
   el.addEventListener('pointercancel', onPointerCancel);
 }
 function dropTarget(x, y) {
+  let best = -1, bd = Infinity;                       // chevrons overlap a little: nearest centre wins
   for (let i = 0; i < slotCount(); i++) {
     const r = dom.slotEls[i].getBoundingClientRect();
     const m = C.ui.dropSlackPx;
-    if (x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m) return { kind: 'slot', i };
+    if (x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m) {
+      const d = Math.abs(x - (r.left + r.right) / 2);
+      if (d < bd) { bd = d; best = i; }
+    }
   }
+  if (best >= 0) return { kind: 'slot', i: best };
   const tr = $('bottom').getBoundingClientRect();
   if (y >= tr.top - C.ui.dropSlackPx) return { kind: 'tray' };
   return null;
@@ -3094,7 +3230,8 @@ async function onRoll() {
   syncView();                                     // pre-turn picture: a pending watering-can SOW plays from here
   const st = E.startTurn(g, Math.random);
   ui.slots = emptySlots();
-  ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null;
+  ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
+  newTilts(g.player.dice.map(d => d.id));
   if (st.events.length) {
     const run = ++ui.runId;
     ui.phase = 'start';
@@ -3110,10 +3247,12 @@ async function onRoll() {
   hooks.onRoll(g.player.dice.map(d => d.id));
   renderAll();
 }
+function newTilts(ids) { ids.forEach(id => { ui.tilt[id] = Math.round((Math.random() * 2 - 1) * C.ui.trayTiltDeg * 10) / 10; }); }
 function onReroll() {
   if (!canInteract()) return;
   const ids = E.rerollUnheld(ui.game, Math.random);
   if (!ids) return;
+  newTilts(ids);
   syncView();
   hooks.onRoll(ids);
   renderAll();
@@ -3130,9 +3269,13 @@ async function onCommit() {
   const site = isSite();
   const out = site ? E.resolveSiteTurn(ui.game, ui.slots.slice(0, slotCount()), Math.random) : E.resolveTurn(ui.game, ui.slots.slice(0, slotCount()), Math.random);   // engine state is final now; `view` lags
   if (site && !out.ok) { ui.phase = 'arranging'; renderAll(); return; }
+  const se = out.events.find(e => e.type === 'sentence');            // the rail shows this sentence from the first frame
+  ui.railPlay = { idx: -1, totals: false };
+  if (se) ui.previewOverride = { shape: se.evaluation.shape, triggers: se.evaluation.triggers, ev: se.evaluation, text: se.preview ? se.preview.text : '' };
   renderAll();
   await playEvents(out.events, run);
   if (ui.runId !== run) return;                                       // restarted meanwhile
+  ui.railPlay = null;
   ui.actingSlot = null; ui.verbFlash = '';
   syncView();
   if (site) {                                                         // site turn: lost | guardian arrives | keep searching
@@ -3218,7 +3361,7 @@ function enterStage() {
     ui.screen = 'encounter'; ui.phase = 'await-roll';
     ui.slots = emptySlots(); ui.holdPick = false;
     ui.pipRec = site.faces.map(() => []);
-    ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null;
+    ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
     hooks.onRestart();
     buildSitePanel();
     syncView();
@@ -3230,7 +3373,7 @@ function enterStage() {
     ? pending : E.startEncounter(t, t.stage, Math.random);
   ui.screen = 'encounter'; ui.phase = 'await-roll';
   ui.slots = emptySlots(); ui.holdPick = false;
-  ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null;
+  ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null; ui.railPlay = null;
   hooks.onRestart();
   buildEnemyPanel();
   syncView();
@@ -3883,19 +4026,22 @@ const EVENT_HANDLERS = {
   async sentence(ev) {
     Object.keys(view.dice).forEach(id => { view.dice[id].frozen = false; });   // the engine thaws a frozen die once it is used
     renderDice();
-    ui.previewOverride = { shape: ev.evaluation.shape, triggers: ev.evaluation.triggers, text: ev.text + (ev.preview ? '  ⇒  ' + ev.preview.text : ''),
-      sentence: ev.faces.map((f, i) => i === ev.evaluation.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+    ui.previewOverride = { shape: ev.evaluation.shape, triggers: ev.evaluation.triggers, ev: ev.evaluation, text: ev.preview ? ev.preview.text : '' };
+    // the rail plays left -> right; a MIND in slot 0 is "reached" first, otherwise the playhead starts at the first step
+    ui.railPlay = { idx: ev.evaluation.mindIndex === 0 ? 0 : -1, totals: !ev.evaluation.steps.length };
     renderPreview(); renderSlots();
     await sleep(T.resolveStepMs / 2);
   },
   async step(ev) {
     ui.actingSlot = ev.step.slot;
+    if (ui.railPlay) ui.railPlay.idx = ev.step.slot;
     ui.enemyText = '';
     renderSlots(); renderEnemy();
-    await sleep(T.resolveStepMs);
+    await sleep(T.railStepMs);
   },
   async verb(ev) {
     ui.actingSlot = null;
+    if (ui.railPlay) ui.railPlay.totals = true;
     ui.verbFlash = isSite() && ev.verb === 'SOW' ? ev.verb + ' ' + ev.total + ' → ' + ev.amount + (ev.amount === 1 ? ' pip' : ' pips') : ev.verb + ' ' + ev.amount;
     renderSlots(); renderEnemy();
     await sleep(T.resolveStepMs / 2);
@@ -3938,6 +4084,7 @@ const EVENT_HANDLERS = {
   // V1 events ------------------------------------------------------------------
   async mod(ev) {                       // pruneMod / sowMod applied to the sentence total
     ui.actingSlot = null;
+    if (ui.railPlay) ui.railPlay.totals = true;
     ui.verbFlash = C.text.modFlash.replace('{verb}', ev.verb).replace('{before}', ev.before).replace('{after}', ev.after)
       .replace('{source}', ev.source).replace('{mod}', signed(ev.mod));
     renderSlots(); renderEnemy();
@@ -3972,6 +4119,7 @@ const EVENT_HANDLERS = {
   },
   async taxed(ev) {                     // ACCOUNTANT tax: this sentence's verb total is reduced
     ui.actingSlot = null;
+    if (ui.railPlay) ui.railPlay.totals = true;
     ui.verbFlash = C.text.taxFlash.replace('{verb}', ev.verb).replace('{after}', ev.after).replace('{n}', ev.amount);
     renderSlots(); renderEnemy();
     await sleep(T.resolveStepMs);
@@ -4305,13 +4453,12 @@ document.addEventListener('DOMContentLoaded', init);
     for (const nm of U.game.enemy.targetPriority) for (let i = 0; i < en.faces.length; i++) if (en.faces[i].name === nm && ok(i)) return i;
     return en.current ? en.current.faceIdx : 0;
   }
-  function flashArrows(a, b) {
-    const arrows = document.querySelectorAll('#slots .arrow');
-    for (let i = Math.min(a, b); i < Math.max(a, b); i++) {
-      const ar = arrows[i];
-      motion(ar, [{ transform: 'scale(1)', color: C.colors.glow }, { transform: 'scale(' + FXC.arrowSwellScale + ')', color: verbColor(C.revealVerb), offset: .4 }, { transform: 'scale(1)' }], { duration: T.flyMs });
-    }
+  // DIG carry: the +N label on the arrow under the giving caption swells as the points are handed on
+  function flashCarry(from) {
+    const el = dom.stepEls[from] && dom.stepEls[from].querySelector('.carry b');
+    if (el) motion(el, [{ transform: 'translateX(-50%) scale(1)' }, { transform: 'translateX(-50%) scale(' + FXC.arrowSwellScale + ')', offset: .4 }, { transform: 'translateX(-50%) scale(1)' }], { duration: T.flyMs });
   }
+  const popCaption = (i) => { const c = dom.capEls[i]; if (c) popAnim(c, FXC.railPopScale, T.popMs); };
   function installHandlers() {
     const EH = U.EVENT_HANDLERS;
     const wrap = (name, fn) => {            // fn(ev, orig, run) must call orig(ev) exactly once and return its promise
@@ -4323,14 +4470,18 @@ document.addEventListener('DOMContentLoaded', init);
     wrap('step', async (ev, orig) => {
       const st = ev.step, id = U.ui.slots[st.slot], die = dom.dieEls[id];
       const from = ctr(dom.slotEls[st.slot]);
+      const prev = U.ui.railPlay ? U.ui.railPlay.idx : -1;
       const p = orig(ev);
       if (die) popAnim(die);
+      popCaption(st.slot);
+      const mi = U.ui.previewOverride && U.ui.previewOverride.ev ? U.ui.previewOverride.ev.mindIndex : -1;
+      if (mi >= 0 && prev < mi && mi < st.slot) popCaption(mi);      // the playhead swept over the MIND on its way here
       const col = verbColor(st.verb);
       if (st.role === 'scar') floatText('0', from, C.colors.textDim, { small: false });
       else if (st.verb === C.revealVerb) {
         if (st.passesTo != null) {
           fly('+' + st.total, from, ctr(dom.slotEls[st.passesTo]), col, { lift: FXC.flyLiftDigPx });
-          flashArrows(st.slot, st.passesTo);
+          flashCarry(st.slot);
         } else floatText(C.text.floatReveal, from, col);
       } else {
         const ci = targetCard(), card = dom.efc[ci];
@@ -4559,7 +4710,11 @@ document.addEventListener('DOMContentLoaded', init);
       shake($('stage'), FXC.loseShakePx, FXC.loseShakeMs);
       await p;
     });
-    wrap('sentence', async (ev, orig) => orig(ev));
+    wrap('sentence', async (ev, orig) => {
+      const p = orig(ev);
+      if (ev.evaluation.mindIndex === 0) popCaption(0);              // MIND first: the rail starts on it
+      await p;
+    });
     // exposed belly: the TORSO die lurches and flashes red before the scar lands
     wrap('bellyExposed', async (ev, orig) => {
       const el = dom.dieEls[ev.dieId], at = ctr(el);

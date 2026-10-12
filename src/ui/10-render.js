@@ -2,17 +2,21 @@
 // Classic script: top-level names are shared with the other src/ui/*.js files (formerly one IIFE).
 
 // ---------- static DOM ----------
-const dom = { slotEls: [], cellEls: {}, dieEls: {}, efc: [] };
+const dom = { slotEls: [], stepEls: [], capEls: [], cellEls: {}, dieEls: {}, efc: [] };
 function buildDOM() {
-  // slots + arrows
+  // the sentence rail: one strip of interlocking chevron steps (label, MIND band / instinct tag, slot, carry link, caption) + totals + playhead
   const slots = $('slots');
+  $('railTitle').textContent = C.text.rail.title;
   for (let i = 0; i < C.playerDice.length; i++) {
-    if (i > 0) { const a = document.createElement('div'); a.className = 'arrow'; a.textContent = '▶'; slots.appendChild(a); }
-    const s = document.createElement('div');
-    s.className = 'slot'; s.dataset.slot = i;
-    s.innerHTML = '<span class="num">' + (i + 1) + '</span>';
-    slots.appendChild(s); dom.slotEls.push(s);
+    const st = document.createElement('div');
+    st.className = 'rstep'; st.style.setProperty('--i', i);
+    st.innerHTML = '<div class="rlabel"></div><div class="rband"></div>' +
+      '<div class="slot" data-slot="' + i + '"><div class="chev"></div><span class="num">' + (i + 1) + '</span><span class="empty">' + esc(C.text.rail.empty) + '</span></div>' +
+      '<div class="rlink"></div><div class="rcap"></div>';
+    slots.appendChild(st);
+    dom.stepEls.push(st); dom.slotEls.push(st.querySelector('.slot')); dom.capEls.push(st.querySelector('.rcap'));
   }
+  slots.insertAdjacentHTML('beforeend', '<div id="rtotals"></div><div id="playhead"></div>');
   // tray cells + dice
   ui.slots = emptySlots();
   C.playerDice.forEach(d => {
@@ -21,10 +25,10 @@ function buildDOM() {
     $('tray').appendChild(cell); dom.cellEls[d.id] = cell;
     const die = document.createElement('div');
     die.className = 'die'; die.dataset.id = d.id;
-    die.innerHTML = '<div class="faceRow"></div><div class="cap">' + (d.label || d.id) + '</div><span class="held">' + C.text.held + '</span>' +
-      '<span class="frz" title="' + esc(C.text.s.frozenTip) + '">' + C.text.s.frozen + '</span>' +
+    die.innerHTML = '<div class="faceRow"></div><div class="meta"><div class="cap">' + (d.label || d.id) + '</div>' +
       '<div class="ctl"><button class="up" title="Place in leftmost empty slot">▲</button>' +
-      '<button class="down" title="Return to tray">▼</button></div>';
+      '<button class="down" title="Return to tray">▼</button></div></div>' +
+      '<span class="held">' + C.text.held + '</span><span class="frz" title="' + esc(C.text.s.frozenTip) + '">' + C.text.s.frozen + '</span>';
     die.querySelector('.up').addEventListener('click', (e) => { e.stopPropagation(); onUp(d.id); });
     die.querySelector('.down').addEventListener('click', (e) => { e.stopPropagation(); onDown(d.id); });
     die.addEventListener('pointerdown', (e) => onPointerDown(e, d.id));
@@ -41,7 +45,7 @@ function buildDOM() {
   const root = document.documentElement.style, K = C.colors;
   [['bg', K.bg], ['panel', K.panel], ['line', K.line], ['text', K.text], ['dim', K.textDim], ['lit', K.lit], ['status', K.status],
    ['danger', K.scarText], ['glow', K.glow], ['pip', K.pipIntact], ['broken', K.broken], ['turned', K.turned], ['tiletext', K.tileText],
-   ['lift', C.fx.liftScale]].forEach(kv => { if (kv[1] != null) root.setProperty('--' + kv[0], kv[1]); });
+   ['lift', C.fx.liftScale], ['ph-ms', C.timing.railPlayheadMs + 'ms']].forEach(kv => { if (kv[1] != null) root.setProperty('--' + kv[0], kv[1]); });
   $('titleLabel').textContent = C.text.title;
   $('btnRoll').textContent = C.text.buttons.roll;
   $('btnCommit').textContent = C.text.buttons.commit;
@@ -177,6 +181,7 @@ function renderDice() {
       el.dataset.face = face;
       el.querySelector('.faceRow').innerHTML = hidden ? '<span class="tile" style="background:' + C.colors.unknownBg + ';color:' + C.colors.unknownFg + '">' + C.text.unknownFace + '</span>' : faceHTML(face);
     }
+    el.style.setProperty('--tilt', (ui.tilt[d.id] || 0) + 'deg');
     el.classList.toggle('in-slot', si >= 0);
     el.classList.toggle('held', (d.held || !!d.heldOver) && !hidden);
     el.classList.toggle('frozen', !!vd.frozen);
@@ -185,25 +190,79 @@ function renderDice() {
     el.querySelector('.ctl').style.visibility = canInteract() ? 'visible' : 'hidden';
   });
 }
+// ---- the sentence rail ----
+const stepLabelsFor = (n) => C.text.rail.steps[n] || Array.from({ length: n }, (_, i) => (i === 0 ? 'FIRST' : 'THEN'));
+const verbSpan = (v) => '<span class="vb" style="color:' + C.colors.verb[v] + '" title="' + esc(C.verbInfo[v]) + '">' + v + '</span>';
+// caption of one evaluated step: 'Stab 4+2' / '(knife +1)' (reached = the playhead got here; else the caption stays hidden)
+function stepCaption(s) {
+  const col = s.verb ? C.colors.verb[s.verb] : C.colors.textDim;
+  const pts = s.base + (s.carryIn > 0 ? '<span class="cin" title="' + esc(C.text.rail.carryTip) + '">+' + s.carryIn + '</span>' : '');
+  const notes = s.notes.slice(); if (s.reveal) notes.unshift(C.text.reveal.replace(/[()]/g, ''));
+  const plain = s.name + ' ' + s.base + (s.carryIn > 0 ? '+' + s.carryIn : '') + notes.map(n => ' (' + n + ')').join('');
+  return { html: '<div class="cl1"><span class="cn">' + esc(s.name) + '</span> <span class="cp" style="color:' + col + '">' + pts + '</span></div>' +
+    '<div class="cl2">' + (notes.length ? esc(notes.map(n => '(' + n + ')').join(' ')) : '&nbsp;') + '</div>', title: plain };
+}
 function renderSlots() {
-  const n = slotCount();
+  const n = slotCount(), RT = C.text.rail;
   for (let i = n; i < ui.slots.length; i++) ui.slots[i] = null;           // a debug change of the slot count empties the hidden slots
-  const arrows = document.querySelectorAll('#slots .arrow');
-  dom.slotEls.forEach((s, i) => {
-    s.style.display = i < n ? '' : 'none';
-    if (arrows[i - 1]) arrows[i - 1].style.display = i < n ? '' : 'none';
-    s.classList.toggle('full', !!ui.slots[i]);
-    s.classList.toggle('acting', ui.actingSlot === i);
-    s.dataset.n = i + 1;
+  const p = currentPreview(), tg = p.triggers || {}, last = n - 1;
+  const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy';
+  const ev = live && p.ev && p.ev.slots === n ? p.ev : null;
+  const play = ui.phase === 'resolving' || ui.phase === 'enemy' ? ui.railPlay : null;
+  const labels = stepLabelsFor(n), mi = ev ? ev.mindIndex : -1, mcol = ev && ev.verb ? C.colors.verb[ev.verb] : null;
+  dom.stepEls.forEach((st, i) => {
+    st.style.display = i < n ? '' : 'none';
+    if (i >= n) return;
+    st.classList.toggle('first', i === 0);
+    st.classList.toggle('last', i === last);
+    st.querySelector('.rlabel').textContent = labels[i];
+    const sl = dom.slotEls[i], band = st.querySelector('.rband'), cap = dom.capEls[i], link = st.querySelector('.rlink');
+    sl.classList.toggle('full', !!ui.slots[i]);
+    sl.classList.toggle('acting', ui.actingSlot === i);
+    sl.classList.toggle('trig', !!((tg.glassesFirst && i === 0) || (tg.earTrumpet && tg.earTrumpet.indexOf(i) >= 0) || (tg.pipeLast && i === last)));
+    const step = ev ? ev.steps.find(x => x.slot === i) : null;
+    const reached = !play || i <= play.idx;
+    // MIND band (this slot and everything after it) / instinct tag (before the MIND, or every slot without one)
+    band.className = 'rband'; band.innerHTML = ''; band.removeAttribute('title'); band.style.cssText = '';
+    if (ev && mcol && i >= mi && mi >= 0) {
+      band.classList.add('on'); band.style.background = mcol; band.title = RT.directedTip.replace('{verb}', ev.verb);
+      band.innerHTML = '<span>' + ev.verb + '</span>';
+    } else if (step && step.role === 'instinct') {
+      const v = step.verb;
+      band.classList.add('tag');
+      if (v) { band.style.color = C.colors.verb[v]; band.style.borderColor = C.colors.verb[v]; band.title = RT.instinctTip.replace('{verb}', v); band.textContent = RT.instinct + ' · ' + v; }
+      else { band.classList.add('none'); band.title = RT.noInstinctTip; band.textContent = RT.noInstinct; }
+    }
+    // caption
+    cap.style.visibility = ev && reached ? '' : 'hidden';
+    cap.classList.toggle('mind', !!ev && i === mi);
+    if (ev && i === mi) {
+      const txt = ev.holds ? RT.mindHold : (n === 1 ? RT.mindIdle : RT.mind);
+      cap.innerHTML = '<div class="cl1">' + txt.split('{verb}').map(esc).join(verbSpan(ev.verb)) + '</div><div class="cl2">&nbsp;</div>';
+      cap.title = RT.mindTip;
+    } else if (step) { const c = stepCaption(step); cap.innerHTML = c.html; cap.title = c.title; }
+    else { cap.innerHTML = ''; cap.removeAttribute('title'); }
+    // DIG carry: an arrow from the giving caption to the receiving one
+    link.innerHTML = '';
+    if (step && step.passesTo != null && reached) {
+      const d = step.passesTo - i, col = C.colors.verb[C.revealVerb];
+      link.innerHTML = '<span class="carry" style="width:calc(var(--pitch) * ' + d + ' - 30px);border-color:' + col + ';color:' + col + '" title="' + esc(RT.carryTip) + '"><b>+' + step.total + '</b></span>';
+    }
   });
-  const tg = (currentPreview().triggers) || {}, last = n - 1;
-  dom.slotEls.forEach((s, i) => {
-    s.classList.toggle('trig', !!(i < n && ((tg.glassesFirst && i === 0) || (tg.earTrumpet && tg.earTrumpet.indexOf(i) >= 0) || (tg.pipeLast && i === last))));
-  });
+  // totals at the right end of the rail
+  const tot = $('rtotals');
+  tot.innerHTML = ev ? '<span class="eq">' + esc(RT.totalsPrefix) + '</span> ' + verbify(ev.totalsText) : '<span class="eq">' + esc(RT.totalsPrefix) + ' ' + esc(RT.totalsPending) + '</span>';
+  tot.style.visibility = ev && play && !play.totals ? 'hidden' : '';
+  tot.classList.toggle('pending', !ev);
+  // playhead: slides left -> right along the band row while a commit plays
+  const ph = $('playhead');
+  ph.classList.toggle('on', !!(play && play.idx >= 0 && ui.phase === 'resolving'));
+  if (play && play.idx >= 0) ph.style.setProperty('--ph', play.idx);
   $('slots').classList.toggle('complete', placedCount() === slotCount() && (ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy'));
 }
+// -> { hint?, shape, triggers?, ev? (evaluation, when the sentence is complete), text } ; `text` is the compact line under the rail
 function currentPreview() {
-  if (ui.previewOverride) return ui.previewOverride;
+  if (ui.previewOverride && ui.phase !== 'await-roll') return ui.previewOverride;
   if (ui.phase === 'arranging') {
     if (placedCount() < slotCount()) return { hint: true, shape: '', text: C.text.placeHint.replace(/\{slots\}/g, slotCount()).replace('{n}', placedCount()) };
     const faces = ui.slots.slice(0, slotCount()).map(id => viewFace(id));
@@ -211,10 +270,10 @@ function currentPreview() {
       const ev = E.evaluateSentence(faces, { site: true });
       const sp = E.sitePreview(ui.game, ev);
       const tg = ui.game.target !== null ? ' (' + MT().target.toLowerCase() + ': ' + (ui.game.target + 1) + ')' : '';
-      return { shape: ev.shape, triggers: ev.triggers, text: ev.text + '  ⇒  ' + sp.text + tg, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+      return { shape: ev.shape, triggers: ev.triggers, ev, text: sp.text + tg };
     }
     const ev = E.evaluateSentence(faces, { enemy: ui.game.enemy, tax: ui.game.tax || 0 });
-    return { shape: ev.shape, triggers: ev.triggers, text: ev.text, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
+    return { shape: ev.shape, triggers: ev.triggers, ev, text: '' };
   }
   if (ui.phase === 'await-roll') {
     const log = ui.game.log;
@@ -225,7 +284,7 @@ function currentPreview() {
 }
 function renderPreview() {
   const p = currentPreview();
-  $('shape').textContent = p.sentence ? (p.shape ? p.shape + ' · ' : '') + p.sentence : (p.shape || '');
+  $('railShape').textContent = p.shape ? p.shape.toUpperCase() : '';
   const t = $('previewText');
   t.innerHTML = p.text ? verbify(p.text) : '&nbsp;';
   t.classList.toggle('hint', !!p.hint);

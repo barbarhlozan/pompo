@@ -266,3 +266,15 @@ The single 4,900-line `index.html` was split into `src/` (see `CLAUDE.md` for th
 - Because engine/ui share the global scope, a new top-level name must not clash with another file's (`const` redeclaration
   is a load-time SyntaxError). Pick the file by topic and keep the load order in `src/index.html` in mind for load-time reads
   (only `CONFIG` is read at load time by the engine).
+
+### V2-3 notes (done — sentence rail, playtest fix)
+
+Playtest: the sentence did not read as steps one after another and empty slots looked like tray boxes. Reworked the presentation only (no engine changes; tests 114/114).
+- **Rail** (`#sentence`, `renderSlots` in `ui/10-render.js`): one strip of interlocking chevron steps (`.rstep` = label · band/tag · `.slot` · carry link · caption), title `CONFIG.text.rail.title`, step labels `text.rail.steps[n]` (1 ONLY · 2 FIRST/THEN · 3 FIRST/THEN/LAST), shape label (PLAN … HOLD) in the header, totals `= PRUNE 6 (mods/tax) · SOW 2` at the right end (`evaluation.totalsText`). Empty slots are outlined chevrons with "drop a die".
+- **Captions** per step from `evaluateSentence` (`Stab 4+2` / `(knife +1)`), MIND caption "MIND: sets SOW"; DIG carry = arrow from giving to receiving caption labelled `+N`. Old long preview line is now a compact hint line (placeHint / "Last: …" / site `sitePreview`).
+- **MIND influence**: slots from the MIND rightward get a band in its verb colour; slots before it / all in REFLEX get an `instinct · VERB` tag in the favourite verb's colour (`no instinct` for BACK/BELLY). Tooltips on both.
+- **Tray**: no cell frames; dice are rounded loose dice with a static random tilt per roll/reroll (`ui.tilt`, `CONFIG.ui.trayTiltDeg`, CSS var `--tilt`); held = lit border + lift + HELD badge. On the rail a die loses the frame and reads as a word step. Empty tray spots show a faint dashed ring.
+- **Playback**: `ui.railPlay {idx, totals}`; the `sentence` / `step` / `verb|mod|taxed` handlers move a playhead left→right over the band row, each caption appears and pops (`fx.js` `popCaption`, `flashCarry`); a MIND crossed on the way pops too. Timing: `timing.railStepMs` 280, `railPlayheadMs` 160, `fx.railPopScale`, `fx.arrowSwellScale` (now the +N label swell).
+- Drop target = nearest chevron centre (chevrons overlap by `--ov`). Rail sizes are CSS vars on `#sentence` (`--sw --pt --ov --slotH`).
+- Browser (1280×720, 0 console errors): 1-slot BRIDGE, 2-slot REFLEX (instinct tags + DIG carry), 3-slot PLAN with MIND band, site (HEAP) commit, real drag onto a slot. Screenshot: side-session-notes `rail-3slot-plan.jpg`.
+- Not done: no rail view of the last turn after the dice go `?` (the "Last:" line covers it); `.rcap` notes ellipsise if very long (full text in the tooltip).

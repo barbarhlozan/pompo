@@ -4,6 +4,8 @@
 Object.assign(CONFIG, {
   timing: {
     rollShuffleMs: 600, resolveStepMs: 340, enemyActMs: 560,
+    railStepMs: 280,        // one rail step (caption pops, playhead moves) during COMMIT
+    railPlayheadMs: 160,    // playhead slide between steps
     // Phase 3 (ms)
     shuffleStepMs: 55,      // one shuffle frame (also the roll-tick rate)
     settleStaggerMs: 110,   // extra shuffle time per die so they settle one after another
@@ -35,7 +37,8 @@ Object.assign(CONFIG, {
     burstDistMin: 26, burstDistRange: 40, burstMs: 380, burstMsRange: 160,
     burstCounts: { pip: 6, resolvedExtra: 4, lunge: 8, scar: 10, win: 14 },   // sparks (resolvedExtra is added to `particles`)
     cardPulseScale: 1.1, cardPulseMs: 160,          // enemy face card when a +N arrives
-    arrowSwellScale: 2.2,                           // arrows swelling as DIG points are passed on
+    arrowSwellScale: 1.5,                           // carry arrow label swelling as DIG points are passed on
+    railPopScale: 1.14,                             // a rail caption popping as its step scores
     revealSlideMs: 240,
     lungeUpPx: 16, lungeDownPx: 46, growlShakePx: 4, sniffMs: 520, whimperMs: 600,
     scarShakePx: 9, scarPopScale: 1.6, scarPopMs: 300, scarBoxPulseMs: 320,
@@ -45,6 +48,7 @@ Object.assign(CONFIG, {
   ui: {
     dragThresholdPx: 5,             // moving less than this = a click (toggle hold), not a drag
     dropSlackPx: 12,                // how far outside a slot a drop still counts
+    trayTiltDeg: 6,                 // max static tilt of a die lying in the tray (new per roll)
   },
   debug: { logRows: 10, pollMs: 120 },
 });

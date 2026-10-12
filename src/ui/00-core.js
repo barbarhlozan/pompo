@@ -28,6 +28,8 @@ const ui = {
   previewOverride: null,       // {shape, text} while a committed sentence plays
   verbFlash: '',
   actingSlot: null,
+  railPlay: null,              // { idx, totals } while a committed sentence plays on the rail: steps up to idx are reached
+  tilt: {},                    // die id -> static tray tilt in degrees (new per roll)
   hidePips: false,             // debug panel: hide enemy pip states / resolved tile looks in the face strip
   showMap: false,              // debug: draw the whole map without fog
   showSite: false,             // debug: draw hidden site contents

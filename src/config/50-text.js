@@ -21,6 +21,18 @@ Object.assign(CONFIG, {
     noItems: '0 items',
   },
   text: {
+    // the sentence rail (src/ui/10-render.js renderSlots): title, step labels by slot count, per-step tags / captions
+    rail: {
+      title: 'WHAT YOU DO', empty: 'drop a die', totalsPrefix: '=', totalsPending: '…',
+      steps: { 1: ['ONLY'], 2: ['FIRST', 'THEN'], 3: ['FIRST', 'THEN', 'LAST'] },   // more slots than listed: FIRST, THEN, THEN…
+      mind: 'MIND: sets {verb}', mindIdle: 'MIND: sets {verb}, nothing to act', mindHold: 'MIND: keep one die',
+      mindTip: 'The MIND sets the verb for every die after it.',
+      instinct: 'instinct', noInstinct: 'no instinct',
+      instinctTip: 'Acts on instinct (before the MIND, or no MIND): its favourite verb {verb}.',
+      noInstinctTip: 'No instinct: this part does nothing on its own.',
+      directedTip: 'Acts with the MIND\'s verb {verb}.',
+      carryTip: 'DIG passes its points on to the next die.',
+    },
     help: 'ROLL, hold & reroll, drag dice into the sentence slots, COMMIT. The MIND die (optional) sets the verb for dice after it; dice before it, or with no MIND, act on instinct.',
     reveal: '(reveal)', noEffect: 'nothing happens', scar: 'SCAR', idleText: 'nothing happens', holdText: 'hold one die for the next turn',
     belly: 'your belly was exposed', lostDie: 'your {die} gave out',   // `scar` is also the face key of a scarred face
