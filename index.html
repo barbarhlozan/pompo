@@ -92,6 +92,10 @@
   #rtotals.pending { color:var(--dim); }
   #rtotals.pending .eq { color:var(--dim); }
   #rtotals .rx { color:var(--note); }
+  #rtotals .sofar { font-family:var(--body, inherit); font-size:var(--fs-min); font-style:italic; color:var(--dim); margin-left:4px; }
+  #rtotals.pending .rx { color:var(--dim); }
+  #sentence.partial .rband.tag.prov { border-style:dashed; opacity:.7; }
+  .carry.prov { border-top-style:dashed; }
   #railShape { color:var(--lit); font-family:var(--display); font-weight:400; font-size:22px; letter-spacing:.12em; }
   #slots { position:relative; display:flex; align-items:flex-start; }
   .rstep { position:relative; width:var(--sw); flex:none; }
@@ -535,15 +539,21 @@ Object.assign(CONFIG, {
   // Sentence labels by MIND position. `first` / `middle` / `last` apply to any slot count; no MIND = reflex;
   // a lone MIND in a 1-slot sentence = idle (or hold with mindAloneHolds).
   shapeNames: { first: 'Plan', middle: 'Situation', last: 'Impulse', reflex: 'Reflex', idle: 'Idle', hold: 'Hold' },
+  // Action names. Defaults are neutral (they read against an animal, a person, a place or a scavenge site); actionNamesByTag overrides
+  // single names for an encounter whose first matching tag is that tag (animal | human | place; scavenge sites use 'site').
+  // Lookup order: item name for the tag -> item name -> part name for the tag -> part name. Keep names short (shown big in slots).
   actionNames: {                                      // bare body parts only: [bodyPart][verb]; item faces use items[id].names. IDLE = acting on instinct with no verb
     'PALM':  { PRUNE: 'Hit',      SOW: 'Gesture',     DIG: 'Search' },
     'ARM':   { PRUNE: 'Swing',    SOW: 'Wave',        DIG: 'Reach' },
-    'MOUTH': { PRUNE: 'Insult',   SOW: 'Small talk',  DIG: 'Ask' },
-    'EYE':   { PRUNE: 'Glare',    SOW: 'Kind look',   DIG: 'Look' },
-    'EAR':   { PRUNE: 'Tune out', SOW: 'Hear out',    DIG: 'Listen' },
-    'NOSE':  { PRUNE: 'Snort',    SOW: 'Sniff kindly', DIG: 'Sniff out' },
+    'MOUTH': { PRUNE: 'Shout',    SOW: 'Coax',        DIG: 'Call out' },
+    'EYE':   { PRUNE: 'Glare',    SOW: 'Soft look',   DIG: 'Look' },
+    'EAR':   { PRUNE: 'Tune out', SOW: 'Lend an ear', DIG: 'Listen' },
+    'NOSE':  { PRUNE: 'Snort',    SOW: 'Sniff gently', DIG: 'Sniff out' },
     'BACK':  { PRUNE: 'Shove',    SOW: 'Lean',        DIG: 'Hunch',  IDLE: 'Brace' },
-    'BELLY': { PRUNE: 'Bump',     SOW: 'Laugh',       DIG: 'Rumble', IDLE: 'Clench' },
+    'BELLY': { PRUNE: 'Bump',     SOW: 'Chuckle',     DIG: 'Rumble', IDLE: 'Clench' },
+  },
+  actionNamesByTag: {                                 // [tag][bodyPart][verb]
+    human: { MOUTH: { PRUNE: 'Insult', SOW: 'Small talk', DIG: 'Ask' }, EAR: { SOW: 'Hear out' }, BELLY: { SOW: 'Laugh' } },
   },
 });
 
@@ -553,34 +563,37 @@ Object.assign(CONFIG, {
 
 Object.assign(CONFIG, {
   // Items: part, a name per verb (null = use the part's action name), a `special` code the engine switches on, `info` for
-  // tooltips, optional `uses` (charges) and `forbidden` (inert until checks). Numbers for the specials live in itemRules.
+  // tooltips, optional `namesByTag` ({ tag: { VERB: name } }, tag = animal | human | place | site; overrides `names`), optional `uses` (charges) and `forbidden` (inert until checks). Numbers for the specials live in itemRules.
   // Every item also gives points.itemBonus.
   items: {
-    KNIFE:        { name: 'KNIFE',        part: 'PALM',  names: { PRUNE: 'Stab',   SOW: 'Threaten',        DIG: 'Pry' },
+    KNIFE:        { name: 'KNIFE',        part: 'PALM',  names: { PRUNE: 'Stab',   SOW: 'Threaten',        DIG: 'Poke' }, namesByTag: { site: { DIG: 'Pry' }, place: { DIG: 'Pry' } },
                     special: 'knife',       info: 'PRUNE: +1 extra point' },
-    SHEARS:       { name: 'SHEARS',       part: 'PALM',  names: { PRUNE: 'Snip',   SOW: 'Offer to trim',   DIG: 'Cut open' },
+    SHEARS:       { name: 'SHEARS',       part: 'PALM',  names: { PRUNE: 'Snip',   SOW: 'Show shears',     DIG: 'Snip around' },
+                    namesByTag: { human: { SOW: 'Offer a trim' }, site: { DIG: 'Cut open' }, place: { DIG: 'Cut open' } },
                     special: 'shears',      info: 'PRUNE: its points are split across 2 different faces. On a scavenge site, PRUNE with SHEARS makes no noise' },
-    SPADE:        { name: 'SPADE',        part: 'PALM',  names: { PRUNE: 'Whack',  SOW: 'Lean and chat',   DIG: 'Dig' },
+    SPADE:        { name: 'SPADE',        part: 'PALM',  names: { PRUNE: 'Whack',  SOW: 'Lean on spade',   DIG: 'Dig' }, namesByTag: { human: { SOW: 'Lean and chat' } },
                     special: 'spade',       info: 'DIG on a scavenge site: reveals all faces' },
-    WATERING_CAN: { name: 'WATERING CAN', part: 'PALM',  names: { PRUNE: 'Splash', SOW: 'Water their plant', DIG: 'Flood out' },
+    WATERING_CAN: { name: 'WATERING CAN', part: 'PALM',  names: { PRUNE: 'Splash', SOW: 'Sprinkle', DIG: 'Pour out' },
+                    namesByTag: { human: { SOW: 'Water their plant' }, site: { DIG: 'Flood out' }, place: { DIG: 'Flood out' } },
                     special: 'wateringCan', info: 'SOW: +1 now, and +1 SOW automatically at the start of your next turn' },
-    MATCHES:      { name: 'MATCHES',      part: 'PALM',  names: { PRUNE: 'Light up', SOW: 'Offer a light', DIG: 'Shine' },
+    MATCHES:      { name: 'MATCHES',      part: 'PALM',  names: { PRUNE: 'Light up', SOW: 'Strike one', DIG: 'Shine' }, namesByTag: { human: { SOW: 'Offer a light' } },
                     special: 'matches',     uses: 3, info: 'PRUNE: +2. Each use spends 1 charge; at 0 the matches burn out' },
-    FORBIDDEN_BOOK: { name: 'FORBIDDEN BOOK', part: 'PALM', names: { PRUNE: 'Smack', SOW: 'Quote', DIG: 'Look up' },
+    FORBIDDEN_BOOK: { name: 'FORBIDDEN BOOK', part: 'PALM', names: { PRUNE: 'Smack', SOW: 'Read aloud', DIG: 'Look up' }, namesByTag: { human: { SOW: 'Quote' } },
                     special: 'forbiddenBook', forbidden: true, info: 'SOW: +2. Forbidden: suspicious at checks (later)' },
     SEED_POUCH:   { name: 'SEED POUCH',   part: 'PALM',  names: { PRUNE: null, SOW: null, DIG: null },
                     special: 'seedPouch',   uses: 3, info: 'Needed to catch a soul (later). One use per soul. No effect yet' },
     SLEEVE_POCKET: { name: 'SLEEVE POCKET', part: 'ARM', names: { PRUNE: null, SOW: null, DIG: null },
                     special: 'sleevePocket', info: 'At a check (later) the item on a neighbouring face stays hidden. No effect yet' },
-    GLASSES:      { name: 'GLASSES',      part: 'EYE',   names: { PRUNE: 'Glint',  SOW: 'Look learned',    DIG: 'Read the fine print' },
+    GLASSES:      { name: 'GLASSES',      part: 'EYE',   names: { PRUNE: 'Glint',  SOW: 'Peer kindly',      DIG: 'Squint' },
+                    namesByTag: { human: { SOW: 'Look learned', DIG: 'Read the fine print' }, site: { DIG: 'Inspect' }, place: { DIG: 'Inspect' } },
                     special: 'glasses',     info: 'First in the sentence: reveals the next 2 enemy intents' },
-    LANTERN:      { name: 'LANTERN',      part: 'EYE',   names: { PRUNE: 'Dazzle', SOW: 'Warm light',      DIG: 'Light up' },
+    LANTERN:      { name: 'LANTERN',      part: 'EYE',   names: { PRUNE: 'Dazzle', SOW: 'Warm light',      DIG: 'Shed light' },
                     special: 'lantern',     info: 'This eye face counts as matching (2 points) under any verb' },
-    EAR_TRUMPET:  { name: 'EAR TRUMPET',  part: 'EAR',   names: { PRUNE: null,     SOW: 'Listen closely',  DIG: 'Eavesdrop' },
+    EAR_TRUMPET:  { name: 'EAR TRUMPET',  part: 'EAR',   names: { PRUNE: null,     SOW: 'Listen closely',  DIG: 'Listen in' }, namesByTag: { human: { DIG: 'Eavesdrop' } },
                     special: 'earTrumpet',  info: 'Directly before a MOUTH die: that MOUTH gets +2' },
     WHISTLE:      { name: 'WHISTLE',      part: 'MOUTH', names: { PRUNE: 'Shriek', SOW: 'Call softly',     DIG: 'Echo' },
                     special: 'whistle',     info: 'SOW vs animals: this die\'s points ×2' },
-    PIPE:         { name: 'PIPE',         part: 'MOUTH', names: { PRUNE: 'Blow smoke', SOW: 'Calm chat',   DIG: 'Ponder' },
+    PIPE:         { name: 'PIPE',         part: 'MOUTH', names: { PRUNE: 'Blow smoke', SOW: 'Puff calmly', DIG: 'Ponder' }, namesByTag: { human: { SOW: 'Calm chat' } },
                     special: 'pipe',        info: 'Last in the sentence: wanted level −1 (no effect yet)' },
     VEST:         { name: 'VEST',         part: 'BELLY', names: { PRUNE: null, SOW: null, DIG: null },
                     special: 'vest',        info: 'Covers the belly: no scar when it is exposed' },
@@ -801,7 +814,7 @@ Object.assign(CONFIG, {
     // plain-language narration under the rail (src/ui/10-render.js narrateSentence / narrateResult). {them} = the enemy's shortName
     // (or the site's shortName); from the second mention it is the pronoun N.pron / enemy.pron. A step's phrase = actions[action name] (items and bare parts share the name space), else the lower-cased action name.
     narration: {
-      you: 'You {steps}.', joinThen: ', then ', joinLast: ', and finally ', youIdle: 'You do nothing much.', pron: { them: 'it', its: 'its' }, idle: 'stand around', scar: 'flail with a scarred limb',
+      you: 'You {steps}.', youPartial: 'You {steps}, then …', joinThen: ', then ', joinLast: ', and finally ', youIdle: 'You do nothing much.', pron: { them: 'it', its: 'its' }, idle: 'stand around', scar: 'flail with a scarred limb',
       mind: ' (MIND: {verb})',
       actions: {
         Hit: 'punch {them}', Gesture: 'gesture at {them}', Search: 'pat down {them}',
@@ -823,7 +836,16 @@ Object.assign(CONFIG, {
         'Listen closely': 'listen closely to {them}', Eavesdrop: 'eavesdrop on {them}',
         Shriek: 'shriek at {them}', 'Call softly': 'call softly to {them}', Echo: 'echo {them}',
         'Blow smoke': 'blow smoke at {them}', 'Calm chat': 'chat calmly with {them}', Ponder: 'ponder {them} over your pipe',
+        Shout: 'shout at {them}', Coax: 'coax {them}', 'Call out': 'call out to {them}', 'Lend an ear': 'lend {them} an ear',
+        'Soft look': 'give {them} a soft look', 'Sniff gently': 'sniff gently at {them}', Chuckle: 'chuckle at {them}',
+        Poke: 'poke at {them} with your knife', 'Show shears': 'show {them} your shears', 'Snip around': 'snip around {them}',
+        'Lean on spade': 'lean on your spade near {them}', Sprinkle: 'sprinkle {them}', 'Pour out': 'pour water over {them}',
+        'Strike one': 'strike a match near {them}', 'Read aloud': 'read aloud from the forbidden book', 'Offer a trim': 'offer {them} a trim',
+        'Peer kindly': 'peer kindly at {them}', Squint: 'squint at {them}', Inspect: 'inspect {them} closely',
+        'Shed light': 'shed some light on {them}', 'Listen in': 'listen in on {them}', 'Puff calmly': 'puff calmly on your pipe',
       },
+      // phrase overrides for one encounter tag (same name, different wording): [tag][action name]; lookup tag -> actions
+      actionsByTag: { site: { Search: 'rummage through {them}', Look: 'look over {them}' }, place: { Search: 'feel along {them}' } },
       // after resolution: what it did to them (one clause per face touched; {face} = its action name, {n} pips)
       faceBroken: '{its} {face} breaks.', faceTurned: '{its} {face} turns friendly.',
       facePartBroken: '{n} of {its} {face} pips break.', facePartTurned: '{n} of {its} {face} pips turn.',   // {its} is capitalised at a sentence start
@@ -833,7 +855,7 @@ Object.assign(CONFIG, {
     },
     // the sentence rail (src/ui/10-render.js renderSlots): title, step labels by slot count, per-step tags / captions
     rail: {
-      title: 'WHAT YOU DO', empty: 'drop a die', totalsPrefix: '=', totalsPending: '…',
+      title: 'WHAT YOU DO', empty: 'drop a die', totalsPrefix: '=', totalsPending: '…', totalsSoFar: 'so far', shapePending: '…',
       steps: { 1: ['ONLY'], 2: ['FIRST', 'THEN'], 3: ['FIRST', 'THEN', 'LAST'] },   // more slots than listed: FIRST, THEN, THEN…
       mindSets: 'SETS {verb}', mindHoldAction: 'HOLD', mindIdle: 'nothing to act', mindHold: 'keeps one die for next turn',
       scarRed: 'SCARRED', scarTip: 'SCAR: 0 points, does nothing.',
@@ -854,7 +876,7 @@ Object.assign(CONFIG, {
     buttons: { roll: 'ROLL', reroll: 'REROLL ({n} left)', commit: 'COMMIT', restart: 'RESTART TRIP', continue: 'CONTINUE' },
     title: 'SMUGGLER', turn: 'TURN', scarsLabel: 'SCARS', intentLabel: 'INTENT', now: 'NOW', next: 'NEXT', nextPrefix: 'next:',
     held: 'HELD', unknownFace: '?', then: 'THEN',
-    placeHint: 'Fill all {slots} slots to see what the sentence does ({n}/{slots})',
+    placeHint: 'Fill all {slots} slots to COMMIT ({n}/{slots})',
     holdPick: 'HOLD: click one body die to keep its face for the next turn', heldStatus: '{die} held over',
     lastTurn: 'Last:', lastAction: 'last turn:', pressRoll: 'Press ROLL to start',
     growlStatus: '−1 reroll this turn ({n} total)', bonusStatus: '+{n} reroll (seeds)', sowStatus: '+{n} SOW at turn start (watering can)',
@@ -890,8 +912,8 @@ Object.assign(CONFIG, {
     // V1-5: start screen, map and site screen strings ({n} {c} {max} {item} {name})
     m2: {
       startSub: 'Choose a trip', changeMode: 'MODE SELECT',
-      startM1: 'M1 SEQUENCE', startM1Desc: 'Five events and a campfire, one after another. No map.',
-      startM2: 'M2 MAP', startM2Desc: 'Walk a foggy map to the gate. Daylight runs out; scavenge sites make noise.',
+      startM1: 'SEQUENCE', startM1Desc: 'Five events and a campfire, one after another. No map.',
+      startM2: 'MAP', startM2Desc: 'Walk a foggy map to the gate. Daylight runs out; scavenge sites make noise.',
       daylight: 'DAYLIGHT', scars: 'SCARS', items: 'ITEMS', you: 'YOU', map: 'MAP', moves: 'MOVES {n}', dayShort: '☀ {n}', coldShort: 'THE COLD',
       mapHint: 'Click a highlighted tile to walk there. Each step costs 1 daylight; in the dark every step scars you.',
       coldHint: 'No daylight left: every step scars you (THE COLD).',
@@ -1096,14 +1118,25 @@ function scoreBodyFace(face, verb, ctx) {
   if (p.kind === 'scar') return CONFIG.points.scar;
   return scoreDetail(p, verb, ctx).own;
 }
-// Name of the action a body face performs under `verb` (null verb = idle). Item names win over bare-part names.
-function actionName(p, verb) {
+// Name of the action a body face performs under `verb` (null verb = idle). `tags` = the encounter's tags ('site' for scavenge sites);
+// lookup order: item name for the first tag that has one -> item name -> bare-part name for a tag -> bare-part name.
+function actionName(p, verb, tags) {
   const d = itemDef(p.item);
   const key = verb || 'IDLE';
-  if (verb && d && d.names && d.names[verb]) return d.names[verb];
-  const a = CONFIG.actionNames[p.body];
-  return a && a[key] ? a[key] : p.face + ' ' + key;
+  tags = tags || [];
+  const pick = (byTag, base) => {
+    for (let i = 0; i < tags.length; i++) { const t = byTag && byTag[tags[i]]; if (t && t[key]) return t[key]; }
+    return base && base[key] ? base[key] : null;
+  };
+  let r = verb && d ? pick(d.namesByTag, d.names) : null;
+  if (!r) {
+    const bt = CONFIG.actionNamesByTag, byTag = {};
+    tags.forEach(t => { if (bt && bt[t] && bt[t][p.body]) byTag[t] = bt[t][p.body]; });
+    r = pick(byTag, CONFIG.actionNames[p.body]);
+  }
+  return r || p.face + ' ' + key;
 }
+const contextTags = (ctx) => (ctx.site ? ['site'] : ((ctx.enemy && ctx.enemy.tags) || []));
 
 // ---------- sentence ----------
 // faces = 1..N face strings in slot order (N = the encounter's slots), 0 or 1 verb face (the MIND die), ctx = { enemy?, site?, tax? }:
@@ -1114,11 +1147,24 @@ function actionName(p, verb) {
 // Order triggers (final slot order): GLASSES in slot 0 = reveal depth 2; EAR TRUMPET directly before a MOUTH face = that face +2;
 // PIPE in the last slot = wanted level change (evaluation.pipeLast, no effect yet).
 function evaluateSentence(faces, ctx) {
+  if (faces.some(f => f == null)) throw new Error('evaluateSentence needs every slot filled (use evaluatePartial)');
+  return evaluateCore(faces, ctx, false);
+}
+// Same evaluation for a sentence that is still being built: slots = one entry per slot, a face string or null (empty).
+// Empty slots are skipped; a die is directed only if the MIND sits before it; DIG's carry goes to the next placed body die
+// (step.carryProvisional if an empty slot lies between, step.carryPending if no die is placed after it yet); the label is null
+// (shape '…') until a MIND is placed or every slot is full. Result adds complete / placed / shapeKnown; with every slot full it is
+// identical to evaluateSentence. A partial result has no steps for empty slots and `totalsText` '' when nothing is known yet.
+function evaluatePartial(slots, ctx) { return evaluateCore(slots, ctx, true); }
+function evaluateCore(faces, ctx, partial) {
   ctx = ctx || {};
   const enemy = ctx.site ? null : (ctx.enemy || null);
-  const parsed = faces.map(parseFace);
+  const tags = contextTags(ctx);
+  const parsed = faces.map(f => (f == null ? { face: null, kind: 'empty', verb: null, body: null, item: null } : parseFace(f)));
   const n = parsed.length;
   if (n < 1) throw new Error('sentence needs at least one face');
+  const emptyCount = parsed.filter(p => p.kind === 'empty').length;
+  const complete = emptyCount === 0;
   const verbSlots = [];
   parsed.forEach((p, i) => { if (p.kind === 'verb') verbSlots.push(i); });
   if (verbSlots.length > 1) throw new Error('sentence needs at most one verb face, got ' + verbSlots.length);
@@ -1127,7 +1173,7 @@ function evaluateSentence(faces, ctx) {
   const SN = CONFIG.shapeNames;
   const holds = mindIndex >= 0 && n === 1 && !!CONFIG.mindAloneHolds;
   let shape;
-  if (mindIndex < 0) shape = SN.reflex;
+  if (mindIndex < 0) shape = complete ? SN.reflex : CONFIG.text.rail.shapePending;
   else if (n === 1) shape = holds ? SN.hold : SN.idle;
   else shape = mindIndex === 0 ? SN.first : (mindIndex === n - 1 ? SN.last : SN.middle);
 
@@ -1151,7 +1197,7 @@ function evaluateSentence(faces, ctx) {
   if (last.kind === 'body' && specialOf(last.item) === 'pipe') triggers.pipeLast = true;
 
   parsed.forEach((p, i) => {
-    if (i === mindIndex) return;
+    if (i === mindIndex || p.kind === 'empty') return;
     if (p.kind === 'scar') {
       steps.push({ slot: i, face: p.face, role: 'scar', verb: null, base: CONFIG.points.scar, carryIn: 0,
         total: 0, reveal: false, passesTo: null, name: CONFIG.text.scar, item: null, notes: [], depth: 0, idle: false });
@@ -1162,6 +1208,8 @@ function evaluateSentence(faces, ctx) {
     const part = partInfo(p.body);
     let v = role === 'instinct' ? (part.favourite || part.instinctVerb || null) : verb;
     const idle = !v;
+    // the role of a die left of a gap can still change if the MIND lands to its left
+    const roleProvisional = role === 'instinct' && mindIndex < 0 && parsed.slice(0, i).some(q => q.kind === 'empty');
     const sp = specialOf(p.item);
     const det = scoreDetail(p, v, { enemy, site: !!ctx.site, extra: trumpetFor[i] || 0 });
     const base = det.own;
@@ -1169,7 +1217,7 @@ function evaluateSentence(faces, ctx) {
     const total = base + carryIn;
     carry = 0;
     const notes = det.notes.slice();
-    let stepReveal = false, passesTo = null, depth = 0;
+    let stepReveal = false, passesTo = null, depth = 0, carryProvisional = false, carryPending = false;
     if (!idle) {
       if (v === CONFIG.revealVerb) depth = RULES.defaultRevealDepth;
       if (part.revealsNext) {
@@ -1184,9 +1232,12 @@ function evaluateSentence(faces, ctx) {
       if (depth > 0) { reveal = true; revealDepth = Math.max(revealDepth, depth); }
       if (v === CONFIG.revealVerb) {
         stepReveal = true;
+        let gap = false;
         for (let j = i + 1; j < parsed.length; j++) {
-          if (j !== mindIndex && parsed[j].kind === 'body') { passesTo = j; carry = total; break; }
+          if (parsed[j].kind === 'empty') { gap = true; continue; }
+          if (j !== mindIndex && parsed[j].kind === 'body') { passesTo = j; carry = total; carryProvisional = gap; break; }
         }
+        carryPending = passesTo === null && gap;
       } else if (totals[v] !== undefined) {
         totals[v] += total;
         if (order.indexOf(v) < 0) order.push(v);
@@ -1196,7 +1247,7 @@ function evaluateSentence(faces, ctx) {
       if (det.flags.matches) spends.push({ slot: i, item: p.item });
     }
     steps.push({ slot: i, face: p.face, role, verb: v, base, carryIn, total, reveal: stepReveal, passesTo,
-      name: actionName(p, v), item: p.item, notes, depth, idle });
+      name: actionName(p, v, tags), item: p.item, notes, depth, idle, roleProvisional, carryProvisional, carryPending });
     carryAfter.push(carry > 0);
   });
   // forbidden items in the sentence (any verb), for the future checks
@@ -1247,10 +1298,10 @@ function evaluateSentence(faces, ctx) {
     revealText = revealDepth === 1 ? CONFIG.text.revealTotals.intent : fmt(CONFIG.text.revealTotals.intents, { n: revealDepth });
   }
   if (revealText) parts.push(revealText);
-  const totalsText = parts.length ? parts.join(' · ') : CONFIG.text.noEffect;
+  const totalsText = parts.length ? parts.join(' · ') : (complete ? CONFIG.text.noEffect : '');
   const text = steps.length ? shape + ': ' + stepsText + ' → ' + totalsText
     : shape + ': ' + (holds ? CONFIG.text.holdText : CONFIG.text.idleText);
-  return { shape, slots: n, mindIndex, verb, holds, steps, totals, order, reveal, revealDepth, mods, taxed, shears, pendingSow,
+  return { shape, shapeKnown: shape !== CONFIG.text.rail.shapePending, complete, placed: n - emptyCount, tags, slots: n, mindIndex, verb, holds, steps, totals, order, reveal, revealDepth, mods, taxed, shears, pendingSow,
     spends, forbidden, triggers, pipeLast: triggers.pipeLast, revealText, revealFaces, totalsText, text };
 }
 
@@ -2552,7 +2603,7 @@ function leaveSite(trip) {
 // Classic script: top-level names are shared with the other src/engine/*.js files (formerly one IIFE). No DOM, no timers, RNG injected.
 
 globalThis.SmugEngine = {
-  makeRng, parseFace, scoreBodyFace, scoreDetail, evaluateSentence, actionName,
+  makeRng, parseFace, scoreBodyFace, scoreDetail, evaluateSentence, evaluatePartial, actionName,
   createPlayer, currentFace, rollDie, toggleHold, rerollUnheld, countScars,
   createEnemy, faceStatus, isResolved, isHostile, applyVerb, rollIntent, enemyAct, checkWin, checkLose,
   createGame, startTurn, resolveTurn,
@@ -2916,19 +2967,18 @@ function stepCaption(s) {
 function renderSlots() {
   const n = slotCount(), RT = C.text.rail;
   for (let i = n; i < ui.slots.length; i++) ui.slots[i] = null;           // a debug change of the slot count empties the hidden slots
-  const p = currentPreview(), tg = p.triggers || {}, last = n - 1;
+  const p = currentPreview(), last = n - 1;
   const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy';
-  const ev = live && p.ev && p.ev.slots === n ? p.ev : null;
+  const full = live && p.ev && p.ev.slots === n ? p.ev : null;
   const play = ui.phase === 'resolving' || ui.phase === 'enemy' ? ui.railPlay : null;
-  // partial sentence: evaluate the placed dice (empty slots padded with a scar, which does nothing) so each slot already shows its action
-  let pev = null;
-  if (!ev && ui.phase === 'arranging' && placedCount() > 0) {
-    const faces = []; for (let i = 0; i < n; i++) faces.push(ui.slots[i] ? viewFace(ui.slots[i]) : C.text.scar);
-    try { pev = E.evaluateSentence(faces, isSite() ? { site: true } : { enemy: ui.game.enemy, tax: ui.game.tax || 0 }); } catch (e) { pev = null; }
-  }
+  // sentence being built: engine partial evaluation (empty slots skipped), so the rail builds up die by die
+  const ev = full || (ui.phase === 'arranging' && placedCount() > 0 ? partialEvaluation() : null);
+  const partial = !!ev && !ev.complete;
+  $('sentence').classList.toggle('partial', partial);
   // fit the chevrons to the page width (CSS --sw is the 3-slot size; more slots shrink it)
   const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 425, ovPx = 26;
   sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1232 + (n - 1) * ovPx) / n)) + 'px');
+  const tg = (ev && ev.triggers) || {};
   const labels = stepLabelsFor(n), mi = ev ? ev.mindIndex : -1, mcol = ev && ev.verb ? C.colors.verb[ev.verb] : null;
   dom.stepEls.forEach((st, i) => {
     st.style.display = i < n ? '' : 'none';
@@ -2950,16 +3000,18 @@ function renderSlots() {
     } else if (step && step.role === 'instinct') {
       const v = step.verb;
       band.classList.add('tag');
+      if (step.roleProvisional) band.classList.add('prov');
       if (v) { band.style.color = C.colors.verb[v]; band.style.borderColor = C.colors.verb[v]; band.title = RT.instinctTip.replace('{verb}', v); band.textContent = RT.instinct + ' · ' + v; }
       else { band.classList.add('none'); band.title = RT.noInstinctTip; band.textContent = RT.noInstinct; }
     }
     // the action in the slot (live, also while the sentence is still being filled) + caption (annotations only)
-    const act = dom.actEls[i], sev = ev || pev, sstep = sev && ui.slots[i] ? sev.steps.find(x => x.slot === i) : null;
+    const act = dom.actEls[i], sev = ev, sstep = sev && ui.slots[i] ? sev.steps.find(x => x.slot === i) : null;
     let sa = null;
     if (sev && ui.slots[i]) sa = (sev.mindIndex === i) ? slotAction('mind', sev) : (sstep ? slotAction(sstep, sev) : null);
     if (sa) { act.innerHTML = sa.html; act.title = sa.title; } else { act.innerHTML = ''; act.removeAttribute('title'); }
     sl.classList.toggle('acts', !!sa);
     cap.style.visibility = ev && reached ? '' : 'hidden';
+    cap.classList.toggle('prov', partial);
     cap.classList.toggle('mind', !!ev && i === mi);
     if (ev && i === mi) {
       cap.innerHTML = '<div class="cl1">' + (ev.holds ? esc(RT.mindHold) : (n === 1 ? esc(RT.mindIdle) : '&nbsp;')) + '</div>';
@@ -2970,25 +3022,32 @@ function renderSlots() {
     link.innerHTML = '';
     if (step && step.passesTo != null && reached) {
       const d = step.passesTo - i, col = C.colors.verb[C.revealVerb];
-      link.innerHTML = '<span class="carry" style="width:calc(var(--pitch) * ' + d + ' - 30px);border-color:' + col + ';color:' + col + '" title="' + esc(RT.carryTip) + '"><b>+' + step.total + '</b></span>';
+      link.innerHTML = '<span class="carry' + (step.carryProvisional ? ' prov' : '') + '" style="width:calc(var(--pitch) * ' + d + ' - 30px);border-color:' + col + ';color:' + col + '" title="' + esc(RT.carryTip) + '"><b>+' + step.total + (step.carryProvisional ? '?' : '') + '</b></span>';
     }
   });
   // totals at the right end of the rail
   const tot = $('rtotals');
-  tot.innerHTML = ev ? '<span class="eq">' + esc(RT.totalsPrefix) + '</span> ' + verbify(ev.totalsText) : '<span class="eq">' + esc(RT.totalsPrefix) + ' ' + esc(RT.totalsPending) + '</span>';
+  const known = ev && ev.totalsText;
+  tot.innerHTML = known ? '<span class="eq">' + esc(RT.totalsPrefix) + '</span> ' + verbify(ev.totalsText) + (partial ? ' <span class="sofar">' + esc(RT.totalsSoFar) + '</span>' : '')
+    : '<span class="eq">' + esc(RT.totalsPrefix) + ' ' + esc(RT.totalsPending) + '</span>';
   tot.style.visibility = ev && play && !play.totals ? 'hidden' : '';
-  tot.classList.toggle('pending', !ev);
+  tot.classList.toggle('pending', !known || partial);
   // playhead: slides left -> right along the band row while a commit plays
   const ph = $('playhead');
   ph.classList.toggle('on', !!(play && play.idx >= 0 && ui.phase === 'resolving'));
   if (play && play.idx >= 0) ph.style.setProperty('--ph', play.idx);
   $('slots').classList.toggle('complete', placedCount() === slotCount() && (ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy'));
 }
+// evaluation of the sentence as built so far (empty slots skipped); null while nothing is placed
+function partialEvaluation() {
+  const faces = []; for (let i = 0; i < slotCount(); i++) faces.push(ui.slots[i] ? viewFace(ui.slots[i]) : null);
+  try { return E.evaluatePartial(faces, isSite() ? { site: true } : { enemy: ui.game.enemy, tax: ui.game.tax || 0 }); } catch (e) { return null; }
+}
 // -> { hint?, shape, triggers?, ev? (evaluation, when the sentence is complete), text } ; `text` is the compact line under the rail
 function currentPreview() {
   if (ui.previewOverride && ui.phase !== 'await-roll') return ui.previewOverride;
   if (ui.phase === 'arranging') {
-    if (placedCount() < slotCount()) return { hint: true, shape: '', text: C.text.placeHint.replace(/\{slots\}/g, slotCount()).replace('{n}', placedCount()) };
+    if (placedCount() < slotCount()) return { hint: true, shape: placedCount() > 0 ? ((partialEvaluation() || {}).shape || C.text.rail.shapePending) : '', text: C.text.placeHint.replace(/\{slots\}/g, slotCount()).replace('{n}', placedCount()) };
     const faces = ui.slots.slice(0, slotCount()).map(id => viewFace(id));
     if (isSite()) {
       const ev = E.evaluateSentence(faces, { site: true });
@@ -3019,20 +3078,28 @@ const themName = () => {
   return (st && st.shortName) || (g && g.name ? g.name.toLowerCase() : 'it');
 };
 const pronouns = () => Object.assign({}, C.text.narration.pron, ui.game && ui.game.enemy && ui.game.enemy.pron || {});
+// phrase for an action name: the encounter's first tag with an override, else the flat map
+function phraseFor(name, tags) {
+  const N = C.text.narration, by = N.actionsByTag || {};
+  for (let i = 0; i < (tags || []).length; i++) if (by[tags[i]] && by[tags[i]][name]) return by[tags[i]][name];
+  return N.actions[name];
+}
 function narrateSentence(ev) {
   const N = C.text.narration, them = themName();
-  if (!ev || !ev.steps.length) return N.youIdle;
+  if (!ev || !ev.steps.length) return ev && !ev.complete ? '' : N.youIdle;
+  const partial = !ev.complete;
   const pr = pronouns();
   let named = false;
   const parts = ev.steps.map(s => {
-    const t = s.role === 'scar' ? N.scar : (N.actions[s.name] || (s.idle ? N.idle : s.name.toLowerCase()));
+    const t = s.role === 'scar' ? N.scar : (phraseFor(s.name, ev.tags) || (s.idle ? N.idle : s.name.toLowerCase()));
     if (t.indexOf('{them}') < 0) return t;
     const r = t.replace(/\{them\}/g, named ? pr.them : them);   // the name once, then the pronoun
     named = true;
     return r;
   });
   let out = parts[0];
-  for (let i = 1; i < parts.length; i++) out += (i === parts.length - 1 && parts.length > 2 ? N.joinLast : N.joinThen) + parts[i];
+  for (let i = 1; i < parts.length; i++) out += (i === parts.length - 1 && parts.length > 2 && !partial ? N.joinLast : N.joinThen) + parts[i];
+  if (partial) return N.youPartial.replace('{steps}', out);
   let txt = N.you.replace('{steps}', out);
   if (ev.revealText) {
     const R = N.reveal, d = ev.revealDepth, f = ev.revealFaces;
@@ -3060,9 +3127,8 @@ function narrationText() {
   const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy' || ui.phase === 'await-roll';
   if (!live || !ui.game) return '';
   if (ui.phase === 'arranging') {
-    if (placedCount() < slotCount()) return '';
-    const faces = ui.slots.slice(0, slotCount()).map(id => viewFace(id));
-    return narrateSentence(E.evaluateSentence(faces, isSite() ? { site: true } : { enemy: ui.game.enemy, tax: ui.game.tax || 0 }));
+    if (placedCount() === 0) return '';
+    return narrateSentence(partialEvaluation());
   }
   const n = ui.narr;
   if (!n) return '';

@@ -131,9 +131,11 @@ test('evaluateSentence return shape', () => {
   deepEq({ ...r.totals }, { PRUNE: 6, SOW: 0 });
   assert.equal(r.steps.length, 2);
   deepEq({ ...r.steps[0] }, { slot: 0, face: 'EYE', role: 'instinct', verb: 'DIG', base: 2, carryIn: 0,
-    total: 2, reveal: true, passesTo: 2, name: 'Look', item: null, notes: [], depth: 1, idle: false });
+    total: 2, reveal: true, passesTo: 2, name: 'Look', item: null, notes: [], depth: 1, idle: false,
+    roleProvisional: false, carryProvisional: false, carryPending: false });
   deepEq({ ...r.steps[1] }, { slot: 2, face: 'HAND+KNIFE', role: 'directed', verb: 'PRUNE', base: 4, carryIn: 2,
-    total: 6, reveal: false, passesTo: null, name: 'Stab', item: 'KNIFE', notes: ['knife +1'], depth: 0, idle: false });
+    total: 6, reveal: false, passesTo: null, name: 'Stab', item: 'KNIFE', notes: ['knife +1'], depth: 0, idle: false,
+    roleProvisional: false, carryProvisional: false, carryPending: false });
   assert.equal(r.revealDepth, 1);
 });
 
@@ -2388,7 +2390,7 @@ test('labels: every case for 3, 2 and 1 slots (REFLEX, PLAN, SITUATION, IMPULSE,
   const r = nev('EYE', 'PRUNE');
   assert.equal(r.slots, 2); assert.equal(r.verb, 'PRUNE'); assert.equal(r.text, 'Impulse: Look 2 (reveal) → REVEAL next intent');
   // REFLEX: every die on instinct, no verb produced by a MIND
-  assert.equal(nev('PALM', 'MOUTH', 'EYE').text, 'Reflex: Hit 2 · Small talk 2 · Look 2 (reveal) → PRUNE 2 · SOW 2 · REVEAL next intent');
+  assert.equal(nev('PALM', 'MOUTH', 'EYE').text, 'Reflex: Hit 2 · Coax 2 · Look 2 (reveal) → PRUNE 2 · SOW 2 · REVEAL next intent');
   // more than one verb face is still an error
   assert.throws(() => nev('PRUNE', 'SOW', 'PALM'));
 });
@@ -2451,7 +2453,7 @@ test('lone MIND with mindAloneHolds is HOLD; the chosen die keeps its face into 
 
 test('BACK / BELLY: fixed 1 point under a MIND verb (+1 item); no instinct = 0 points', () => {
   assert.equal(nev('PRUNE', 'BACK', 'BELLY').text, 'Plan: Shove 1 · Bump 1 → PRUNE 2');
-  assert.equal(nev('SOW', 'BACK', 'BELLY').text, 'Plan: Lean 1 · Laugh 1 → SOW 2');
+  assert.equal(nev('SOW', 'BACK', 'BELLY').text, 'Plan: Lean 1 · Chuckle 1 → SOW 2');
   assert.equal(nev('DIG', 'BACK', 'PALM').text, 'Plan: Hunch 1 (reveal) → Search 1+1 (reveal) → REVEAL next intent');
   assert.equal(nev('PRUNE', 'BELLY+VEST').steps[0].base, 2);
   // before the MIND (instinct) or in REFLEX: nothing
@@ -2459,7 +2461,7 @@ test('BACK / BELLY: fixed 1 point under a MIND verb (+1 item); no instinct = 0 p
   assert.equal(nev('BELLY+VEST', 'PRUNE').text, 'Impulse: Clench 0 → nothing happens');
   const r = nev('BACK', 'PRUNE', 'PALM');
   deepEq({ ...r.steps[0] }, { slot: 0, face: 'BACK', role: 'instinct', verb: null, base: 0, carryIn: 0, total: 0, reveal: false,
-    passesTo: null, name: 'Brace', item: null, notes: [], depth: 0, idle: true });
+    passesTo: null, name: 'Brace', item: null, notes: [], depth: 0, idle: true, roleProvisional: false, carryProvisional: false, carryPending: false });
   assert.equal(r.totals.PRUNE, 2);
   assert.equal(N.scoreBodyFace('BACK', 'PRUNE'), 1); assert.equal(N.scoreBodyFace('BELLY', 'DIG'), 1);
   assert.equal(N.scoreBodyFace('BACK', null), 0);
@@ -2488,7 +2490,7 @@ test('NOSE: favourite DIG, reveals the next intent under any verb (depth 1), sit
   N.startTurn(g, N.makeRng(1));
   nset(g, { MIND: 'SOW', HEAD: 'NOSE', TORSO: 'BACK' });
   const out = N.resolveTurn(g, ['MIND', 'HEAD', 'TORSO'], N.makeRng(3));      // Plan: NOSE directed SOW
-  assert.match(out.evaluation.text, /^Plan: Sneer|^Plan: Sniff kindly 1 \(nose: sees 1\)/);
+  assert.match(out.evaluation.text, /^Plan: Sneer|^Plan: Sniff gently 1 \(nose: sees 1\)/);
   const rv = out.events.find(e => e.type === 'reveal');
   assert.equal(rv.list.length, 1); assert.equal(g.enemy.shown, 1); assert.ok(g.enemy.next);
   // on a site: reveals exactly 1 face (NOSE under PRUNE), no DIG needed
@@ -2506,7 +2508,7 @@ test('order triggers: GLASSES first, EAR TRUMPET directly before MOUTH (MIND in 
   // GLASSES: only in slot 0
   const gf = nev('EYE+GLASSES', 'PRUNE', 'PALM');
   assert.equal(gf.revealDepth, 2); assert.equal(gf.triggers.glassesFirst, true);
-  assert.equal(gf.text, 'Situation: Read the fine print 3 (reveal) (glasses: sees 2) → Hit 2+3 → PRUNE 5 · REVEAL next 2 intents');
+  assert.equal(gf.text, 'Situation: Squint 3 (reveal) (glasses: sees 2) → Hit 2+3 → PRUNE 5 · REVEAL next 2 intents');
   const gp = nev('EYE+GLASSES', 'PRUNE', 'PALM');
   assert.equal(nev('PALM', 'PRUNE', 'EYE+GLASSES').revealDepth, 0);           // last slot, directed PRUNE: no reveal at all
   assert.equal(nev('PALM', 'EYE+GLASSES', 'PRUNE').revealDepth, 1);           // instinct DIG: plain depth 1, no glasses note
@@ -2520,7 +2522,7 @@ test('order triggers: GLASSES first, EAR TRUMPET directly before MOUTH (MIND in 
   assert.ok(gp);
   // EAR TRUMPET
   const et = nev('EAR+EAR_TRUMPET', 'MOUTH', 'PRUNE');
-  assert.equal(et.text, 'Impulse: Eavesdrop 3 (reveal) → Small talk 4+3 (+2 ear trumpet) → SOW 7 · REVEAL next intent');
+  assert.equal(et.text, 'Impulse: Listen in 3 (reveal) → Coax 4+3 (+2 ear trumpet) → SOW 7 · REVEAL next intent');
   deepEq([...et.triggers.earTrumpet], [1]);
   assert.equal(et.steps[1].base, 4);
   const broken = nev('EAR+EAR_TRUMPET', 'PRUNE', 'MOUTH');                    // MIND in between
@@ -2552,14 +2554,14 @@ test('v2 items: MATCHES, FORBIDDEN BOOK, WATERING CAN now+next, KNIFE, inert SEE
   assert.equal(ms.steps[0].base, 2); assert.equal(ms.spends.length, 0);
   assert.equal(nev('PALM+MATCHES', 'PRUNE', 'EYE').spends.length, 1);          // instinct PRUNE uses it too
   // FORBIDDEN BOOK: SOW +2, flagged forbidden whichever verb
-  assert.equal(nev('SOW', 'PALM+FORBIDDEN_BOOK', 'EYE').text, 'Plan: Quote 4 (forbidden book +2) · Kind look 1 → SOW 5');
+  assert.equal(nev('SOW', 'PALM+FORBIDDEN_BOOK', 'EYE').text, 'Plan: Read aloud 4 (forbidden book +2) · Soft look 1 → SOW 5');
   assert.equal(nev('SOW', 'PALM+FORBIDDEN_BOOK', 'EYE').forbidden, 1);
   assert.equal(nev('PRUNE', 'PALM+FORBIDDEN_BOOK', 'EYE').forbidden, 1);
   assert.equal(nev('PRUNE', 'PALM+FORBIDDEN_BOOK', 'EYE').steps[0].base, 3);   // no bonus under PRUNE (2 fav + 1 item)
   assert.equal(nev('PRUNE', 'PALM', 'EYE').forbidden, 0);
   // WATERING CAN: +1 now and +1 SOW next turn
   const wc = nev('SOW', 'PALM+WATERING_CAN', 'EYE');
-  assert.equal(wc.text, 'Plan: Water their plant 3 (watering can +1) (+1 SOW next turn) · Kind look 1 → SOW 4');
+  assert.equal(wc.text, 'Plan: Sprinkle 3 (watering can +1) (+1 SOW next turn) · Soft look 1 → SOW 4');
   assert.equal(wc.pendingSow, 1);
   assert.equal(nev('PRUNE', 'PALM+WATERING_CAN', 'EYE').pendingSow, 0);
   // inert items use the part's action names (names: null)
@@ -2846,7 +2848,7 @@ test('slots: resolveTurn takes exactly `slots` dice (any subset); unused dice do
   N.startTurn(r, N.makeRng(1)); nset(r, { MIND: 'SOW', HEAD: 'MOUTH', TORSO: 'PALM' });
   const o2 = N.resolveTurn(r, ['TORSO', 'HEAD'], N.makeRng(1));
   assert.equal(o2.evaluation.shape, 'Reflex');
-  assert.equal(o2.evaluation.text, 'Reflex: Hit 2 · Small talk 2 → PRUNE 2 (crows +1) · SOW 0 (crows −2)'.replace('PRUNE 2 (crows +1) · SOW 0 (crows −2)', o2.evaluation.totalsText));
+  assert.equal(o2.evaluation.text, 'Reflex: Hit 2 · Coax 2 → PRUNE 2 (crows +1) · SOW 0 (crows −2)'.replace('PRUNE 2 (crows +1) · SOW 0 (crows −2)', o2.evaluation.totalsText));
   assert.equal(o2.evaluation.totals.PRUNE, 3);                                 // crows pruneMod +1
   // a 1-slot BRIDGE (forced via state: shipped slots are clamped to minSlots)
   const b = nenc('BRIDGE', 1);
@@ -3072,6 +3074,8 @@ test('minSlots clamps enemy / site slots; narration phrases and enemy act lines 
   const names = new Set();
   Object.values(NCFG.actionNames).forEach(o => Object.values(o).forEach(n => names.add(n)));
   Object.values(NCFG.items).forEach(it => Object.values(it.names).forEach(n => { if (n) names.add(n); }));
+  Object.values(NCFG.actionNamesByTag).forEach(t => Object.values(t).forEach(o => Object.values(o).forEach(n => names.add(n))));
+  Object.values(NCFG.items).forEach(it => Object.values(it.namesByTag || {}).forEach(t => Object.values(t).forEach(n => names.add(n))));
   for (const n of names) assert.ok(A[n], 'narration phrase for ' + n);
   for (const [id, en] of Object.entries(NCFG.enemies)) {
     assert.ok(en.shortName, id + ' shortName');
@@ -3092,4 +3096,47 @@ test('totals text names the reveal: DIG-only sentence is never "nothing happens"
   const site = (...a) => E.evaluateSentence(a, { site: true });
   assert.equal(site('EYE', 'BACK').totalsText, 'REVEAL 2 faces');
   assert.equal(site('DIG', 'HAND+SPADE').totalsText, 'REVEAL all faces');
+});
+
+test('action names: per-tag overrides (item then part), site tag, default; narration phrase override by tag', () => {
+  const nm = (faces, c) => N.evaluateSentence(faces, c).steps.map(s => s.name);
+  const dog = { tags: ['animal'], pruneMod: 0, sowMod: 0 }, man = { tags: ['human'], pruneMod: 0, sowMod: 0 };
+  deepEq(nm(['DIG', 'EYE+GLASSES'], { enemy: dog }), ['Squint']);
+  deepEq(nm(['DIG', 'EYE+GLASSES'], { enemy: man }), ['Read the fine print']);
+  deepEq(nm(['DIG', 'EYE+GLASSES'], { site: true }), ['Inspect']);
+  deepEq(nm(['DIG', 'EYE+GLASSES']), ['Squint']);                          // no context -> default
+  deepEq(nm(['SOW', 'MOUTH'], { enemy: dog }), ['Coax']);                  // bare part: default
+  deepEq(nm(['SOW', 'MOUTH'], { enemy: man }), ['Small talk']);            // bare part: tag override
+  deepEq(nm(['SOW', 'MOUTH'], { site: true }), ['Coax']);                  // tag without an override -> default
+  deepEq(nm(['SOW', 'MOUTH'], { enemy: { tags: ['place', 'human'] } }), ['Small talk']);   // first tag with an override wins
+  assert.equal(N.evaluateSentence(['DIG', 'EYE'], { site: true }).tags[0], 'site');
+  assert.ok(NCFG.text.narration.actionsByTag.site.Search && NCFG.text.narration.actions.Search);
+});
+
+test('evaluatePartial: empty slots skipped, role / carry provisional, label only when determinable, full == evaluateSentence', () => {
+  const enemy = { tags: ['animal'], pruneMod: 0, sowMod: 0 };
+  const P = (...s) => N.evaluatePartial(s, { enemy });
+  const PEND = NCFG.text.rail.shapePending;
+  let r = P(null, 'EYE', null);                  // one die in the middle, no MIND yet: label unknown, instinct role provisional
+  assert.equal(r.complete, false); assert.equal(r.placed, 1); assert.equal(r.shape, PEND); assert.equal(r.shapeKnown, false);
+  assert.equal(r.steps.length, 1); assert.equal(r.steps[0].slot, 1); assert.equal(r.steps[0].role, 'instinct'); assert.equal(r.steps[0].roleProvisional, true);
+  r = P('PALM', 'PRUNE', null);                  // MIND placed: label known; the die before it is instinct for good
+  assert.equal(r.shapeKnown, true); assert.equal(r.shape, NCFG.shapeNames.middle);
+  assert.equal(r.steps[0].role, 'instinct'); assert.equal(r.steps[0].roleProvisional, false);
+  r = P(null, 'PRUNE', 'PALM');                  // a die right of the MIND is directed
+  assert.equal(r.steps.length, 1); assert.equal(r.steps[0].role, 'directed'); assert.equal(r.steps[0].verb, 'PRUNE'); assert.equal(r.totals.PRUNE, 2);
+  r = P('PALM', null, 'PRUNE');                  // MIND last: the die before it stays instinct
+  assert.equal(r.steps[0].role, 'instinct'); assert.equal(r.shape, NCFG.shapeNames.last);
+  r = P('EYE', null, 'PALM');                    // DIG carry skips the gap, marked provisional
+  assert.equal(r.steps[0].passesTo, 2); assert.equal(r.steps[0].carryProvisional, true); assert.equal(r.steps[1].carryIn, 2);
+  r = P('EYE', null, null);                      // nothing placed after it yet
+  assert.equal(r.steps[0].passesTo, null); assert.equal(r.steps[0].carryPending, true);
+  r = P('EYE', 'PALM', null);
+  assert.equal(r.steps[0].carryProvisional, false); assert.equal(r.steps[0].passesTo, 1);
+  r = P(null, null, null); assert.equal(r.steps.length, 0); assert.equal(r.totalsText, '');
+  r = P('EAR+EAR_TRUMPET', null, 'MOUTH'); assert.equal(r.triggers.earTrumpet.length, 0);   // no trigger across a gap
+  const full = ['EYE', 'PRUNE', 'PALM+KNIFE'];   // a full sentence is identical to evaluateSentence
+  assert.equal(JSON.stringify(P(...full)), JSON.stringify(N.evaluateSentence(full, { enemy })));
+  assert.equal(P(...full).complete, true);
+  assert.throws(() => N.evaluateSentence(['EYE', null], { enemy }));
 });

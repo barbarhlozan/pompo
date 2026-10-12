@@ -82,6 +82,10 @@
   #rtotals.pending { color:var(--dim); }
   #rtotals.pending .eq { color:var(--dim); }
   #rtotals .rx { color:var(--note); }
+  #rtotals .sofar { font-family:var(--body, inherit); font-size:var(--fs-min); font-style:italic; color:var(--dim); margin-left:4px; }
+  #rtotals.pending .rx { color:var(--dim); }
+  #sentence.partial .rband.tag.prov { border-style:dashed; opacity:.7; }
+  .carry.prov { border-top-style:dashed; }
   #railShape { color:var(--lit); font-family:var(--display); font-weight:400; font-size:22px; letter-spacing:.12em; }
   #slots { position:relative; display:flex; align-items:flex-start; }
   .rstep { position:relative; width:var(--sw); flex:none; }

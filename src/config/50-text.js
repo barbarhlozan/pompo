@@ -24,7 +24,7 @@ Object.assign(CONFIG, {
     // plain-language narration under the rail (src/ui/10-render.js narrateSentence / narrateResult). {them} = the enemy's shortName
     // (or the site's shortName); from the second mention it is the pronoun N.pron / enemy.pron. A step's phrase = actions[action name] (items and bare parts share the name space), else the lower-cased action name.
     narration: {
-      you: 'You {steps}.', joinThen: ', then ', joinLast: ', and finally ', youIdle: 'You do nothing much.', pron: { them: 'it', its: 'its' }, idle: 'stand around', scar: 'flail with a scarred limb',
+      you: 'You {steps}.', youPartial: 'You {steps}, then …', joinThen: ', then ', joinLast: ', and finally ', youIdle: 'You do nothing much.', pron: { them: 'it', its: 'its' }, idle: 'stand around', scar: 'flail with a scarred limb',
       mind: ' (MIND: {verb})',
       actions: {
         Hit: 'punch {them}', Gesture: 'gesture at {them}', Search: 'pat down {them}',
@@ -46,7 +46,16 @@ Object.assign(CONFIG, {
         'Listen closely': 'listen closely to {them}', Eavesdrop: 'eavesdrop on {them}',
         Shriek: 'shriek at {them}', 'Call softly': 'call softly to {them}', Echo: 'echo {them}',
         'Blow smoke': 'blow smoke at {them}', 'Calm chat': 'chat calmly with {them}', Ponder: 'ponder {them} over your pipe',
+        Shout: 'shout at {them}', Coax: 'coax {them}', 'Call out': 'call out to {them}', 'Lend an ear': 'lend {them} an ear',
+        'Soft look': 'give {them} a soft look', 'Sniff gently': 'sniff gently at {them}', Chuckle: 'chuckle at {them}',
+        Poke: 'poke at {them} with your knife', 'Show shears': 'show {them} your shears', 'Snip around': 'snip around {them}',
+        'Lean on spade': 'lean on your spade near {them}', Sprinkle: 'sprinkle {them}', 'Pour out': 'pour water over {them}',
+        'Strike one': 'strike a match near {them}', 'Read aloud': 'read aloud from the forbidden book', 'Offer a trim': 'offer {them} a trim',
+        'Peer kindly': 'peer kindly at {them}', Squint: 'squint at {them}', Inspect: 'inspect {them} closely',
+        'Shed light': 'shed some light on {them}', 'Listen in': 'listen in on {them}', 'Puff calmly': 'puff calmly on your pipe',
       },
+      // phrase overrides for one encounter tag (same name, different wording): [tag][action name]; lookup tag -> actions
+      actionsByTag: { site: { Search: 'rummage through {them}', Look: 'look over {them}' }, place: { Search: 'feel along {them}' } },
       // after resolution: what it did to them (one clause per face touched; {face} = its action name, {n} pips)
       faceBroken: '{its} {face} breaks.', faceTurned: '{its} {face} turns friendly.',
       facePartBroken: '{n} of {its} {face} pips break.', facePartTurned: '{n} of {its} {face} pips turn.',   // {its} is capitalised at a sentence start
@@ -56,7 +65,7 @@ Object.assign(CONFIG, {
     },
     // the sentence rail (src/ui/10-render.js renderSlots): title, step labels by slot count, per-step tags / captions
     rail: {
-      title: 'WHAT YOU DO', empty: 'drop a die', totalsPrefix: '=', totalsPending: '…',
+      title: 'WHAT YOU DO', empty: 'drop a die', totalsPrefix: '=', totalsPending: '…', totalsSoFar: 'so far', shapePending: '…',
       steps: { 1: ['ONLY'], 2: ['FIRST', 'THEN'], 3: ['FIRST', 'THEN', 'LAST'] },   // more slots than listed: FIRST, THEN, THEN…
       mindSets: 'SETS {verb}', mindHoldAction: 'HOLD', mindIdle: 'nothing to act', mindHold: 'keeps one die for next turn',
       scarRed: 'SCARRED', scarTip: 'SCAR: 0 points, does nothing.',
@@ -77,7 +86,7 @@ Object.assign(CONFIG, {
     buttons: { roll: 'ROLL', reroll: 'REROLL ({n} left)', commit: 'COMMIT', restart: 'RESTART TRIP', continue: 'CONTINUE' },
     title: 'SMUGGLER', turn: 'TURN', scarsLabel: 'SCARS', intentLabel: 'INTENT', now: 'NOW', next: 'NEXT', nextPrefix: 'next:',
     held: 'HELD', unknownFace: '?', then: 'THEN',
-    placeHint: 'Fill all {slots} slots to see what the sentence does ({n}/{slots})',
+    placeHint: 'Fill all {slots} slots to COMMIT ({n}/{slots})',
     holdPick: 'HOLD: click one body die to keep its face for the next turn', heldStatus: '{die} held over',
     lastTurn: 'Last:', lastAction: 'last turn:', pressRoll: 'Press ROLL to start',
     growlStatus: '−1 reroll this turn ({n} total)', bonusStatus: '+{n} reroll (seeds)', sowStatus: '+{n} SOW at turn start (watering can)',
@@ -113,8 +122,8 @@ Object.assign(CONFIG, {
     // V1-5: start screen, map and site screen strings ({n} {c} {max} {item} {name})
     m2: {
       startSub: 'Choose a trip', changeMode: 'MODE SELECT',
-      startM1: 'M1 SEQUENCE', startM1Desc: 'Five events and a campfire, one after another. No map.',
-      startM2: 'M2 MAP', startM2Desc: 'Walk a foggy map to the gate. Daylight runs out; scavenge sites make noise.',
+      startM1: 'SEQUENCE', startM1Desc: 'Five events and a campfire, one after another. No map.',
+      startM2: 'MAP', startM2Desc: 'Walk a foggy map to the gate. Daylight runs out; scavenge sites make noise.',
       daylight: 'DAYLIGHT', scars: 'SCARS', items: 'ITEMS', you: 'YOU', map: 'MAP', moves: 'MOVES {n}', dayShort: '☀ {n}', coldShort: 'THE COLD',
       mapHint: 'Click a highlighted tile to walk there. Each step costs 1 daylight; in the dark every step scars you.',
       coldHint: 'No daylight left: every step scars you (THE COLD).',

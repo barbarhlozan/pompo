@@ -215,19 +215,18 @@ function stepCaption(s) {
 function renderSlots() {
   const n = slotCount(), RT = C.text.rail;
   for (let i = n; i < ui.slots.length; i++) ui.slots[i] = null;           // a debug change of the slot count empties the hidden slots
-  const p = currentPreview(), tg = p.triggers || {}, last = n - 1;
+  const p = currentPreview(), last = n - 1;
   const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy';
-  const ev = live && p.ev && p.ev.slots === n ? p.ev : null;
+  const full = live && p.ev && p.ev.slots === n ? p.ev : null;
   const play = ui.phase === 'resolving' || ui.phase === 'enemy' ? ui.railPlay : null;
-  // partial sentence: evaluate the placed dice (empty slots padded with a scar, which does nothing) so each slot already shows its action
-  let pev = null;
-  if (!ev && ui.phase === 'arranging' && placedCount() > 0) {
-    const faces = []; for (let i = 0; i < n; i++) faces.push(ui.slots[i] ? viewFace(ui.slots[i]) : C.text.scar);
-    try { pev = E.evaluateSentence(faces, isSite() ? { site: true } : { enemy: ui.game.enemy, tax: ui.game.tax || 0 }); } catch (e) { pev = null; }
-  }
+  // sentence being built: engine partial evaluation (empty slots skipped), so the rail builds up die by die
+  const ev = full || (ui.phase === 'arranging' && placedCount() > 0 ? partialEvaluation() : null);
+  const partial = !!ev && !ev.complete;
+  $('sentence').classList.toggle('partial', partial);
   // fit the chevrons to the page width (CSS --sw is the 3-slot size; more slots shrink it)
   const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 425, ovPx = 26;
   sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1232 + (n - 1) * ovPx) / n)) + 'px');
+  const tg = (ev && ev.triggers) || {};
   const labels = stepLabelsFor(n), mi = ev ? ev.mindIndex : -1, mcol = ev && ev.verb ? C.colors.verb[ev.verb] : null;
   dom.stepEls.forEach((st, i) => {
     st.style.display = i < n ? '' : 'none';
@@ -249,16 +248,18 @@ function renderSlots() {
     } else if (step && step.role === 'instinct') {
       const v = step.verb;
       band.classList.add('tag');
+      if (step.roleProvisional) band.classList.add('prov');
       if (v) { band.style.color = C.colors.verb[v]; band.style.borderColor = C.colors.verb[v]; band.title = RT.instinctTip.replace('{verb}', v); band.textContent = RT.instinct + ' · ' + v; }
       else { band.classList.add('none'); band.title = RT.noInstinctTip; band.textContent = RT.noInstinct; }
     }
     // the action in the slot (live, also while the sentence is still being filled) + caption (annotations only)
-    const act = dom.actEls[i], sev = ev || pev, sstep = sev && ui.slots[i] ? sev.steps.find(x => x.slot === i) : null;
+    const act = dom.actEls[i], sev = ev, sstep = sev && ui.slots[i] ? sev.steps.find(x => x.slot === i) : null;
     let sa = null;
     if (sev && ui.slots[i]) sa = (sev.mindIndex === i) ? slotAction('mind', sev) : (sstep ? slotAction(sstep, sev) : null);
     if (sa) { act.innerHTML = sa.html; act.title = sa.title; } else { act.innerHTML = ''; act.removeAttribute('title'); }
     sl.classList.toggle('acts', !!sa);
     cap.style.visibility = ev && reached ? '' : 'hidden';
+    cap.classList.toggle('prov', partial);
     cap.classList.toggle('mind', !!ev && i === mi);
     if (ev && i === mi) {
       cap.innerHTML = '<div class="cl1">' + (ev.holds ? esc(RT.mindHold) : (n === 1 ? esc(RT.mindIdle) : '&nbsp;')) + '</div>';
@@ -269,25 +270,32 @@ function renderSlots() {
     link.innerHTML = '';
     if (step && step.passesTo != null && reached) {
       const d = step.passesTo - i, col = C.colors.verb[C.revealVerb];
-      link.innerHTML = '<span class="carry" style="width:calc(var(--pitch) * ' + d + ' - 30px);border-color:' + col + ';color:' + col + '" title="' + esc(RT.carryTip) + '"><b>+' + step.total + '</b></span>';
+      link.innerHTML = '<span class="carry' + (step.carryProvisional ? ' prov' : '') + '" style="width:calc(var(--pitch) * ' + d + ' - 30px);border-color:' + col + ';color:' + col + '" title="' + esc(RT.carryTip) + '"><b>+' + step.total + (step.carryProvisional ? '?' : '') + '</b></span>';
     }
   });
   // totals at the right end of the rail
   const tot = $('rtotals');
-  tot.innerHTML = ev ? '<span class="eq">' + esc(RT.totalsPrefix) + '</span> ' + verbify(ev.totalsText) : '<span class="eq">' + esc(RT.totalsPrefix) + ' ' + esc(RT.totalsPending) + '</span>';
+  const known = ev && ev.totalsText;
+  tot.innerHTML = known ? '<span class="eq">' + esc(RT.totalsPrefix) + '</span> ' + verbify(ev.totalsText) + (partial ? ' <span class="sofar">' + esc(RT.totalsSoFar) + '</span>' : '')
+    : '<span class="eq">' + esc(RT.totalsPrefix) + ' ' + esc(RT.totalsPending) + '</span>';
   tot.style.visibility = ev && play && !play.totals ? 'hidden' : '';
-  tot.classList.toggle('pending', !ev);
+  tot.classList.toggle('pending', !known || partial);
   // playhead: slides left -> right along the band row while a commit plays
   const ph = $('playhead');
   ph.classList.toggle('on', !!(play && play.idx >= 0 && ui.phase === 'resolving'));
   if (play && play.idx >= 0) ph.style.setProperty('--ph', play.idx);
   $('slots').classList.toggle('complete', placedCount() === slotCount() && (ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy'));
 }
+// evaluation of the sentence as built so far (empty slots skipped); null while nothing is placed
+function partialEvaluation() {
+  const faces = []; for (let i = 0; i < slotCount(); i++) faces.push(ui.slots[i] ? viewFace(ui.slots[i]) : null);
+  try { return E.evaluatePartial(faces, isSite() ? { site: true } : { enemy: ui.game.enemy, tax: ui.game.tax || 0 }); } catch (e) { return null; }
+}
 // -> { hint?, shape, triggers?, ev? (evaluation, when the sentence is complete), text } ; `text` is the compact line under the rail
 function currentPreview() {
   if (ui.previewOverride && ui.phase !== 'await-roll') return ui.previewOverride;
   if (ui.phase === 'arranging') {
-    if (placedCount() < slotCount()) return { hint: true, shape: '', text: C.text.placeHint.replace(/\{slots\}/g, slotCount()).replace('{n}', placedCount()) };
+    if (placedCount() < slotCount()) return { hint: true, shape: placedCount() > 0 ? ((partialEvaluation() || {}).shape || C.text.rail.shapePending) : '', text: C.text.placeHint.replace(/\{slots\}/g, slotCount()).replace('{n}', placedCount()) };
     const faces = ui.slots.slice(0, slotCount()).map(id => viewFace(id));
     if (isSite()) {
       const ev = E.evaluateSentence(faces, { site: true });
@@ -318,20 +326,28 @@ const themName = () => {
   return (st && st.shortName) || (g && g.name ? g.name.toLowerCase() : 'it');
 };
 const pronouns = () => Object.assign({}, C.text.narration.pron, ui.game && ui.game.enemy && ui.game.enemy.pron || {});
+// phrase for an action name: the encounter's first tag with an override, else the flat map
+function phraseFor(name, tags) {
+  const N = C.text.narration, by = N.actionsByTag || {};
+  for (let i = 0; i < (tags || []).length; i++) if (by[tags[i]] && by[tags[i]][name]) return by[tags[i]][name];
+  return N.actions[name];
+}
 function narrateSentence(ev) {
   const N = C.text.narration, them = themName();
-  if (!ev || !ev.steps.length) return N.youIdle;
+  if (!ev || !ev.steps.length) return ev && !ev.complete ? '' : N.youIdle;
+  const partial = !ev.complete;
   const pr = pronouns();
   let named = false;
   const parts = ev.steps.map(s => {
-    const t = s.role === 'scar' ? N.scar : (N.actions[s.name] || (s.idle ? N.idle : s.name.toLowerCase()));
+    const t = s.role === 'scar' ? N.scar : (phraseFor(s.name, ev.tags) || (s.idle ? N.idle : s.name.toLowerCase()));
     if (t.indexOf('{them}') < 0) return t;
     const r = t.replace(/\{them\}/g, named ? pr.them : them);   // the name once, then the pronoun
     named = true;
     return r;
   });
   let out = parts[0];
-  for (let i = 1; i < parts.length; i++) out += (i === parts.length - 1 && parts.length > 2 ? N.joinLast : N.joinThen) + parts[i];
+  for (let i = 1; i < parts.length; i++) out += (i === parts.length - 1 && parts.length > 2 && !partial ? N.joinLast : N.joinThen) + parts[i];
+  if (partial) return N.youPartial.replace('{steps}', out);
   let txt = N.you.replace('{steps}', out);
   if (ev.revealText) {
     const R = N.reveal, d = ev.revealDepth, f = ev.revealFaces;
@@ -359,9 +375,8 @@ function narrationText() {
   const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy' || ui.phase === 'await-roll';
   if (!live || !ui.game) return '';
   if (ui.phase === 'arranging') {
-    if (placedCount() < slotCount()) return '';
-    const faces = ui.slots.slice(0, slotCount()).map(id => viewFace(id));
-    return narrateSentence(E.evaluateSentence(faces, isSite() ? { site: true } : { enemy: ui.game.enemy, tax: ui.game.tax || 0 }));
+    if (placedCount() === 0) return '';
+    return narrateSentence(partialEvaluation());
   }
   const n = ui.narr;
   if (!n) return '';
