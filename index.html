@@ -6,15 +6,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Lora:wght@400;500&display=swap">
 <style>
   :root { /* colour defaults; CONFIG.colors overrides them at start-up */
     --bg:#0b0b10; --panel:#16161f; --line:#2a2a3a; --text:#e8e6f0; --dim:#8a88a0;
-    --lit:#ffe36b; --status:#ffd36b; --danger:#ff3b3b; --glow:#ffffff; --pip:#e8e6f0; --broken:#5a5a66; --turned:#4fe06a; --tiletext:#0b0b10;
+    --lit:#ffe36b; --status:#d9cfa8; --danger:#ff3b3b; --glow:#ffffff; --pip:#e8e6f0; --broken:#5a5a66; --turned:#4fe06a; --tiletext:#0b0b10;
     --lift:1.07;
     /* readability scale (encounter screen): no game text below --fs-min; rail sizes are tuned in the #sentence block */
     --fs-min:13px; --fs-sm:15px; --fs-md:17px; --fs-lg:20px; --note:#a9dcff; --note-fs:15px;
-    --display:"Bungee", Impact, "Arial Black", "Helvetica Neue", sans-serif; }
+    --display:"Bungee", Impact, "Arial Black", "Helvetica Neue", sans-serif;
+    --prose:"Lora", "Iowan Old Style", Georgia, "Times New Roman", serif;   /* story narration only */
+    --mono:"Courier New", ui-monospace, Menlo, Consolas, monospace;
+    --rail-line:#4a4a58; --rail-line-hi:#8f8da0; --rail-bg:#101018; --rail-fill:#1d1d29; }
   * { box-sizing: border-box; }
   html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden;
     font-family:"Courier New", ui-monospace, Menlo, Consolas, monospace; font-weight:700;
@@ -98,16 +101,18 @@
 
   /* sentence rail: interlocking chevron steps, FIRST / THEN / LAST labels, MIND band, per-step captions, totals */
   #sentence { position:absolute; left:0; top:258px; width:100%; height:318px; padding:6px 24px 0; display:flex; flex-direction:column; align-items:flex-start;
-    --sw-max:425px; --sw:425px; --pt:34px; --ov:26px; --pitch:calc(var(--sw) - var(--ov)); --slotH:100px;   /* --sw is re-fitted by JS for more than 3 slots */
-    --fs-label:16px; --fs-action:30px; --fs-action-long:24px; --fs-cap:17px; --fs-total:24px; --fs-narr:29px; --narr-h:70px; --focus:#4a4a68; }
-  /* focal zone: the sentence (headline + rail + totals) sits on a lit band across the full width */
-  #sentence { background:var(--panel); border-top:4px solid var(--focus); border-bottom:4px solid var(--focus); }
-  #railHead { display:flex; align-items:baseline; gap:16px; height:30px; width:100%; font-size:var(--fs-sm); letter-spacing:.2em; }
-  #railTitle { color:var(--dim); }
+    --sw-max:420px; --sw:420px; --pt:34px; --ov:26px; --pitch:calc(var(--sw) - var(--ov)); --slotH:100px;   /* --sw is re-fitted by JS for more than 3 slots */
+    --fs-label:16px; --fs-action:30px; --fs-action-long:24px; --fs-cap:17px; --fs-total:24px; --fs-narr:26px; --narr-h:58px; --focus:var(--rail-line); }
+  /* two layers: the story line floats on the plain page background; the rail is a separate dark "technical board" panel */
+  #sentence { align-items:center; }
+  #railPanel { flex:none; width:fit-content; max-width:1232px; min-width:560px; background:var(--rail-bg); border:1px solid var(--rail-line);
+    padding:5px 8px 0; transition:border-color .12s; }
+  #railHead { display:flex; align-items:baseline; gap:16px; height:30px; width:100%; font-family:var(--mono); font-size:var(--fs-min); font-weight:400; letter-spacing:.2em; }
+  #railTitle { color:var(--dim); text-transform:uppercase; }
   /* totals: big and prominent, right end of the header row */
   #rtotals { margin-left:auto; flex:1 1 0; min-width:0; text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; letter-spacing:0;
     font-size:var(--fs-total); line-height:1.15; color:var(--text); }
-  #rtotals .eq { font-family:var(--display); font-weight:400; color:var(--lit); font-size:var(--fs-total); margin-right:6px; }
+  #rtotals .eq { font-family:var(--display); font-weight:400; color:var(--dim); font-size:var(--fs-total); margin-right:6px; }
   #rtotals.pending { color:var(--dim); }
   #rtotals.pending .eq { color:var(--dim); }
   #rtotals .rx { color:var(--note); }
@@ -115,11 +120,11 @@
   #rtotals.pending .rx { color:var(--dim); }
   #sentence.partial .rband.tag.prov { border-style:dashed; opacity:.7; }
   .carry.prov { border-top-style:dashed; }
-  #railShape { color:var(--lit); font-family:var(--display); font-weight:400; font-size:22px; letter-spacing:.12em; }
+  #railShape { color:var(--text); font-family:var(--mono); font-weight:400; font-size:var(--fs-min); letter-spacing:.2em; opacity:.8; }
   #slots { position:relative; display:flex; align-items:flex-start; }
   .rstep { position:relative; width:var(--sw); flex:none; }
   .rstep + .rstep { margin-left:calc(var(--ov) * -1); }
-  .rlabel { height:22px; line-height:22px; padding-left:var(--pt); font-size:var(--fs-label); letter-spacing:.3em; color:var(--text); }
+  .rlabel { height:22px; line-height:22px; padding-left:var(--pt); font-family:var(--mono); font-size:var(--fs-min); font-weight:400; letter-spacing:.3em; color:var(--dim); }
   .rstep.first .rlabel { padding-left:8px; }
   .rband { height:19px; margin:0 0 3px; font-size:var(--fs-min); line-height:19px; letter-spacing:.14em; text-transform:uppercase; color:var(--tiletext);
     padding-left:var(--pt); white-space:nowrap; }
@@ -133,20 +138,20 @@
   .slot { position:relative; height:var(--slotH); display:flex; align-items:center; justify-content:center; padding:0 var(--pt); }
   .slot .chev, .slot .chev::after { position:absolute; inset:0; clip-path:polygon(0 0, calc(100% - var(--pt)) 0, 100% 50%, calc(100% - var(--pt)) 100%, 0 100%, var(--pt) 50%); }
   .rstep.first .slot .chev, .rstep.first .slot .chev::after { clip-path:polygon(0 0, calc(100% - var(--pt)) 0, 100% 50%, calc(100% - var(--pt)) 100%, 0 100%); }
-  .slot .chev { background:#3a3a52; pointer-events:none; }
-  .slot .chev::after { content:''; inset:3px; background:var(--bg); }
+  .slot .chev { background:var(--rail-line); pointer-events:none; }
+  .slot .chev::after { content:''; inset:2px; background:var(--rail-bg); }
   .rstep:not(.first) .slot .chev::after { }
-  .slot .num { position:absolute; left:calc(var(--pt) + 10px); top:50%; transform:translateY(-50%); font-size:40px; font-family:var(--display); font-weight:400; color:#2c2c3e; pointer-events:none; }
+  .slot .num { position:absolute; left:calc(var(--pt) + 10px); top:50%; transform:translateY(-50%); font-size:40px; font-family:var(--display); font-weight:400; color:#2a2a38; pointer-events:none; }
   .rstep.first .slot .num { left:18px; }
   .slot .empty { font-size:var(--fs-sm); letter-spacing:.2em; color:var(--dim); text-transform:uppercase; pointer-events:none; }
   .slot.full .empty, .slot.full .num { display:none; }
-  .slot.full .chev { background:var(--line); }
-  .slot.full .chev::after { background:var(--panel); }
+  .slot.full .chev { background:var(--rail-line-hi); }
+  .slot.full .chev::after { background:var(--rail-fill); }
   .slot.trig .chev { background:var(--glow); }
   .slot.over .chev { background:var(--glow); }
-  .slot.over .chev::after { background:#2a2a3c; }
+  .slot.over .chev::after { background:#262634; }
   .slot.acting .chev { background:var(--glow); }
-  .slot.acting .chev::after { background:#34344a; }
+  .slot.acting .chev::after { background:#2c2c3c; }
   #slots.complete .slot.full .chev { background:var(--lit); }
   .rstep > .rlink { position:relative; height:16px; }
   .carry { position:absolute; left:calc(var(--sw) / 2 + 12px); top:6px; height:0; border-top:3px solid; }
@@ -164,11 +169,16 @@
     background:var(--glow); opacity:0; pointer-events:none; z-index:3;
     transition:left var(--ph-ms, .16s) ease-out, opacity .1s; }
   #playhead.on { opacity:1; }
-  #stage[data-phase=resolving] #sentence { --focus:var(--glow); }
-  #narration { height:var(--narr-h); flex:none; width:100%; max-width:1232px; font-size:var(--fs-narr); line-height:35px; color:var(--text); text-align:center; font-weight:700;
-    overflow:hidden; display:grid; align-content:center; text-shadow:0 2px 0 #000; }
-  #narration .nbox { display:block; max-height:70px; overflow:hidden; } #narration .nm, #narration .nres { color:var(--text); } #narration .ni { text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:4px; }
-  #narration .nres { font-weight:400; font-size:.7em; color:var(--dim); }
+  #stage[data-phase=resolving] #railPanel { border-color:var(--rail-line-hi); }
+  #narration { height:var(--narr-h); flex:none; width:100%; max-width:1000px; margin-bottom:10px; font-family:var(--prose); font-size:var(--fs-narr); line-height:29px;
+    color:#e6e2d6; text-align:center; font-weight:400; letter-spacing:0; overflow:hidden; display:grid; align-content:center; }
+  #narration .nbox { display:block; max-height:58px; overflow:hidden; }
+  #narration .nm { color:inherit; }
+  /* action phrases: a muted tint of the verb colour; item names: faint tint + dotted underline; clauses about the result: dimmer */
+  #narration .nv { color:color-mix(in srgb, var(--vc, #e6e2d6) 58%, #d8d4c8); }
+  #narration .nv.nrev { color:color-mix(in srgb, var(--vc, #e6e2d6) 40%, #a8a496); }
+  #narration .ni { color:color-mix(in srgb, var(--vc, #e6e2d6) 40%, #e6e2d6); text-decoration:underline dotted; text-decoration-thickness:1px; text-underline-offset:5px; }
+  #narration .nres { font-style:italic; font-size:.78em; color:#8f8c82; }
   #preview { margin-top:0; min-height:22px; width:100%; }
   #previewText { font-size:var(--fs-md); line-height:22px; max-width:1232px; }
   #previewText.hint { color:var(--dim); }
@@ -178,7 +188,7 @@
   #stage[data-phase=resolving] #bottom, #stage[data-phase=enemy] #bottom { opacity:.45; transition:opacity .15s; }
   #tray { display:flex; justify-content:center; gap:34px; }
   .cell { width:210px; height:70px; display:flex; align-items:center; justify-content:center; }
-  .cell:empty { border:2px dashed color-mix(in srgb, var(--line) 30%, transparent); }
+  .cell:empty { border:2px dashed transparent; }   /* placed dice leave an invisible hole, so tray positions stay stable */
   .cell.over, #tray.over .cell:empty { border-color:var(--glow); }
   .die { width:200px; height:64px; display:flex; flex-direction:column; align-items:center; justify-content:center;
     gap:5px; position:relative; touch-action:none; cursor:grab; rotate:var(--tilt, 0deg);
@@ -511,8 +521,10 @@
   </section>
   <section id="sentence">
     <div id="narration"></div>
-    <div id="railHead"><span id="railTitle"></span><span id="railShape"></span><span id="rtotals"></span></div>
-    <div id="slots"></div>
+    <div id="railPanel">
+      <div id="railHead"><span id="railTitle"></span><span id="railShape"></span><span id="rtotals"></span></div>
+      <div id="slots"></div>
+    </div>
     <div id="preview"><div id="previewText"></div></div>
   </section>
   <section id="bottom">
@@ -1018,7 +1030,7 @@ Object.assign(CONFIG, {
   colors: {
     bg: '#0b0b10', panel: '#16161f', line: '#2a2a3a', text: '#e8e6f0', textDim: '#a9a7c0',
     // verbs carry meaning: PRUNE = red (force), SOW = blue (intellect / persuasion), DIG = amber (curiosity / search)
-    verb: { PRUNE: '#ff4a4a', SOW: '#3d8bff', DIG: '#ffb21f' },
+    verb: { PRUNE: '#e5605a', SOW: '#5b8fe0', DIG: '#dca13a' },
     // body parts: a muted, neutral bone / sand / clay family so they never read as verbs
     body: { PALM: '#d6cdb4', ARM: '#cbbf9c', MOUTH: '#c99a80', EYE: '#bdb48f', EAR: '#b8a98a', NOSE: '#d4b49a', BACK: '#a9a590', BELLY: '#c4a8a0' },
     // items: one distinct purple family
@@ -1031,16 +1043,16 @@ Object.assign(CONFIG, {
     tileText: '#0b0b10',
     scar: '#3a3a44', scarText: '#ff3b3b',
     turned: '#4fe06a', broken: '#5a5a66', pipIntact: '#e8e6f0',   // turned = green, scar = dark grey with a red crack
-    hostile: '#ff5a5a', glow: '#ffffff',
+    hostile: '#e5605a', glow: '#ffffff',
     lit: '#ffe36b',        // "sentence complete" gold, COMMIT button, held badge
     status: '#ffd36b',     // enemy action text, status line, debug accents
     unknownBg: '#444444', unknownFg: '#aaaaaa',   // the "?" tile before the first roll
-    enemy: { BITE: '#ff5a5a', GROWL: '#d8704a', SNIFF: '#b98a6a', WHIMPER: '#8fa4c0',
-             SNIP: '#ff5a5a', BOAST: '#d8704a', HAGGLE: '#8fa4c0',
-             PECK: '#ff5a5a', CAW: '#d8704a', STEAL: '#e0508a', CIRCLE: '#8fa4c0',
-             BORROW: '#ff5a5a', QUOTE: '#d8704a', SIGH: '#8fa4c0',
-             CREAK: '#d8704a', SLIP: '#ff5a5a', DROP: '#e0508a', SWAY: '#d8704a', 'CALM WATER': '#8fa4c0',
-             TAXES: '#e0b84a', EXPLAINS: '#ff5a5a', BORES: '#d8704a', ANECDOTE: '#7fc4e8', FILES: '#8fa4c0' },
+    enemy: { BITE: '#e5605a', GROWL: '#c98a60', SNIFF: '#b98a6a', WHIMPER: '#8fa4c0',
+             SNIP: '#e5605a', BOAST: '#c98a60', HAGGLE: '#8fa4c0',
+             PECK: '#e5605a', CAW: '#c98a60', STEAL: '#cf5f8a', CIRCLE: '#8fa4c0',
+             BORROW: '#e5605a', QUOTE: '#c98a60', SIGH: '#8fa4c0',
+             CREAK: '#c98a60', SLIP: '#e5605a', DROP: '#cf5f8a', SWAY: '#c98a60', 'CALM WATER': '#8fa4c0',
+             TAXES: '#d4b45c', EXPLAINS: '#e5605a', BORES: '#c98a60', ANECDOTE: '#7fb0cf', FILES: '#8fa4c0' },
   },
 });
 
@@ -3110,8 +3122,8 @@ function renderSlots() {
   $('sentence').classList.toggle('partial', partial);
   renderGhosts();
   // fit the chevrons to the page width (CSS --sw is the 3-slot size; more slots shrink it)
-  const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 425, ovPx = 26;
-  sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1232 + (n - 1) * ovPx) / n)) + 'px');
+  const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 420, ovPx = 26;
+  sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1208 + (n - 1) * ovPx) / n)) + 'px');
   const tg = (ev && ev.triggers) || {};
   const labels = stepLabelsFor(n), mi = ev ? ev.mindIndex : -1, mcol = ev && ev.verb ? C.colors.verb[ev.verb] : null;
   dom.stepEls.forEach((st, i) => {
@@ -3231,11 +3243,11 @@ function narrateSentence(ev) {
     const item = s.face && s.face.indexOf('+') > 0 ? s.face.slice(s.face.indexOf('+') + 1) : null;
     if (item && C.colors.item[item]) {
       const nm = esc(itemName(item).toLowerCase());
-      if (nm && h.indexOf(nm) >= 0) h = h.replace(nm, '<span class="ni" style="color:' + C.colors.item[item] + '">' + nm + '</span>');
+      if (nm && h.indexOf(nm) >= 0) h = h.replace(nm, '<span class="ni" style="--vc:' + C.colors.item[item] + '">' + nm + '</span>');
     }
     h = h.replace(/\{them\}/g, () => { const r = '<span class="nm">' + esc(named ? pr.them : them) + '</span>'; named = true; return r; });   // the name once, then the pronoun
     const col = s.verb && C.colors.verb[s.verb];
-    return '<span class="nv"' + (col ? ' style="color:' + col + '"' : '') + '>' + h + '</span>';
+    return '<span class="nv"' + (col ? ' style="--vc:' + col + '"' : '') + '>' + h + '</span>';
   });
   let out = parts[0];
   for (let i = 1; i < parts.length; i++) out += esc(i === parts.length - 1 && parts.length > 2 && !partial ? N.joinLast : N.joinThen) + parts[i];
@@ -3244,7 +3256,7 @@ function narrateSentence(ev) {
   if (ev.revealText) {
     const R = N.reveal, d = ev.revealDepth, f = ev.revealFaces;
     const t = ev.slots && f ? (f === 'all' ? R.facesAll : R.faces.replace('{n}', f)) : (d === 1 ? R.intent : R.intents.replace('{n}', d));
-    txt += ' <span class="nv" style="color:' + C.colors.verb[C.revealVerb] + '">' + esc(t.replace('{its}', pr.its)) + '</span>';
+    txt += ' <span class="nv nrev" style="--vc:' + C.colors.verb[C.revealVerb] + '">' + esc(t.replace('{its}', pr.its)) + '</span>';
   }
   return txt;
 }

@@ -5,7 +5,7 @@ Object.assign(CONFIG, {
   colors: {
     bg: '#0b0b10', panel: '#16161f', line: '#2a2a3a', text: '#e8e6f0', textDim: '#a9a7c0',
     // verbs carry meaning: PRUNE = red (force), SOW = blue (intellect / persuasion), DIG = amber (curiosity / search)
-    verb: { PRUNE: '#ff4a4a', SOW: '#3d8bff', DIG: '#ffb21f' },
+    verb: { PRUNE: '#e5605a', SOW: '#5b8fe0', DIG: '#dca13a' },
     // body parts: a muted, neutral bone / sand / clay family so they never read as verbs
     body: { PALM: '#d6cdb4', ARM: '#cbbf9c', MOUTH: '#c99a80', EYE: '#bdb48f', EAR: '#b8a98a', NOSE: '#d4b49a', BACK: '#a9a590', BELLY: '#c4a8a0' },
     // items: one distinct purple family
@@ -18,15 +18,15 @@ Object.assign(CONFIG, {
     tileText: '#0b0b10',
     scar: '#3a3a44', scarText: '#ff3b3b',
     turned: '#4fe06a', broken: '#5a5a66', pipIntact: '#e8e6f0',   // turned = green, scar = dark grey with a red crack
-    hostile: '#ff5a5a', glow: '#ffffff',
+    hostile: '#e5605a', glow: '#ffffff',
     lit: '#ffe36b',        // "sentence complete" gold, COMMIT button, held badge
     status: '#ffd36b',     // enemy action text, status line, debug accents
     unknownBg: '#444444', unknownFg: '#aaaaaa',   // the "?" tile before the first roll
-    enemy: { BITE: '#ff5a5a', GROWL: '#d8704a', SNIFF: '#b98a6a', WHIMPER: '#8fa4c0',
-             SNIP: '#ff5a5a', BOAST: '#d8704a', HAGGLE: '#8fa4c0',
-             PECK: '#ff5a5a', CAW: '#d8704a', STEAL: '#e0508a', CIRCLE: '#8fa4c0',
-             BORROW: '#ff5a5a', QUOTE: '#d8704a', SIGH: '#8fa4c0',
-             CREAK: '#d8704a', SLIP: '#ff5a5a', DROP: '#e0508a', SWAY: '#d8704a', 'CALM WATER': '#8fa4c0',
-             TAXES: '#e0b84a', EXPLAINS: '#ff5a5a', BORES: '#d8704a', ANECDOTE: '#7fc4e8', FILES: '#8fa4c0' },
+    enemy: { BITE: '#e5605a', GROWL: '#c98a60', SNIFF: '#b98a6a', WHIMPER: '#8fa4c0',
+             SNIP: '#e5605a', BOAST: '#c98a60', HAGGLE: '#8fa4c0',
+             PECK: '#e5605a', CAW: '#c98a60', STEAL: '#cf5f8a', CIRCLE: '#8fa4c0',
+             BORROW: '#e5605a', QUOTE: '#c98a60', SIGH: '#8fa4c0',
+             CREAK: '#c98a60', SLIP: '#e5605a', DROP: '#cf5f8a', SWAY: '#c98a60', 'CALM WATER': '#8fa4c0',
+             TAXES: '#d4b45c', EXPLAINS: '#e5605a', BORES: '#c98a60', ANECDOTE: '#7fb0cf', FILES: '#8fa4c0' },
   },
 });

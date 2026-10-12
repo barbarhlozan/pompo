@@ -339,3 +339,8 @@ Before/after: side-session-notes `encounter-before.jpg` / `encounter-after.jpg` 
 - Sentence band is a flat `--panel` strip with solid 4px top/bottom rules (`--focus`, white while resolving); yellow gradient/glow gone.
 - Tray dice: hard corners, flat fill, 4px outline, solid black offset shadow; no tilt (`trayTiltDeg`/`tiltMaxDeg` = 0 in config). Held = lifted 5px, no glow.
 - Removed blur shadows/drop-shadows (playhead, cold flash → solid border, litFlash → brightness); turned pips are no longer round. Font stays Bungee (already blocky, system fallback).
+
+### Sentence area restyle (prose vs. board)
+- Narration is now story prose: Lora (system serif fallback), 26px, on the plain page background; action phrases get a muted verb tint (`--vc` + `color-mix`), item names a faint tint + dotted underline, reveal/result clauses dimmer.
+- The rail sits in its own dark `#railPanel` (thin neutral border, mono labels, totals at its right end), centred and sized to its slots; neutral outlines, yellow only for COMMIT / sentence-complete.
+- Verb + enemy colours desaturated in `config/60-colors.js`; empty tray cells are invisible (dashed hole only while dragging a die back).

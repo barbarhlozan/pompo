@@ -265,8 +265,8 @@ function renderSlots() {
   $('sentence').classList.toggle('partial', partial);
   renderGhosts();
   // fit the chevrons to the page width (CSS --sw is the 3-slot size; more slots shrink it)
-  const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 425, ovPx = 26;
-  sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1232 + (n - 1) * ovPx) / n)) + 'px');
+  const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 420, ovPx = 26;
+  sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1208 + (n - 1) * ovPx) / n)) + 'px');
   const tg = (ev && ev.triggers) || {};
   const labels = stepLabelsFor(n), mi = ev ? ev.mindIndex : -1, mcol = ev && ev.verb ? C.colors.verb[ev.verb] : null;
   dom.stepEls.forEach((st, i) => {
@@ -386,11 +386,11 @@ function narrateSentence(ev) {
     const item = s.face && s.face.indexOf('+') > 0 ? s.face.slice(s.face.indexOf('+') + 1) : null;
     if (item && C.colors.item[item]) {
       const nm = esc(itemName(item).toLowerCase());
-      if (nm && h.indexOf(nm) >= 0) h = h.replace(nm, '<span class="ni" style="color:' + C.colors.item[item] + '">' + nm + '</span>');
+      if (nm && h.indexOf(nm) >= 0) h = h.replace(nm, '<span class="ni" style="--vc:' + C.colors.item[item] + '">' + nm + '</span>');
     }
     h = h.replace(/\{them\}/g, () => { const r = '<span class="nm">' + esc(named ? pr.them : them) + '</span>'; named = true; return r; });   // the name once, then the pronoun
     const col = s.verb && C.colors.verb[s.verb];
-    return '<span class="nv"' + (col ? ' style="color:' + col + '"' : '') + '>' + h + '</span>';
+    return '<span class="nv"' + (col ? ' style="--vc:' + col + '"' : '') + '>' + h + '</span>';
   });
   let out = parts[0];
   for (let i = 1; i < parts.length; i++) out += esc(i === parts.length - 1 && parts.length > 2 && !partial ? N.joinLast : N.joinThen) + parts[i];
@@ -399,7 +399,7 @@ function narrateSentence(ev) {
   if (ev.revealText) {
     const R = N.reveal, d = ev.revealDepth, f = ev.revealFaces;
     const t = ev.slots && f ? (f === 'all' ? R.facesAll : R.faces.replace('{n}', f)) : (d === 1 ? R.intent : R.intents.replace('{n}', d));
-    txt += ' <span class="nv" style="color:' + C.colors.verb[C.revealVerb] + '">' + esc(t.replace('{its}', pr.its)) + '</span>';
+    txt += ' <span class="nv nrev" style="--vc:' + C.colors.verb[C.revealVerb] + '">' + esc(t.replace('{its}', pr.its)) + '</span>';
   }
   return txt;
 }
