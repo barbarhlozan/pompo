@@ -84,7 +84,7 @@ const SCREENS = {
       '<div class="plnets">' + E.bodyDieIds().map(id => netBoxHTML(id, { mode: 'place' })).join('') + '</div>' +
       '<div class="invtray" id="invTray"><div class="sect" style="margin:0">' + S.inventory + ' · ' + t.inventory.length + '</div>' +
       '<div class="invrow">' + (inv || '<span class="lbl">' + S.inventoryEmpty + '</span>') + '</div>' +
-      '<div class="lbl" style="font-size:11px;letter-spacing:.08em">' + esc(t.inventory.length ? S.placeInvHint : (mode !== 'reward' ? S.trayDrop : '')) + '</div></div>' +
+      '<div class="lbl">' + esc(t.inventory.length ? S.placeInvHint : (mode !== 'reward' ? S.trayDrop : '')) + '</div></div>' +
       '<div class="row">' + btn(S.done, 'done') + '</div></div>';
     if (pl.pending) {
       const pd = pl.pending;
@@ -134,11 +134,11 @@ const SCREENS = {
       if (cell.reachable) cls.push('reach', cold ? 'cold' : '');
       if (flash.some(f => f.c === cell.c && f.r === cell.r)) cls.push('newrev');
       const bg = type ? (K[type] || K.EMPTY) : K.FOG;
-      const fs = word.length <= 5 ? 28 : (word.length <= 8 ? 22 : 17);
+      const fs = word.length <= 5 ? 'var(--t-xl)' : (word.length <= 8 ? 'var(--t-lg)' : 'var(--t-md)');
       const tip = cell.here ? M.hereTip : (cell.reachable ? (cold ? M.moveTipCold : M.moveTip) + ' · ' + word : (type ? word : M.fogTip));
       return '<div class="' + cls.join(' ') + '" style="background:' + bg + '" data-c="' + cell.c + '" data-r="' + cell.r + '"' +
         (cell.reachable ? ' data-act="move"' : '') + ' title="' + esc(tip) + '">' +
-        '<span class="ty">' + esc(type ? (M.typeLabel[type] || '') : '') + '</span><span class="word" style="font-size:' + fs + 'px">' + esc(word) + '</span>' +
+        '<span class="ty">' + esc(type ? (M.typeLabel[type] || '') : '') + '</span><span class="word" style="font-size:' + fs + '">' + esc(word) + '</span>' +
         (cell.here ? '<b class="you">' + esc(M.you) + '</b>' : '') + '</div>';
     }).join('')).join('');
     const suns = Array.from({ length: dayMax }, (_, i) => '<span class="sun' + (i < t.daylight ? '' : ' off') + '" data-i="' + i + '">☀</span>').join('');
@@ -175,7 +175,7 @@ const SCREENS = {
       '<div class="sect" style="margin-top:12px">' + S.scarsFinal.replace('SCARS {n}/{max}', 'SCARS ' + scarSummary(tripFaces)) + '</div>' +
       (t.inventory.length ? '<div class="sect" style="margin-top:8px">' + S.leftover + '</div><div class="resline inv">' + t.inventory.map(id => itemTileHTML(id, 'small')).join('') + '</div>' : '') +
       '</div><div><div class="sect">' + S.finalDice + '</div>' + mindRowHTML() + '<div class="endnets">' +
-      E.bodyDieIds().map(id => '<div><div class="nbl" style="font-size:14px">' + id + '</div>' + netHTML(id, { mini: true, mode: 'view' }) + oddsHTML(id) + '</div>').join('') +
+      E.bodyDieIds().map(id => '<div><div class="nbl">' + id + '</div>' + netHTML(id, { mini: true, mode: 'view' }) + oddsHTML(id) + '</div>').join('') +
       '</div></div></div>' +
       '<div class="sect" style="align-self:flex-start">' + S.logLabel + '</div><ol id="endLog">' + t.log.map(l => '<li>' + esc(l) + '</li>').join('') + '</ol>' +
       '<div class="row">' + btn(C.text.buttons.restart, 'restart') + '<button class="btn" data-act="modeSelect">' + esc(MT().changeMode) + '</button></div>';

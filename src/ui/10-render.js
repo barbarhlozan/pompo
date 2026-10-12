@@ -520,14 +520,14 @@ function renderOverlay() {
     const gd = C.enemies[g.guardian];
     $('ovBig').textContent = MT().guardianArrives.replace('{name}', gd.name);
     $('ovBig').style.color = C.colors.verb.PRUNE;
-    $('ovBig').style.fontSize = '56px';
+    $('ovBig').classList.add('long');
     $('ovSub').textContent = MT().guardianSub;
     $('ovRestart').textContent = MT().fight;
   } else if (show && isSite()) {
-    $('ovBig').textContent = C.text.lost; $('ovBig').style.color = C.colors.scarText; $('ovBig').style.fontSize = '';
+    $('ovBig').textContent = C.text.lost; $('ovBig').style.color = C.colors.scarText; $('ovBig').classList.remove('long');
     $('ovSub').textContent = lostSubText(); $('ovRestart').textContent = C.text.buttons.continue;
   } else if (show) {
-    $('ovBig').style.fontSize = ''; $('ovRestart').textContent = C.text.buttons.continue;
+    $('ovBig').classList.remove('long'); $('ovRestart').textContent = C.text.buttons.continue;
     $('ovBig').textContent = ui.phase === 'won' && g.resultLabel ? g.resultLabel : g.result;
     $('ovBig').style.color = ui.phase === 'lost' ? C.colors.scarText : (g.result === C.text.befriended ? C.colors.turned : C.colors.verb.PRUNE);
     $('ovSub').textContent = ui.phase === 'won'
@@ -560,7 +560,7 @@ function showPopover(id) {
   if (vd.frozen) lines.push('<span style="color:#8fe0ff">' + esc(C.text.s.frozen) + ':</span> ' + esc(C.text.s.frozenTip));
   pop.innerHTML = '<div class="ttl">' + esc(E.dieLabel(id)) + ' · 6 faces</div><div class="row">' +
     vd.faces.map((f, i) => '<div class="f' + (i === vd.idx && shownCur ? ' cur' : '') + '"><div class="faceRow">' + faceHTML(f) + '</div></div>').join('') + '</div>' +
-    (lines.length ? '<div class="ttl" style="margin:8px 0 0;letter-spacing:.04em;font-weight:400;font-size:12px;color:var(--text);max-width:520px;white-space:normal">' + lines.join('<br>') + '</div>' : '');
+    (lines.length ? '<div class="ttl" style="margin:var(--sp-2) 0 0;letter-spacing:var(--ls-0);font-weight:400;font-size:var(--t-xs);color:var(--text);max-width:520px;white-space:normal">' + lines.join('<br>') + '</div>' : '');
   pop.style.display = 'block';
   const sr = $('stage').getBoundingClientRect(), r = dom.dieEls[id].getBoundingClientRect();
   const pw = pop.offsetWidth, ph2 = pop.offsetHeight;

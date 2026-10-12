@@ -388,7 +388,7 @@
         [['inset(0 50% 0 0)', -1], ['inset(0 0 0 50%)', 1]].forEach(h => {
           const n = document.createElement('div');
           n.className = 'flyer';
-          n.style.cssText = 'font-size:26px;padding:10px 14px;background:' + col + ';color:' + C.colors.tileText + ';border:3px solid #000;clip-path:' + h[0] + ';-webkit-text-stroke:0;text-shadow:none';
+          n.style.cssText = 'font-size:var(--t-lg);padding:var(--sp-2) var(--sp-3);background:' + col + ';color:' + C.colors.tileText + ';border:3px solid #000;clip-path:' + h[0] + ';-webkit-text-stroke:0;text-shadow:none';
           n.textContent = d ? d.name : ev.item;
           addLive(n);
           const at0 = 'translate(' + at.x + 'px,' + at.y + 'px) translate(-50%,-50%)';
@@ -509,7 +509,7 @@
       [['inset(0 50% 0 0)', -1], ['inset(0 0 0 50%)', 1]].forEach(h => {
         const n = document.createElement('div');
         n.className = 'flyer';
-        n.style.cssText = 'font-size:' + size + 'px;padding:8px 10px;background:' + col + ';color:' + C.colors.tileText + ';border:3px solid #000;clip-path:' + h[0] + ';-webkit-text-stroke:0;text-shadow:none';
+        n.style.cssText = 'font-size:' + size + ';padding:var(--sp-2) var(--sp-3);background:' + col + ';color:' + C.colors.tileText + ';border:3px solid #000;clip-path:' + h[0] + ';-webkit-text-stroke:0;text-shadow:none';
         n.textContent = name;
         addLive(n);
         const at0 = 'translate(' + at.x + 'px,' + at.y + 'px) translate(-50%,-50%)';
@@ -556,7 +556,7 @@
       popAnim(card, 1.18, T.flourishMs);
       if (ev.overkill) {
         const d = C.items[ev.brokenItem];
-        breakTile(at, d ? d.name : ev.brokenItem, C.colors.item[ev.brokenItem] || SC.ITEM, 14);
+        breakTile(at, d ? d.name : ev.brokenItem, C.colors.item[ev.brokenItem] || SC.ITEM, 'var(--t-sm)');
         burst(at, SC.JUNK, FXC.burstCounts.scar);
         floatText('BROKE INTO JUNK', { x: at.x, y: at.y - 50 }, SC.RATS, { small: false });
       } else if (ev.content === 'ITEM') {
@@ -638,7 +638,7 @@
         if (!reduced()) [['inset(0 50% 0 0)', -1], ['inset(0 0 0 50%)', 1]].forEach(h => {
           const n = document.createElement('div');
           n.className = 'flyer';
-          n.style.cssText = 'font-size:16px;padding:6px 9px;background:' + rc + ';color:' + C.colors.tileText + ';border:3px solid #000;clip-path:' + h[0] + ';-webkit-text-stroke:0;text-shadow:none';
+          n.style.cssText = 'font-size:var(--t-sm);padding:var(--sp-1) var(--sp-2);background:' + rc + ';color:' + C.colors.tileText + ';border:3px solid #000;clip-path:' + h[0] + ';-webkit-text-stroke:0;text-shadow:none';
           n.textContent = d ? d.name : replaced;
           addLive(n);
           const at0 = 'translate(' + at.x + 'px,' + at.y + 'px) translate(-50%,-50%)';

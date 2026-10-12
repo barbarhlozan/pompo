@@ -350,3 +350,9 @@ Before/after: side-session-notes `encounter-before.jpg` / `encounter-after.jpg` 
 - Selected site face shows a "SELECTED" note below it (`text.m2…selected`, `.sel`).
 - Rail arrows: 5px outline, chamfered corners/blunt tip (`--c`, `--chev-clip`), solid 5px black offset shadow (`.slot::before`); `--pt` 40, `--ov` 32.
 - Tray dice are 80×80 squares (tiles stack inside); sized to leave room for the button row at 1280×720.
+
+## Typography & spacing system (CSS pass, no rule changes)
+- Fonts (`:root` in src/styles.css): `--font-display` (Bungee: tiles, buttons, titles, slot actions), `--font-ui` (mono: labels, captions, body), `--font-prose` (serif: narration only). No other font-family anywhere.
+- Sizes: `--t-xs 13 / --t-sm 15 / --t-md 18 / --t-lg 24 / --t-xl 30 / --t-hero 48`; letter-spacing `--ls-0 .02em` (tiles, titles) / `--ls-1 .08em` (buttons, captions) / `--ls-2 .18em` (section labels). Tiles: default md, `.small` sm, dense places (tray, inventory, bag, popover, nets) xs, enemy intent xl.
+- Spacing: `--sp-1..6 = 4 / 8 / 12 / 16 / 24 / 32px` for padding, margin, gap; layout boxes (tray 92, slots 92, enemy panel 216) keep literal px.
+- Rail has no panel: narration, arrows, labels, captions and totals sit straight on the page; tray die = 88px square, tile centred, label centred below, the ▲ button in the corner.
