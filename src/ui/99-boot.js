@@ -4,6 +4,7 @@
 // ---------- boot ----------
 function init() {
   buildDOM();
+  buildDictionary();
   ui.trip = E.createTrip(Math.random);       // placeholder behind the start screen
   showStart();
   window.SmugUI = { ui, dom, faceHTML, tileHTML, itemTileHTML, get view() { return view; }, get game() { return ui.game; }, get trip() { return ui.trip; },

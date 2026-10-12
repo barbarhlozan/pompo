@@ -76,6 +76,26 @@ Object.assign(CONFIG, {
       directedTip: 'Acts with the MIND\'s verb {verb}.',
       carryTip: 'DIG passes its points on to the next die.',
     },
+    // in-game dictionary (src/ui/65-dictionary.js): `kind` picks the tile colour: verb (verb colour, `term` is the verb) | body (body-part
+    // colour, `term` is the part) | item (item colour) | term (neutral gold); optional `key` = colour lookup instead of `term`. `big: true` = the headline entries.
+    dictionaryUi: { button: 'DICTIONARY', buttonTip: 'What the words mean (?)', title: 'DICTIONARY', close: 'CLOSE', hint: 'Esc or ? closes' },
+    dictionary: [
+      { term: 'PRUNE', kind: 'verb', big: true, text: 'Violence and force. You hurt, break, cut. It breaks pips (red), and a creature with every pip broken is BEATEN.' },
+      { term: 'SOW', kind: 'verb', big: true, text: 'Persuasion and kindness. You talk, charm, offer. It turns pips (green), and a creature with every pip turned is BEFRIENDED.' },
+      { term: 'DIG', kind: 'verb', big: true, text: 'Curiosity and searching. You look, listen, pry. It reveals what is coming and passes its points on to the next die.' },
+      { term: 'MIND', kind: 'term', text: 'Your verb die (PRUNE, SOW, DIG). The dice placed after it use its verb; at most one MIND face per sentence.' },
+      { term: 'INSTINCT', kind: 'body', key: 'EYE', text: 'A body die placed before the MIND (or with no MIND) acts on its own favourite verb. Some parts have none and do nothing.' },
+      { term: 'PLAN · SITUATION · IMPULSE · REFLEX', kind: 'term', text: 'The sentence\'s label: MIND first = PLAN, in the middle = SITUATION, last = IMPULSE, no MIND at all = REFLEX.' },
+      { term: 'SLOTS', kind: 'term', text: 'The sentence: drag dice into every slot, left to right, then COMMIT. Each die acts in turn, and the order matters.' },
+      { term: 'PIPS', kind: 'term', key: 'EAR', text: 'The □ on an enemy face: one point of its resolve each. Points remove pips; a face with none left is out of the fight.' },
+      { term: 'NOW · NEXT', kind: 'term', text: 'NOW is what it does this turn; NEXT is what it does after. DIG can show you NEXT before it happens.' },
+      { term: 'HOSTILE · HARMLESS', kind: 'term', text: 'Hostile faces hurt you and must be cleared to win. Harmless faces do nothing and are ignored.' },
+      { term: 'BEATEN · BEFRIENDED', kind: 'term', text: 'The two ways to win: mostly broken pips (BEATEN) or mostly turned pips (BEFRIENDED). Both end the fight.' },
+      { term: 'ITEMS', kind: 'item', key: 'KNIFE', text: 'Placed on a body face: it adds a point and changes the action. Items already on a die stay until a campfire.' },
+      { term: 'SCARS', kind: 'term', key: 'SCAR', text: 'A scarred face scores 0 and its item is gone. Too many scars and you flee the trip. A campfire can heal one.' },
+      { term: 'REROLL · HOLD', kind: 'term', text: 'Click a die to HOLD it, then REROLL the rest. You get a few rerolls per turn; freezing and growls can take them.' },
+      { term: 'NOISE', kind: 'term', key: 'RATS', text: 'At scavenge sites each turn and each PRUNE point adds noise. When it is full a guardian arrives for a fight.' },
+    ],
     help: 'ROLL, hold & reroll, drag dice into the slots, COMMIT. The MIND die sets the verb for dice after it; earlier dice act on instinct.',
     // reveal part of the totals ('= PRUNE 6 · REVEAL next intent'): fights reveal intents, sites reveal faces
     revealTotals: { intent: 'REVEAL next intent', intents: 'REVEAL next {n} intents', faces: 'REVEAL {n} faces', facesAll: 'REVEAL all faces' },

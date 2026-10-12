@@ -329,3 +329,8 @@ Before/after: side-session-notes `encounter-before.jpg` / `encounter-after.jpg` 
 - **Quieter**: tray dice 78→64px, tiles 17px, buttons smaller with thin borders (ROLL / COMMIT keep a lit border), help line 70% opacity, enemy card info lines dim; NOW card, intent tile and intent line unchanged. During commit/enemy playback `#bottom` fades to 45% (`#stage[data-phase]`, set in `renderControls`), so the playhead + highlighted steps are the strongest motion.
 - **Layout** (1280×720, no scroll): enemy 40–258, sentence 258–576, bottom 580–720; fits PLUMBER 3 slots with the 2-line sentence, ACCOUNTANT names, ghost labels. Text floor 13px kept.
 - Open: result clause wording still repeats ("His BORROW breaks. 1 of his BORROW pips break."); 3-line narrations are clipped at 70px.
+
+## Dictionary (prototype)
+- DICTIONARY button (bottom right, all screens) + `?` / Esc / click outside; overlay in `src/ui/65-dictionary.js`, entries in `CONFIG.text.dictionary`
+  (`{term, kind: verb|body|item|term, key?, big?, text}`; `big` = the three verbs shown first as large cards). Opening it never changes game state.
+- Add a term: append an entry. Wording follows the rules as of this commit; update when rules change.

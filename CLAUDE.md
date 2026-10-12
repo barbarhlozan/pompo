@@ -24,7 +24,7 @@ Preview: launch config `smug-prototype` (.claude/launch.json) serves `src/index.
   `80-site` scavenge sites · `90-api` exports `globalThis.SmugEngine`
 - `src/ui/` DOM + view model (`SmugUI`), shared globals: `00-core` state/helpers/tokens · `10-render` static DOM + render fns ·
   `20-site` site panel · `30-encounter` slots/drag/roll/commit · `40-flow` trip flow, placement open/close, heal ·
-  `50-map` map move · `60-controls` debug-facing controls · `70-screens` start/reward/campfire/end/map screens ·
+  `50-map` map move · `60-controls` debug-facing controls · `65-dictionary` DICTIONARY button + overlay (`?`, text in `text.dictionary`) · `70-screens` start/reward/campfire/end/map screens ·
   `80-placement` item drag onto faces · `90-events` engine-event player · `99-boot` init
 - `src/fx.js` juice layer (`SmugFX`, own IIFE) · `src/debug.js` tuning drawer (`SmugDebug`, own IIFE)
 - `tests/engine.test.mjs` engine tests · `build.mjs` · `serve.mjs`
