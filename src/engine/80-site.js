@@ -17,7 +17,7 @@ function createSite(trip, siteId, rng, at) {
     pips: c.pips, pipsLeft: c.pips, revealed: false, opened: false, brokenItem: null }));
   const site = { siteId, name: c.name, word: c.word, at: at || null, faces, noise: 0, noiseMax: CONFIG.noiseMax,
     turn: 1, rerolls: 0, rerollPenalty: 0, rerollBonus: 0, pendingSow: 0, player: trip.player, target: null,
-    slots: Math.max(CONFIG.minSlots || 1, c.slots || CONFIG.defaultSlots), holdPending: false, gained: [], guardian: c.guardian, over: null, log: [] };
+    slots: c.slots || CONFIG.defaultSlots, holdPending: false, gained: [], guardian: c.guardian, over: null, log: [] };
   Object.defineProperty(site, 'trip', { value: trip, enumerable: false, writable: true });
   return site;
 }
@@ -69,7 +69,7 @@ function sitePreview(site, evaluation) {
     sow = { points: evaluation.totals.SOW, pips: Math.max(SR.sowMin, Math.floor(evaluation.totals.SOW / SR.sowDivisor)) };
   }
   const mk = {
-    DIG: () => reveal && parts.push(reveal === 'all' ? CONFIG.text.revealTotals.facesAll : fmt(CONFIG.text.revealTotals.faces, { n: reveal })),
+    DIG: () => reveal && parts.push(reveal === 'all' ? T.searchAll : fmt(T.search, { n: reveal })),
     PRUNE: () => prune && parts.push(prune.noise === 0 ? fmt(T.forceQuiet, { n: prune.points }) : fmt(T.force, { n: prune.points, noise: prune.noise })),
     SOW: () => sow && parts.push(fmt(T.coax, { n: sow.pips })),
   };

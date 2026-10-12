@@ -57,10 +57,10 @@
     die.frozen = !die.frozen; if (die.frozen) die.held = false;
     refreshGame(); return true;
   }
-  // slot count of the current encounter / site (CONFIG.minSlots..number of dice); dice in the vanished slots return to the tray
+  // slot count of the current encounter / site (1..number of dice); dice in the vanished slots return to the tray
   function setSlots(n) {
     if (!U.game || U.ui.screen !== 'encounter') return false;
-    U.game.slots = Math.max(C.minSlots || 1, Math.min(C.playerDice.length, Math.floor(n) || 1));
+    U.game.slots = Math.max(1, Math.min(C.playerDice.length, Math.floor(n) || 1));
     if (U.game.enemy) U.game.enemy.slots = U.game.slots;
     refreshGame(); return true;
   }
@@ -100,7 +100,7 @@
       '<div class="row"><button class="dbtn" id="dbgReset">RESET ENEMY</button><button class="dbtn" id="dbgScars">CLEAR SCARS</button></div>' +
       '<div class="row"><button class="dbtn" id="dbgTax">TAX NEXT SENTENCE</button></div><div class="row" id="dbgFrz"></div>' +
       '<h4>RULES (V2)</h4>' +
-      '<div class="row"><label>slots</label><input type="number" id="dbgSlots" min="' + (C.minSlots || 1) + '" max="' + C.playerDice.length + '" value="3" style="width:54px"><button class="dbtn" id="dbgSlotsSet">SET</button></div>' +
+      '<div class="row"><label>slots</label><input type="number" id="dbgSlots" min="1" max="' + C.playerDice.length + '" value="3" style="width:54px"><button class="dbtn" id="dbgSlotsSet">SET</button></div>' +
       '<label class="chk"><input type="checkbox" id="dbgHold"> mindAloneHolds</label>' +
       '<div class="row"><label>lose</label><select id="dbgLoseRule"><option value="dieLost">dieLost</option><option value="maxScars">maxScars</option></select></div>' +
       '<div id="dbgNote"></div>' +

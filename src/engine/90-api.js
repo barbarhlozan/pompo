@@ -2,9 +2,9 @@
 // Classic script: top-level names are shared with the other src/engine/*.js files (formerly one IIFE). No DOM, no timers, RNG injected.
 
 globalThis.SmugEngine = {
-  makeRng, parseFace, scoreBodyFace, scoreDetail, evaluateSentence, evaluatePartial, actionName,
+  makeRng, parseFace, scoreBodyFace, scoreDetail, evaluateSentence, actionName,
   createPlayer, currentFace, rollDie, toggleHold, rerollUnheld, countScars,
-  createEnemy, faceStatus, isResolved, isHostile, applyVerb, previewHits, rollIntent, enemyAct, checkWin, checkLose,
+  createEnemy, faceStatus, isResolved, isHostile, applyVerb, rollIntent, enemyAct, checkWin, checkLose,
   createGame, startTurn, resolveTurn,
   createTrip, randomSequence, labelFor, tripScars, startEncounter, rewardsFor, claimReward, addToInventory,
   beginPlacement, endPlacement, canPlace, isLocked, placeItem, moveItem, unplaceItem, healScar, oddsSummary,

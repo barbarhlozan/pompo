@@ -2,21 +2,17 @@
 // Classic script: top-level names are shared with the other src/ui/*.js files (formerly one IIFE).
 
 // ---------- static DOM ----------
-const dom = { slotEls: [], stepEls: [], capEls: [], actEls: [], cellEls: {}, dieEls: {}, efc: [] };
+const dom = { slotEls: [], cellEls: {}, dieEls: {}, efc: [] };
 function buildDOM() {
-  // the sentence rail: one strip of interlocking chevron steps (label, MIND band / instinct tag, slot, carry link, caption) + totals + playhead
+  // slots + arrows
   const slots = $('slots');
-  $('railTitle').textContent = C.text.rail.title;
   for (let i = 0; i < C.playerDice.length; i++) {
-    const st = document.createElement('div');
-    st.className = 'rstep'; st.style.setProperty('--i', i);
-    st.innerHTML = '<div class="rlabel"></div><div class="rband"></div>' +
-      '<div class="slot" data-slot="' + i + '"><div class="chev"></div><span class="num">' + (i + 1) + '</span><span class="empty">' + esc(C.text.rail.empty) + '</span><div class="sact"></div></div>' +
-      '<div class="rlink"></div><div class="rcap"></div>';
-    slots.appendChild(st);
-    dom.stepEls.push(st); dom.slotEls.push(st.querySelector('.slot')); dom.capEls.push(st.querySelector('.rcap')); dom.actEls.push(st.querySelector('.sact'));
+    if (i > 0) { const a = document.createElement('div'); a.className = 'arrow'; a.textContent = '▶'; slots.appendChild(a); }
+    const s = document.createElement('div');
+    s.className = 'slot'; s.dataset.slot = i;
+    s.innerHTML = '<span class="num">' + (i + 1) + '</span>';
+    slots.appendChild(s); dom.slotEls.push(s);
   }
-  slots.insertAdjacentHTML('beforeend', '<div id="playhead"></div>');
   // tray cells + dice
   ui.slots = emptySlots();
   C.playerDice.forEach(d => {
@@ -25,10 +21,10 @@ function buildDOM() {
     $('tray').appendChild(cell); dom.cellEls[d.id] = cell;
     const die = document.createElement('div');
     die.className = 'die'; die.dataset.id = d.id;
-    die.innerHTML = '<div class="faceRow"></div><div class="meta"><div class="cap">' + (d.label || d.id) + '</div>' +
+    die.innerHTML = '<div class="faceRow"></div><div class="cap">' + (d.label || d.id) + '</div><span class="held">' + C.text.held + '</span>' +
+      '<span class="frz" title="' + esc(C.text.s.frozenTip) + '">' + C.text.s.frozen + '</span>' +
       '<div class="ctl"><button class="up" title="Place in leftmost empty slot">▲</button>' +
-      '<button class="down" title="Return to tray">▼</button></div></div>' +
-      '<span class="held">' + C.text.held + '</span><span class="frz" title="' + esc(C.text.s.frozenTip) + '">' + C.text.s.frozen + '</span>';
+      '<button class="down" title="Return to tray">▼</button></div>';
     die.querySelector('.up').addEventListener('click', (e) => { e.stopPropagation(); onUp(d.id); });
     die.querySelector('.down').addEventListener('click', (e) => { e.stopPropagation(); onDown(d.id); });
     die.addEventListener('pointerdown', (e) => onPointerDown(e, d.id));
@@ -45,7 +41,7 @@ function buildDOM() {
   const root = document.documentElement.style, K = C.colors;
   [['bg', K.bg], ['panel', K.panel], ['line', K.line], ['text', K.text], ['dim', K.textDim], ['lit', K.lit], ['status', K.status],
    ['danger', K.scarText], ['glow', K.glow], ['pip', K.pipIntact], ['broken', K.broken], ['turned', K.turned], ['tiletext', K.tileText],
-   ['lift', C.fx.liftScale], ['ph-ms', C.timing.railPlayheadMs + 'ms']].forEach(kv => { if (kv[1] != null) root.setProperty('--' + kv[0], kv[1]); });
+   ['lift', C.fx.liftScale]].forEach(kv => { if (kv[1] != null) root.setProperty('--' + kv[0], kv[1]); });
   $('titleLabel').textContent = C.text.title;
   $('btnRoll').textContent = C.text.buttons.roll;
   $('btnCommit').textContent = C.text.buttons.commit;
@@ -81,16 +77,11 @@ function buildEnemyPanel() {
   const strip = $('faceStrip');
   strip.innerHTML = '';
   dom.efc.length = 0;
-  const ST = C.text.strip;
-  $('stripHead').innerHTML = '<b>' + esc(ST.head) + '</b> · ' + esc(ST.goal) + '<span class="legend">' + esc(ST.legend) + '</span>';
   cfg.faces.forEach((cf) => {
     const el = document.createElement('div');
     el.className = 'efc';
-    const info = cf.hostile ? ((cfg.info && cfg.info[cf.name]) || ST.effects[cf.effect] || ST.hostileNone) : ST.harmless;
-    el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div><div class="info">' + esc(info) + '</div><div class="fstate"></div>';
-    el.classList.toggle('harmless', !cf.hostile);
+    el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div>';
     const pips = el.querySelector('.pips');
-    pips.title = ST.pipTip;
     for (let p = 0; p < cf.pips; p++) { const sp = document.createElement('span'); sp.className = 'pip'; pips.appendChild(sp); }
     strip.appendChild(el); dom.efc.push(el);
   });
@@ -137,8 +128,6 @@ function renderEnemy() {
     el.classList.toggle('is-next', !isCur && qi === 0);
     el.classList.toggle('is-then', !isCur && qi >= 1);
     el.dataset.status = st;
-    el.querySelector('.fstate').textContent = ui.hidePips ? '' : (st === 'broken' ? C.text.strip.broken : (st === 'turned' ? C.text.strip.turned : ''));
-    el.classList.toggle('resolved', !ui.hidePips && (st === 'broken' || st === 'turned'));
     el.querySelector('.tag').textContent = isCur ? C.text.now : (qi === 0 ? C.text.next : (qi >= 1 ? C.text.then : ''));
   });
   // intent
@@ -174,39 +163,6 @@ function renderEnemy() {
     }
   }
   $('verbFlash').textContent = ui.verbFlash || '';
-  renderGhosts();
-}
-// Hit preview on the enemy strip while arranging: ghost marks on the pips the sentence (so far) would break / turn,
-// outlines on faces that would resolve, a WIN hint. Provisional (partial sentence) ghosts are dimmer. Gone during playback.
-function renderGhosts() {
-  if (isSite() || !dom.efc.length) return;
-  const ST = C.text.strip;
-  const legend = $('stripHead').querySelector('.legend');
-  dom.efc.forEach(el => {
-    el.classList.remove('would-break', 'would-turn');
-    el.querySelectorAll('.pip').forEach(p => p.classList.remove('ghost-broken', 'ghost-turned', 'prov'));
-  });
-  legend.classList.remove('win'); legend.textContent = ST.legend;
-  if (ui.phase !== 'arranging' || ui.hidePips || !ui.game.enemy) return;
-  const ev = partialEvaluation();
-  if (!ev || !ev.placed) return;
-  const pv = E.previewHits(ui.game.enemy, ev);
-  const prov = !ev.complete;
-  pv.hits.forEach(h => {
-    const pip = dom.efc[h.faceIdx].querySelectorAll('.pip')[h.pipIdx];
-    pip.classList.add(h.to === 'turned' ? 'ghost-turned' : 'ghost-broken');
-    pip.classList.toggle('prov', prov);
-  });
-  pv.resolves.forEach(r => {
-    const el = dom.efc[r.faceIdx];
-    el.classList.add(r.resolved === 'turned' ? 'would-turn' : 'would-break');
-    el.classList.toggle('prov', prov);
-    el.querySelector('.fstate').textContent = r.resolved === 'turned' ? ST.wouldTurn : ST.wouldBreak;
-  });
-  if (pv.win) {
-    legend.classList.add('win');
-    legend.textContent = (pv.win === C.text.beaten ? ST.winBeaten : ST.winBefriended) + (prov ? ' ' + ST.provisional : '');
-  }
 }
 
 function renderDice() {
@@ -221,7 +177,6 @@ function renderDice() {
       el.dataset.face = face;
       el.querySelector('.faceRow').innerHTML = hidden ? '<span class="tile" style="background:' + C.colors.unknownBg + ';color:' + C.colors.unknownFg + '">' + C.text.unknownFace + '</span>' : faceHTML(face);
     }
-    el.style.setProperty('--tilt', (ui.tilt[d.id] || 0) + 'deg');
     el.classList.toggle('in-slot', si >= 0);
     el.classList.toggle('held', (d.held || !!d.heldOver) && !hidden);
     el.classList.toggle('frozen', !!vd.frozen);
@@ -230,126 +185,36 @@ function renderDice() {
     el.querySelector('.ctl').style.visibility = canInteract() ? 'visible' : 'hidden';
   });
 }
-// ---- the sentence rail ----
-const stepLabelsFor = (n) => C.text.rail.steps[n] || Array.from({ length: n }, (_, i) => (i === 0 ? 'FIRST' : 'THEN'));
-const verbSpan = (v) => '<span class="vb" style="color:' + C.colors.verb[v] + '" title="' + esc(C.verbInfo[v]) + '">' + v + '</span>';
-// what the slot itself shows once a die sits on it: the action it performs, big, in the verb's colour, with its points
-function slotAction(s, ev) {
-  const RT = C.text.rail;
-  if (s === 'mind') {
-    const txt = ev.holds ? RT.mindHoldAction : RT.mindSets.replace('{verb}', ev.verb);
-    return { html: '<span class="an" style="color:' + C.colors.verb[ev.verb] + '">' + esc(txt) + '</span>', title: txt + '. ' + RT.mindTip };
-  }
-  if (s.role === 'scar') return { html: '<span class="an scar" style="color:' + C.colors.scarText + '">' + esc(RT.scarRed) + ' <span class="ap">' + s.base + '</span></span>', title: RT.scarTip };
-  const col = s.verb ? C.colors.verb[s.verb] : C.colors.textDim;
-  const pts = s.base + (s.carryIn > 0 ? '<span class="cin" title="' + esc(RT.carryTip) + '">+' + s.carryIn + '</span>' : '');
-  return { html: '<span class="an' + (s.name.length > 13 ? ' long' : '') + '" style="color:' + col + '">' + esc(s.name) + ' <span class="ap">' + pts + '</span></span>',
-    title: s.name + ' ' + s.base + (s.carryIn > 0 ? '+' + s.carryIn : '') + (s.verb ? ' (' + s.verb + ')' : '') };
-}
-// caption below a step: only the annotations ('(knife +1) (reveal)'); the action and points live in the slot
-function stepCaption(s) {
-  const notes = s.notes.slice(); if (s.reveal) notes.unshift(C.text.reveal.replace(/[()]/g, ''));
-  const plain = s.name + ' ' + s.base + (s.carryIn > 0 ? '+' + s.carryIn : '') + notes.map(n => ' (' + n + ')').join('');
-  return { html: '<div class="cl1">' + (notes.length ? esc(notes.map(n => '(' + n + ')').join(' ')) : '&nbsp;') + '</div>', title: plain };
-}
 function renderSlots() {
-  const n = slotCount(), RT = C.text.rail;
+  const n = slotCount();
   for (let i = n; i < ui.slots.length; i++) ui.slots[i] = null;           // a debug change of the slot count empties the hidden slots
-  const p = currentPreview(), last = n - 1;
-  const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy';
-  const full = live && p.ev && p.ev.slots === n ? p.ev : null;
-  const play = ui.phase === 'resolving' || ui.phase === 'enemy' ? ui.railPlay : null;
-  // sentence being built: engine partial evaluation (empty slots skipped), so the rail builds up die by die
-  const ev = full || (ui.phase === 'arranging' && placedCount() > 0 ? partialEvaluation() : null);
-  const partial = !!ev && !ev.complete;
-  $('sentence').classList.toggle('partial', partial);
-  renderGhosts();
-  // fit the chevrons to the page width (CSS --sw is the 3-slot size; more slots shrink it)
-  const sentEl = $('sentence'), maxSw = parseFloat(getComputedStyle(sentEl).getPropertyValue('--sw-max')) || 425, ovPx = 26;
-  sentEl.style.setProperty('--sw', Math.min(maxSw, Math.floor((1232 + (n - 1) * ovPx) / n)) + 'px');
-  const tg = (ev && ev.triggers) || {};
-  const labels = stepLabelsFor(n), mi = ev ? ev.mindIndex : -1, mcol = ev && ev.verb ? C.colors.verb[ev.verb] : null;
-  dom.stepEls.forEach((st, i) => {
-    st.style.display = i < n ? '' : 'none';
-    if (i >= n) return;
-    st.classList.toggle('first', i === 0);
-    st.classList.toggle('last', i === last);
-    st.querySelector('.rlabel').textContent = labels[i];
-    const sl = dom.slotEls[i], band = st.querySelector('.rband'), cap = dom.capEls[i], link = st.querySelector('.rlink');
-    sl.classList.toggle('full', !!ui.slots[i]);
-    sl.classList.toggle('acting', ui.actingSlot === i);
-    sl.classList.toggle('trig', !!((tg.glassesFirst && i === 0) || (tg.earTrumpet && tg.earTrumpet.indexOf(i) >= 0) || (tg.pipeLast && i === last)));
-    const step = ev ? ev.steps.find(x => x.slot === i) : null;
-    const reached = !play || i <= play.idx;
-    // MIND band (this slot and everything after it) / instinct tag (before the MIND, or every slot without one)
-    band.className = 'rband'; band.innerHTML = ''; band.removeAttribute('title'); band.style.cssText = '';
-    if (ev && mcol && i >= mi && mi >= 0) {
-      band.classList.add('on'); band.style.background = mcol; band.title = RT.directedTip.replace('{verb}', ev.verb);
-      band.innerHTML = '<span>' + ev.verb + '</span>';
-    } else if (step && step.role === 'instinct') {
-      const v = step.verb;
-      band.classList.add('tag');
-      if (step.roleProvisional) band.classList.add('prov');
-      if (v) { band.style.color = C.colors.verb[v]; band.style.borderColor = C.colors.verb[v]; band.title = RT.instinctTip.replace('{verb}', v); band.textContent = RT.instinct + ' · ' + v; }
-      else { band.classList.add('none'); band.title = RT.noInstinctTip; band.textContent = RT.noInstinct; }
-    }
-    // the action in the slot (live, also while the sentence is still being filled) + caption (annotations only)
-    const act = dom.actEls[i], sev = ev, sstep = sev && ui.slots[i] ? sev.steps.find(x => x.slot === i) : null;
-    let sa = null;
-    if (sev && ui.slots[i]) sa = (sev.mindIndex === i) ? slotAction('mind', sev) : (sstep ? slotAction(sstep, sev) : null);
-    if (sa) { act.innerHTML = sa.html; act.title = sa.title; } else { act.innerHTML = ''; act.removeAttribute('title'); }
-    sl.classList.toggle('acts', !!sa);
-    cap.style.visibility = ev && reached ? '' : 'hidden';
-    cap.classList.toggle('prov', partial);
-    cap.classList.toggle('mind', !!ev && i === mi);
-    if (ev && i === mi) {
-      cap.innerHTML = '<div class="cl1">' + (ev.holds ? esc(RT.mindHold) : (n === 1 ? esc(RT.mindIdle) : '&nbsp;')) + '</div>';
-      cap.title = RT.mindTip;
-    } else if (step) { const c = stepCaption(step); cap.innerHTML = c.html; cap.title = c.title; }
-    else { cap.innerHTML = ''; cap.removeAttribute('title'); }
-    // DIG carry: an arrow from the giving caption to the receiving one
-    link.innerHTML = '';
-    if (step && step.passesTo != null && reached) {
-      const d = step.passesTo - i, col = C.colors.verb[C.revealVerb];
-      link.innerHTML = '<span class="carry' + (step.carryProvisional ? ' prov' : '') + '" style="width:calc(var(--pitch) * ' + d + ' - 30px);border-color:' + col + ';color:' + col + '" title="' + esc(RT.carryTip) + '"><b>+' + step.total + (step.carryProvisional ? '?' : '') + '</b></span>';
-    }
+  const arrows = document.querySelectorAll('#slots .arrow');
+  dom.slotEls.forEach((s, i) => {
+    s.style.display = i < n ? '' : 'none';
+    if (arrows[i - 1]) arrows[i - 1].style.display = i < n ? '' : 'none';
+    s.classList.toggle('full', !!ui.slots[i]);
+    s.classList.toggle('acting', ui.actingSlot === i);
+    s.dataset.n = i + 1;
   });
-  // totals at the right end of the rail
-  const tot = $('rtotals');
-  const known = ev && ev.totalsText;
-  tot.innerHTML = known ? '<span class="eq">' + esc(RT.totalsPrefix) + '</span> ' + verbify(ev.totalsText) + (partial ? ' <span class="sofar">' + esc(RT.totalsSoFar) + '</span>' : '')
-    : '<span class="eq">' + esc(RT.totalsPrefix) + ' ' + esc(RT.totalsPending) + '</span>';
-  tot.style.visibility = ev && play && !play.totals ? 'hidden' : '';
-  tot.classList.toggle('pending', !known || partial);
-  // playhead: slides left -> right along the band row while a commit plays
-  const ph = $('playhead');
-  ph.classList.toggle('on', !!(play && play.idx >= 0 && ui.phase === 'resolving'));
-  if (play && play.idx >= 0) ph.style.setProperty('--ph', play.idx);
+  const tg = (currentPreview().triggers) || {}, last = n - 1;
+  dom.slotEls.forEach((s, i) => {
+    s.classList.toggle('trig', !!(i < n && ((tg.glassesFirst && i === 0) || (tg.earTrumpet && tg.earTrumpet.indexOf(i) >= 0) || (tg.pipeLast && i === last))));
+  });
   $('slots').classList.toggle('complete', placedCount() === slotCount() && (ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy'));
 }
-// evaluation of the sentence as built so far (empty slots skipped); null while nothing is placed
-function partialEvaluation() {
-  const faces = []; for (let i = 0; i < slotCount(); i++) faces.push(ui.slots[i] ? viewFace(ui.slots[i]) : null);
-  try { return E.evaluatePartial(faces, isSite() ? { site: true } : { enemy: ui.game.enemy, tax: ui.game.tax || 0 }); } catch (e) { return null; }
-}
-// -> { hint?, shape, triggers?, ev? (evaluation, when the sentence is complete), text } ; `text` is the compact line under the rail
 function currentPreview() {
-  if (ui.previewOverride && ui.phase !== 'await-roll') return ui.previewOverride;
+  if (ui.previewOverride) return ui.previewOverride;
   if (ui.phase === 'arranging') {
-    if (placedCount() < slotCount()) return { hint: true, shape: placedCount() > 0 ? ((partialEvaluation() || {}).shape || C.text.rail.shapePending) : '', text: C.text.placeHint.replace(/\{slots\}/g, slotCount()).replace('{n}', placedCount()) };
+    if (placedCount() < slotCount()) return { hint: true, shape: '', text: C.text.placeHint.replace(/\{slots\}/g, slotCount()).replace('{n}', placedCount()) };
     const faces = ui.slots.slice(0, slotCount()).map(id => viewFace(id));
     if (isSite()) {
       const ev = E.evaluateSentence(faces, { site: true });
       const sp = E.sitePreview(ui.game, ev);
       const tg = ui.game.target !== null ? ' (' + MT().target.toLowerCase() + ': ' + (ui.game.target + 1) + ')' : '';
-      // totals already name PRUNE / SOW / REVEAL; the hint line only adds what they don't: the noise and the coax pips
-      const ST = C.text.site, bits = [];
-      if (sp.prune) bits.push(sp.prune.noise ? fmt(ST.noiseOnly, { n: sp.prune.noise }) : ST.noNoise);
-      if (sp.sow) bits.push(fmt(ST.coax, { n: sp.sow.pips }));
-      return { shape: ev.shape, triggers: ev.triggers, ev, text: bits.join(' · ') + tg };
+      return { shape: ev.shape, triggers: ev.triggers, text: ev.text + '  ⇒  ' + sp.text + tg, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
     }
     const ev = E.evaluateSentence(faces, { enemy: ui.game.enemy, tax: ui.game.tax || 0 });
-    return { shape: ev.shape, triggers: ev.triggers, ev, text: '' };
+    return { shape: ev.shape, triggers: ev.triggers, text: ev.text, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + faceLabel(f) + ']' : faceLabel(f)).join(' ') };
   }
   if (ui.phase === 'await-roll') {
     const log = ui.game.log;
@@ -358,97 +223,15 @@ function currentPreview() {
   }
   return { hint: true, shape: '', text: '' };
 }
-// ---- plain-language narration (CONFIG.text.narration): what you do to them, then what it did ----
-const capFirst = (t) => t.charAt(0).toUpperCase() + t.slice(1);
-const themName = () => {
-  const g = ui.game;
-  if (g && g.enemy) return g.enemy.shortName || g.enemy.logName || g.enemy.name.toLowerCase();
-  const st = g && C.sites[g.siteId];
-  return (st && st.shortName) || (g && g.name ? g.name.toLowerCase() : 'it');
-};
-const pronouns = () => Object.assign({}, C.text.narration.pron, ui.game && ui.game.enemy && ui.game.enemy.pron || {});
-// phrase for an action name: the encounter's first tag with an override, else the flat map
-function phraseFor(name, tags) {
-  const N = C.text.narration, by = N.actionsByTag || {};
-  for (let i = 0; i < (tags || []).length; i++) if (by[tags[i]] && by[tags[i]][name]) return by[tags[i]][name];
-  return N.actions[name];
-}
-// -> HTML: each step's phrase in its verb colour, the item named in its item colour, the opponent's name plain
-function narrateSentence(ev) {
-  const N = C.text.narration, them = themName();
-  if (!ev || !ev.steps.length) return ev && !ev.complete ? '' : esc(N.youIdle);
-  const partial = !ev.complete;
-  const pr = pronouns();
-  let named = false;
-  const parts = ev.steps.map(s => {
-    const t = s.role === 'scar' ? N.scar : (phraseFor(s.name, ev.tags) || (s.idle ? N.idle : s.name.toLowerCase()));
-    let h = esc(t);
-    const item = s.face && s.face.indexOf('+') > 0 ? s.face.slice(s.face.indexOf('+') + 1) : null;
-    if (item && C.colors.item[item]) {
-      const nm = esc(itemName(item).toLowerCase());
-      if (nm && h.indexOf(nm) >= 0) h = h.replace(nm, '<span class="ni" style="color:' + C.colors.item[item] + '">' + nm + '</span>');
-    }
-    h = h.replace(/\{them\}/g, () => { const r = '<span class="nm">' + esc(named ? pr.them : them) + '</span>'; named = true; return r; });   // the name once, then the pronoun
-    const col = s.verb && C.colors.verb[s.verb];
-    return '<span class="nv"' + (col ? ' style="color:' + col + '"' : '') + '>' + h + '</span>';
-  });
-  let out = parts[0];
-  for (let i = 1; i < parts.length; i++) out += esc(i === parts.length - 1 && parts.length > 2 && !partial ? N.joinLast : N.joinThen) + parts[i];
-  if (partial) return esc(N.youPartial).replace('{steps}', () => out);
-  let txt = esc(N.you).replace('{steps}', () => out);
-  if (ev.revealText) {
-    const R = N.reveal, d = ev.revealDepth, f = ev.revealFaces;
-    const t = ev.slots && f ? (f === 'all' ? R.facesAll : R.faces.replace('{n}', f)) : (d === 1 ? R.intent : R.intents.replace('{n}', d));
-    txt += ' <span class="nv" style="color:' + C.colors.verb[C.revealVerb] + '">' + esc(t.replace('{its}', pr.its)) + '</span>';
-  }
-  return txt;
-}
-// what the committed sentence did to the enemy's faces so far (from the pip events the player has seen)
-function narrateResult(hits) {
-  const N = C.text.narration, order = [], byFace = {};
-  hits.forEach(h => {
-    if (!byFace[h.faceIdx]) { byFace[h.faceIdx] = { broken: 0, turned: 0 }; order.push(h.faceIdx); }
-    byFace[h.faceIdx][h.to === 'turned' ? 'turned' : 'broken']++;
-  });
-  const out = order.map(fi => {
-    const f = view.enemy.faces[fi], h = byFace[fi], kind = h.turned > h.broken ? 'turned' : 'broken';
-    const all = f.pips.every(p => p !== 'intact');
-    const tpl = all ? (kind === 'turned' ? N.faceTurned : N.faceBroken) : (kind === 'turned' ? N.facePartTurned : N.facePartBroken);
-    return '<span class="nres ' + kind + '">' + esc(capFirst(tpl.replace('{its}', pronouns().its).replace('{face}', f.name).replace('{n}', h[kind] || (h.broken + h.turned)))) + '</span>';
-  });
-  return out.join(' ');
-}
-function narrationText() {
-  const live = ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy' || ui.phase === 'await-roll';
-  if (!live || !ui.game) return '';
-  if (ui.phase === 'arranging') {
-    if (placedCount() === 0) return '';
-    return narrateSentence(partialEvaluation());
-  }
-  const n = ui.narr;
-  if (!n) return '';
-  return n.sentence + (view.enemy && n.hits.length ? ' ' + narrateResult(n.hits) : '');
-}
-// the enemy's action as one full sentence (act templates; fallback "<shortName> <text>.")
-function enemyActSentence(ev) {
-  const en = ui.game.enemy, A = en.act || {};
-  const key = ev.skipped ? ev.reason : (ev.nothing ? 'noItem' : ev.face);
-  let t = A[key];
-  if (!t) t = capFirst(en.shortName || en.logName) + ' ' + ev.text + '.';
-  return t.replace('{item}', ev.item ? itemName(ev.item).toLowerCase() : C.text.itemWord);
-}
 function renderPreview() {
   const p = currentPreview();
-  const nr = $('narration'), nt = narrationText();
-  nr.innerHTML = '<span class="nbox">' + (nt || '&nbsp;') + '</span>'; nr.title = nt.replace(/<[^>]+>/g, '');
-  $('railShape').textContent = p.shape ? p.shape.toUpperCase() : '';
+  $('shape').textContent = p.sentence ? (p.shape ? p.shape + ' · ' : '') + p.sentence : (p.shape || '');
   const t = $('previewText');
   t.innerHTML = p.text ? verbify(p.text) : '&nbsp;';
   t.classList.toggle('hint', !!p.hint);
 }
 function renderControls() {
   const g = ui.game, ph = ui.phase;
-  $('stage').dataset.phase = ph;
   $('btnRoll').disabled = ph !== 'await-roll' || nothingLeft() || ui.holdPick;
   $('btnLeave').disabled = !(ph === 'await-roll' || ph === 'arranging');
   $('btnLeave').classList.toggle('primary', nothingLeft());

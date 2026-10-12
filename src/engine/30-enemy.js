@@ -10,8 +10,7 @@ function createEnemy(id, rng) {
   if (!c) throw new Error('unknown enemy ' + id);
   const e = {
     id, name: c.name, logName: c.logName || c.name, tags: c.tags.slice(), pruneMod: c.pruneMod || 0, sowMod: c.sowMod || 0,
-    shortName: c.shortName || (c.logName || c.name).toLowerCase(), act: c.act || null, pron: c.pron || null,
-    slots: Math.max(CONFIG.minSlots || 1, c.slots || CONFIG.defaultSlots),
+    slots: c.slots || CONFIG.defaultSlots,
     targetPriority: c.targetPriority.slice(), text: c.text, winText: c.winText,
     resultLabels: Object.assign({ beaten: CONFIG.text.beaten, befriended: CONFIG.text.befriended }, c.resultLabels || {}),
     faces: c.faces.map(f => ({ name: f.name, pips: Array(f.pips).fill('intact'), hostile: !!f.hostile, effect: f.effect || 'none' })),
@@ -79,26 +78,6 @@ function applyVerb(enemy, verb, amount, opts) {
     if (left <= 0) break;
   }
   return events;
-}
-
-// What `evaluation` (full or partial; uses totals, order, shears) would do to the enemy right now, on a clone: the same verb
-// order and applyVerb calls as resolveTurn, nothing is mutated.
-// -> { hits:[{faceIdx,pipIdx,to,verb}], resolves:[{faceIdx,resolved}], win: result string | null }
-function previewHits(enemy, evaluation) {
-  const sim = { faces: enemy.faces.map(f => ({ name: f.name, hostile: f.hostile, effect: f.effect, pips: f.pips.slice() })),
-    current: enemy.current ? { faceIdx: enemy.current.faceIdx, wag: enemy.current.wag } : null, targetPriority: enemy.targetPriority };
-  const out = { hits: [], resolves: [], win: null };
-  if (!evaluation) return out;
-  (evaluation.order || []).forEach(v => {
-    const amount = (evaluation.totals || {})[v];
-    if (!amount || amount <= 0) return;
-    applyVerb(sim, v, amount, { alternate: v === 'PRUNE' ? evaluation.shears || 0 : 0 }).forEach(e => {
-      if (e.type === 'pip') out.hits.push({ faceIdx: e.faceIdx, pipIdx: e.pipIdx, to: e.to, verb: e.verb });
-      else if (e.type === 'faceResolved') out.resolves.push({ faceIdx: e.faceIdx, resolved: e.resolved });
-    });
-  });
-  out.win = out.hits.length ? checkWin(sim) : null;
-  return out;
 }
 
 // Pick a random non-broken face. Turned face => wag intent.
@@ -191,7 +170,6 @@ function enemyAct(state, rng) {
       c.d.faces[c.fi] = parseFace(previous).body;
       dropUses(state.trip, c.d.id, c.fi);
       if (state.trip) state.trip.discarded.push(item);           // gone for good: not in `taken`, never returned
-      ev.item = item;
       ev.text = fmt(ev.text, { item: CONFIG.items[item].name.toLowerCase() });
       out.events.push({ type: 'itemDestroyed', dieId: c.d.id, faceIdx: c.fi, item, cause: 'river', by: face.name,
         becomes: c.d.faces[c.fi], previous, wasCurrent: c.d.idx === c.fi });
@@ -208,7 +186,6 @@ function enemyAct(state, rng) {
       c.d.faces[c.fi] = parseFace(previous).body;
       state.taken.push(item);
       (state.takenUses = state.takenUses || [])[state.taken.length - 1] = takeUses(state.trip, c.d.id, c.fi);
-      ev.item = item;
       ev.text = fmt(ev.text, { item: CONFIG.items[item].name.toLowerCase() });
       out.events.push({ type: 'itemTaken', dieId: c.d.id, faceIdx: c.fi, item, previous, becomes: c.d.faces[c.fi],
         by: face.name, enemy: enemy.name, wasCurrent: c.d.idx === c.fi });

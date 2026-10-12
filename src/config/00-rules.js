@@ -7,7 +7,6 @@ const CONFIG = {
   loseRule: 'maxScars',                               // 'maxScars' (v1 rule, default) | 'dieLost' = run ends when every face of any single die is a SCAR
   scarTargets: null,                                  // die ids a scar may land on (null = every die with kind 'body')
   mindAloneHolds: false,                              // true: a lone MIND (1-slot sentence) lets you hold one body die into the next turn
-  minSlots: 2,                                        // no encounter / site has fewer sentence slots than this (1-slot code paths stay, unreachable by default)
   defaultSlots: 3,                                    // sentence length of an enemy / site without its own `slots`
   points: { favourite: 2, other: 1, itemBonus: 1, scar: 0 },
   verbs: ['PRUNE', 'SOW', 'DIG'],

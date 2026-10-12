@@ -62,25 +62,14 @@ function scoreBodyFace(face, verb, ctx) {
   if (p.kind === 'scar') return CONFIG.points.scar;
   return scoreDetail(p, verb, ctx).own;
 }
-// Name of the action a body face performs under `verb` (null verb = idle). `tags` = the encounter's tags ('site' for scavenge sites);
-// lookup order: item name for the first tag that has one -> item name -> bare-part name for a tag -> bare-part name.
-function actionName(p, verb, tags) {
+// Name of the action a body face performs under `verb` (null verb = idle). Item names win over bare-part names.
+function actionName(p, verb) {
   const d = itemDef(p.item);
   const key = verb || 'IDLE';
-  tags = tags || [];
-  const pick = (byTag, base) => {
-    for (let i = 0; i < tags.length; i++) { const t = byTag && byTag[tags[i]]; if (t && t[key]) return t[key]; }
-    return base && base[key] ? base[key] : null;
-  };
-  let r = verb && d ? pick(d.namesByTag, d.names) : null;
-  if (!r) {
-    const bt = CONFIG.actionNamesByTag, byTag = {};
-    tags.forEach(t => { if (bt && bt[t] && bt[t][p.body]) byTag[t] = bt[t][p.body]; });
-    r = pick(byTag, CONFIG.actionNames[p.body]);
-  }
-  return r || p.face + ' ' + key;
+  if (verb && d && d.names && d.names[verb]) return d.names[verb];
+  const a = CONFIG.actionNames[p.body];
+  return a && a[key] ? a[key] : p.face + ' ' + key;
 }
-const contextTags = (ctx) => (ctx.site ? ['site'] : ((ctx.enemy && ctx.enemy.tags) || []));
 
 // ---------- sentence ----------
 // faces = 1..N face strings in slot order (N = the encounter's slots), 0 or 1 verb face (the MIND die), ctx = { enemy?, site?, tax? }:
@@ -91,24 +80,11 @@ const contextTags = (ctx) => (ctx.site ? ['site'] : ((ctx.enemy && ctx.enemy.tag
 // Order triggers (final slot order): GLASSES in slot 0 = reveal depth 2; EAR TRUMPET directly before a MOUTH face = that face +2;
 // PIPE in the last slot = wanted level change (evaluation.pipeLast, no effect yet).
 function evaluateSentence(faces, ctx) {
-  if (faces.some(f => f == null)) throw new Error('evaluateSentence needs every slot filled (use evaluatePartial)');
-  return evaluateCore(faces, ctx, false);
-}
-// Same evaluation for a sentence that is still being built: slots = one entry per slot, a face string or null (empty).
-// Empty slots are skipped; a die is directed only if the MIND sits before it; DIG's carry goes to the next placed body die
-// (step.carryProvisional if an empty slot lies between, step.carryPending if no die is placed after it yet); the label is null
-// (shape '…') until a MIND is placed or every slot is full. Result adds complete / placed / shapeKnown; with every slot full it is
-// identical to evaluateSentence. A partial result has no steps for empty slots and `totalsText` '' when nothing is known yet.
-function evaluatePartial(slots, ctx) { return evaluateCore(slots, ctx, true); }
-function evaluateCore(faces, ctx, partial) {
   ctx = ctx || {};
   const enemy = ctx.site ? null : (ctx.enemy || null);
-  const tags = contextTags(ctx);
-  const parsed = faces.map(f => (f == null ? { face: null, kind: 'empty', verb: null, body: null, item: null } : parseFace(f)));
+  const parsed = faces.map(parseFace);
   const n = parsed.length;
   if (n < 1) throw new Error('sentence needs at least one face');
-  const emptyCount = parsed.filter(p => p.kind === 'empty').length;
-  const complete = emptyCount === 0;
   const verbSlots = [];
   parsed.forEach((p, i) => { if (p.kind === 'verb') verbSlots.push(i); });
   if (verbSlots.length > 1) throw new Error('sentence needs at most one verb face, got ' + verbSlots.length);
@@ -117,7 +93,7 @@ function evaluateCore(faces, ctx, partial) {
   const SN = CONFIG.shapeNames;
   const holds = mindIndex >= 0 && n === 1 && !!CONFIG.mindAloneHolds;
   let shape;
-  if (mindIndex < 0) shape = complete ? SN.reflex : CONFIG.text.rail.shapePending;
+  if (mindIndex < 0) shape = SN.reflex;
   else if (n === 1) shape = holds ? SN.hold : SN.idle;
   else shape = mindIndex === 0 ? SN.first : (mindIndex === n - 1 ? SN.last : SN.middle);
 
@@ -141,7 +117,7 @@ function evaluateCore(faces, ctx, partial) {
   if (last.kind === 'body' && specialOf(last.item) === 'pipe') triggers.pipeLast = true;
 
   parsed.forEach((p, i) => {
-    if (i === mindIndex || p.kind === 'empty') return;
+    if (i === mindIndex) return;
     if (p.kind === 'scar') {
       steps.push({ slot: i, face: p.face, role: 'scar', verb: null, base: CONFIG.points.scar, carryIn: 0,
         total: 0, reveal: false, passesTo: null, name: CONFIG.text.scar, item: null, notes: [], depth: 0, idle: false });
@@ -152,8 +128,6 @@ function evaluateCore(faces, ctx, partial) {
     const part = partInfo(p.body);
     let v = role === 'instinct' ? (part.favourite || part.instinctVerb || null) : verb;
     const idle = !v;
-    // the role of a die left of a gap can still change if the MIND lands to its left
-    const roleProvisional = role === 'instinct' && mindIndex < 0 && parsed.slice(0, i).some(q => q.kind === 'empty');
     const sp = specialOf(p.item);
     const det = scoreDetail(p, v, { enemy, site: !!ctx.site, extra: trumpetFor[i] || 0 });
     const base = det.own;
@@ -161,7 +135,7 @@ function evaluateCore(faces, ctx, partial) {
     const total = base + carryIn;
     carry = 0;
     const notes = det.notes.slice();
-    let stepReveal = false, passesTo = null, depth = 0, carryProvisional = false, carryPending = false;
+    let stepReveal = false, passesTo = null, depth = 0;
     if (!idle) {
       if (v === CONFIG.revealVerb) depth = RULES.defaultRevealDepth;
       if (part.revealsNext) {
@@ -176,12 +150,9 @@ function evaluateCore(faces, ctx, partial) {
       if (depth > 0) { reveal = true; revealDepth = Math.max(revealDepth, depth); }
       if (v === CONFIG.revealVerb) {
         stepReveal = true;
-        let gap = false;
         for (let j = i + 1; j < parsed.length; j++) {
-          if (parsed[j].kind === 'empty') { gap = true; continue; }
-          if (j !== mindIndex && parsed[j].kind === 'body') { passesTo = j; carry = total; carryProvisional = gap; break; }
+          if (j !== mindIndex && parsed[j].kind === 'body') { passesTo = j; carry = total; break; }
         }
-        carryPending = passesTo === null && gap;
       } else if (totals[v] !== undefined) {
         totals[v] += total;
         if (order.indexOf(v) < 0) order.push(v);
@@ -191,7 +162,7 @@ function evaluateCore(faces, ctx, partial) {
       if (det.flags.matches) spends.push({ slot: i, item: p.item });
     }
     steps.push({ slot: i, face: p.face, role, verb: v, base, carryIn, total, reveal: stepReveal, passesTo,
-      name: actionName(p, v, tags), item: p.item, notes, depth, idle, roleProvisional, carryProvisional, carryPending });
+      name: actionName(p, v), item: p.item, notes, depth, idle });
     carryAfter.push(carry > 0);
   });
   // forbidden items in the sentence (any verb), for the future checks
@@ -228,23 +199,9 @@ function evaluateCore(faces, ctx, partial) {
   });
   const parts = order.map(v => v + ' ' + totals[v] + (mods[v] ? ' (' + mods[v].source + ' ' + signed(mods[v].mod) + ')' : '') +
     (taxed[v] ? ' (' + fmt(CONFIG.notes.taxed, { n: taxed[v].amount }) + ')' : ''));
-  // reveal effect: fights reveal the next `revealDepth` intents; sites reveal faces (DIG total / NOSE / GLASSES depth, SPADE = all)
-  let revealText = '', revealFaces = 0;
-  if (ctx.site) {
-    steps.forEach(s => {
-      const k = siteRevealCount(s);
-      if (!k) return;
-      if (s.reveal && s.item && specialOf(s.item) === 'spade') revealFaces = 'all';
-      else if (revealFaces !== 'all') revealFaces = Math.max(revealFaces, k);
-    });
-    if (revealFaces) revealText = revealFaces === 'all' ? CONFIG.text.revealTotals.facesAll : fmt(CONFIG.text.revealTotals.faces, { n: revealFaces });
-  } else if (revealDepth > 0) {
-    revealText = revealDepth === 1 ? CONFIG.text.revealTotals.intent : fmt(CONFIG.text.revealTotals.intents, { n: revealDepth });
-  }
-  if (revealText) parts.push(revealText);
-  const totalsText = parts.length ? parts.join(' · ') : (complete ? CONFIG.text.noEffect : '');
+  const totalsText = parts.length ? parts.join(' · ') : CONFIG.text.noEffect;
   const text = steps.length ? shape + ': ' + stepsText + ' → ' + totalsText
     : shape + ': ' + (holds ? CONFIG.text.holdText : CONFIG.text.idleText);
-  return { shape, shapeKnown: shape !== CONFIG.text.rail.shapePending, complete, placed: n - emptyCount, tags, slots: n, mindIndex, verb, holds, steps, totals, order, reveal, revealDepth, mods, taxed, shears, pendingSow,
-    spends, forbidden, triggers, pipeLast: triggers.pipeLast, revealText, revealFaces, totalsText, text };
+  return { shape, slots: n, mindIndex, verb, holds, steps, totals, order, reveal, revealDepth, mods, taxed, shears, pendingSow,
+    spends, forbidden, triggers, pipeLast: triggers.pipeLast, totalsText, text };
 }
