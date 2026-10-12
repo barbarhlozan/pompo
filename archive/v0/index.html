@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Smuggler — dice sentence prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&display=swap">
+<style>
+  :root { /* colour defaults; CONFIG.colors overrides them at start-up */
+    --bg:#0b0b10; --panel:#16161f; --line:#2a2a3a; --text:#e8e6f0; --dim:#8a88a0;
+    --lit:#ffe36b; --status:#ffd36b; --danger:#ff3b3b; --glow:#ffffff; --pip:#e8e6f0; --broken:#5a5a66; --turned:#4fe06a; --tiletext:#0b0b10;
+    --lift:1.07;
+    --display:"Bungee", Impact, "Arial Black", "Helvetica Neue", sans-serif; }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text); overflow:hidden;
+    font-family:"Courier New", ui-monospace, Menlo, Consolas, monospace; font-weight:700;
+    user-select:none; -webkit-user-select:none; }
+  body { display:flex; align-items:flex-start; }
+  #stage { margin:0 auto; position:relative; width:1280px; height:720px; flex:none; overflow:hidden; background:var(--bg); }
+  button { font:inherit; color:inherit; cursor:pointer; }
+
+  /* top bar */
+  #top { position:absolute; left:0; top:0; width:100%; height:40px; display:flex; align-items:center; gap:28px;
+    padding:0 24px; border-bottom:2px solid var(--line); letter-spacing:.15em; font-size:16px; }
+  #top .title { color:var(--dim); }
+  #top .spacer { flex:1; }
+  #scars { display:flex; align-items:center; gap:8px; }
+  .scarbox { width:16px; height:16px; border:2px solid var(--danger); display:inline-block; }
+  .scarbox.on { background:var(--danger); }
+
+  /* tiles */
+  .tile { display:inline-block; padding:10px 14px; font-size:24px; line-height:1; letter-spacing:.04em;
+    color:var(--tiletext); background:#888; border:3px solid #000; box-shadow:0 4px 0 rgba(0,0,0,.55); text-transform:uppercase; }
+  .tile.small { font-size:16px; padding:6px 9px; border-width:2px; }
+  .tile.scar { background-image:repeating-linear-gradient(135deg, transparent 0 7px, color-mix(in srgb, var(--danger) 28%, transparent) 7px 9px); }
+  .tile.broken { text-decoration:line-through; }
+  .faceRow { display:flex; justify-content:center; align-items:center; }
+  .faceRow .tile + .tile { margin-left:-3px; }
+
+  /* enemy */
+  #enemy { position:absolute; left:0; top:40px; width:100%; height:232px; padding:16px 24px; display:flex; gap:40px; }
+  #intentPanel { width:520px; display:flex; flex-direction:column; gap:8px; }
+  .lbl { font-size:13px; letter-spacing:.2em; color:var(--dim); }
+  #intentRow { display:flex; align-items:flex-end; gap:20px; height:84px; }
+  #intentTile { font-size:40px; padding:16px 22px; }
+  #intentText { min-height:22px; font-size:18px; }
+  #nextWrap { opacity:.45; display:flex; align-items:center; gap:10px; min-height:40px; }
+  #nextWrap.hidden { visibility:hidden; }
+  #enemyText { min-height:22px; font-size:18px; color:var(--status); }
+  #faceStrip { flex:1; display:flex; gap:10px; align-items:flex-start; padding-top:22px; }
+  .efc { flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 4px 8px;
+    border:3px solid transparent; position:relative; }
+  .efc .tile { font-size:16px; padding:10px 6px; width:100%; text-align:center; }
+  .efc.is-current { border-color:var(--glow); }
+  .efc.is-next { border:3px dashed var(--dim); }
+  .efc .tag { position:absolute; top:-18px; left:0; width:100%; text-align:center; font-size:11px; letter-spacing:.15em; color:var(--dim); }
+  .efc.is-current .tag { color:var(--glow); }
+  .pips { display:flex; gap:8px; }
+  .pip { width:18px; height:18px; border:3px solid #000; background:var(--pip); }
+  .pip.broken { background:var(--broken); transform:rotate(45deg) scale(.7); }
+  .pip.turned { background:var(--turned); border-radius:50%; }
+
+  /* sentence */
+  #sentence { position:absolute; left:0; top:272px; width:100%; height:190px; display:flex; flex-direction:column; align-items:center; }
+  #slots { display:flex; align-items:center; gap:14px; }
+  .slot { width:262px; height:104px; border:3px dashed var(--line); background:rgba(255,255,255,.025);
+    display:flex; align-items:center; justify-content:center; position:relative; }
+  .slot .num { position:absolute; left:6px; top:3px; font-size:12px; color:var(--dim); }
+  .slot.over { border-color:var(--glow); background:rgba(255,255,255,.1); }
+  .slot.full { border-style:solid; }
+  .slot.acting { border-color:var(--glow); background:rgba(255,255,255,.14); }
+  #slots.complete .slot { border-color:var(--lit); }
+  .arrow { font-size:26px; color:var(--dim); width:30px; text-align:center; }
+  #preview { margin-top:14px; text-align:center; min-height:62px; }
+  #shape { font-size:14px; letter-spacing:.25em; color:var(--dim); text-transform:uppercase; min-height:18px; }
+  #previewText { font-size:24px; margin-top:6px; }
+  #previewText.hint { color:var(--dim); font-size:18px; }
+
+  /* bottom */
+  #bottom { position:absolute; left:0; top:468px; width:100%; height:200px; }
+  #tray { display:flex; justify-content:center; gap:30px; }
+  .cell { width:262px; height:128px; border:3px solid var(--line); background:var(--panel);
+    display:flex; align-items:center; justify-content:center; }
+  .cell.over { border-color:var(--glow); }
+  .die { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:6px; position:relative; touch-action:none; cursor:grab; }
+  .die .cap { font-size:11px; letter-spacing:.2em; color:var(--dim); }
+  .die .held { position:absolute; right:4px; top:2px; font-size:12px; letter-spacing:.1em; color:var(--tiletext);
+    background:var(--lit); padding:2px 5px; display:none; }
+  .die.held .held { display:block; }
+  .die.held .faceRow { transform:translateY(5px); }
+  .die.dim .faceRow { opacity:.35; }
+  .die .ctl button { background:var(--panel); border:2px solid var(--line); padding:0 10px; font-size:13px; line-height:18px; }
+  .die .ctl button:hover { border-color:var(--glow); }
+  .die.in-slot .up, .die:not(.in-slot) .down { display:none; }
+  .die.dragging { position:fixed; z-index:60; cursor:grabbing; background:var(--panel); border:3px solid var(--glow);
+    box-shadow:0 12px 0 rgba(0,0,0,.5); pointer-events:none; }
+  .die.dragging .ctl { display:none; }
+  #buttons { margin-top:22px; display:flex; justify-content:center; align-items:center; gap:18px; }
+  .btn { background:var(--panel); border:3px solid var(--glow); padding:12px 26px; font-size:20px; letter-spacing:.12em;
+    box-shadow:0 4px 0 rgba(0,0,0,.6); }
+  .btn:disabled { opacity:.3; cursor:default; border-color:var(--line); }
+  .btn:not(:disabled):hover { background:var(--glow); color:var(--tiletext); }
+  .btn.primary { background:var(--lit); color:var(--tiletext); border-color:#000; }
+  #status { color:var(--status); font-size:15px; min-width:210px; }
+  #help { position:absolute; left:0; bottom:8px; width:100%; text-align:center; font-size:13px; color:var(--dim); padding:0 40px; }
+
+  /* popover */
+  #pop { position:absolute; z-index:40; display:none; background:#000; border:3px solid var(--glow); padding:8px 10px;
+    pointer-events:none; }
+  #pop .row { display:flex; gap:8px; align-items:center; }
+  #pop .f { padding:4px; border:3px solid transparent; }
+  #pop .f.cur { border-color:var(--glow); }
+  #pop .tile { font-size:12px; padding:5px 6px; border-width:2px; box-shadow:none; }
+  #pop .ttl { font-size:11px; letter-spacing:.2em; color:var(--dim); margin-bottom:6px; }
+
+  /* overlay */
+  #overlay { position:absolute; inset:0; z-index:80; background:rgba(5,5,8,.82); display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:22px; }
+  #overlay.show { display:flex; }
+  #overlay .big { font-size:84px; letter-spacing:.1em; }
+  #overlay .sub { font-size:20px; color:var(--dim); max-width:760px; text-align:center; }
+  /* ===== Phase 3: juice ===== */
+  .tile, .btn, #top .title, #overlay .big, .flyer, #pop .tile { font-family:var(--display); font-weight:400; white-space:nowrap; }
+  .tile { letter-spacing:.02em; }
+  .efc .tile { letter-spacing:0; }
+  .die { transition: scale .1s ease-out; }
+  .die .faceRow { transition: transform .12s ease-out; }
+  .die.dragging { scale:var(--lift); box-shadow:0 18px 0 rgba(0,0,0,.45); }
+  .die.held { background:color-mix(in srgb, var(--lit) 6%, transparent); }
+  #btnMute { background:none; border:2px solid var(--line); padding:3px 9px; font-size:13px; letter-spacing:.12em; color:var(--dim); }
+  #btnMute:hover { border-color:var(--glow); color:var(--glow); }
+  #btnMute.off { opacity:.6; text-decoration:line-through; }
+  .flyer { position:absolute; left:0; top:0; z-index:70; pointer-events:none; font-size:34px; line-height:1;
+    -webkit-text-stroke:2px #000; paint-order:stroke fill; text-shadow:0 4px 0 rgba(0,0,0,.6); will-change:transform; }
+  .flyer.small { font-size:20px; }
+  .spark { position:absolute; left:0; top:0; z-index:70; width:9px; height:9px; pointer-events:none; border:2px solid #000; }
+  .crack { position:absolute; inset:0; pointer-events:none; z-index:5; }
+  .crack svg { width:100%; height:100%; }
+  .die { z-index:1; }
+  /* sentence complete: tiles + arrows light up together */
+  @keyframes litFlash { 0% { box-shadow:0 0 0 0 color-mix(in srgb, var(--lit) 95%, transparent); } 100% { box-shadow:0 0 26px 8px color-mix(in srgb, var(--lit) 0%, transparent); } }
+  @keyframes litGlow { from { box-shadow:0 0 6px 0 color-mix(in srgb, var(--lit) 30%, transparent); } to { box-shadow:0 0 18px 3px color-mix(in srgb, var(--lit) 65%, transparent); } }
+  @keyframes arrowLit { 0% { transform:scale(1.9); } 100% { transform:scale(1); } }
+  @keyframes arrowGlow { from { text-shadow:0 0 0 color-mix(in srgb, var(--lit) 0%, transparent); } to { text-shadow:0 0 14px color-mix(in srgb, var(--lit) 95%, transparent); } }
+  @keyframes ovPop { 0% { transform:scale(.4) rotate(-6deg); opacity:0; } 60% { transform:scale(1.12) rotate(2deg); opacity:1; } 100% { transform:scale(1) rotate(0); } }
+  #slots.complete .slot { animation:litFlash .45s ease-out, litGlow .9s ease-in-out .45s infinite alternate; background:color-mix(in srgb, var(--lit) 7%, transparent); }
+  #slots.complete .arrow { color:var(--lit); animation:arrowLit .4s ease-out, arrowGlow .9s ease-in-out .4s infinite alternate; }
+  #slots.complete .die .tile { filter:brightness(1.1) saturate(1.1); }
+  #overlay.show .big { animation:ovPop .5s cubic-bezier(.2,1.4,.4,1); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration:.001s !important; animation-iteration-count:1 !important; transition-duration:.001s !important; }
+    #slots.complete .slot { box-shadow:0 0 14px 2px color-mix(in srgb, var(--lit) 55%, transparent); }
+    #slots.complete .arrow { text-shadow:0 0 10px color-mix(in srgb, var(--lit) 90%, transparent); }
+  }
+
+  .pip.unknown { background:transparent; border:3px dashed var(--dim); }
+
+  /* debug / tuning drawer (overlay on the right, closed by default) */
+  #btnDebug { background:transparent; border:2px solid var(--line); padding:2px 8px; font-size:12px; letter-spacing:.1em; color:var(--dim); }
+  #btnDebug.on { border-color:var(--status); color:var(--status); }
+  #dbg { position:absolute; right:0; top:40px; bottom:0; width:300px; z-index:90; background:rgba(10,10,16,.97);
+    border-left:2px solid var(--status); padding:10px 12px 12px; overflow-y:auto; font-size:12px; font-weight:400;
+    transform:translateX(100%); transition:transform .15s ease-out; visibility:hidden; }
+  #dbg.open { transform:none; visibility:visible; }
+  #dbg h4 { margin:12px 0 5px; font-size:11px; letter-spacing:.2em; color:var(--status); font-weight:700; }
+  #dbg h4:first-child { margin-top:0; }
+  #dbg .row { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+  #dbg .row label { flex:none; width:48px; color:var(--dim); }
+  #dbg select { flex:1; min-width:0; background:#000; color:var(--text); border:1px solid var(--line); font:inherit; padding:3px; }
+  #dbg .dbtn { background:#1d1d2a; border:1px solid #55556e; color:var(--text); padding:4px 8px; font-size:12px; font-weight:700; }
+  #dbg .dbtn:hover:not(:disabled) { border-color:var(--status); }
+  #dbg button:disabled, #dbg select:disabled { opacity:.35; cursor:not-allowed; }
+  #dbg .chk { display:flex; gap:8px; align-items:center; cursor:pointer; margin-bottom:6px; }
+  #dbgNote { color:var(--dim); font-size:11px; margin:4px 0 0; min-height:14px; }
+  #dbgLog { margin:0; padding:0; list-style:none; line-height:1.35; }
+  #dbgLog li { padding:3px 0; border-bottom:1px solid var(--line); color:var(--text); word-break:break-word; }
+  #dbgLog li:first-child { color:var(--status); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <header id="top"><span class="title" id="titleLabel">SMUGGLER</span><span id="turn"></span><span class="spacer"></span><span id="scars"></span><button id="btnMute" title="Toggle sound (M)">SFX ON</button></header>
+  <section id="enemy">
+    <div id="intentPanel">
+      <div class="lbl">STRAY DOG · INTENT</div>
+      <div id="intentRow"><span id="intentTile" class="tile"></span><span id="verbFlash" style="font-size:30px"></span></div>
+      <div id="intentText"></div>
+      <div id="enemyText"></div>
+      <div id="nextWrap" class="hidden"><span class="lbl">NEXT</span><span id="nextTile" class="tile small"></span><span id="nextText"></span></div>
+    </div>
+    <div id="faceStrip"></div>
+  </section>
+  <section id="sentence">
+    <div id="slots"></div>
+    <div id="preview"><div id="shape"></div><div id="previewText"></div></div>
+  </section>
+  <section id="bottom">
+    <div id="tray"></div>
+    <div id="buttons">
+      <button class="btn primary" id="btnRoll">ROLL</button>
+      <button class="btn" id="btnReroll">REROLL (0 left)</button>
+      <button class="btn primary" id="btnCommit">COMMIT</button>
+      <button class="btn" id="btnRestart">RESTART</button>
+      <span id="status"></span>
+    </div>
+  </section>
+  <div id="help"></div>
+  <div id="pop"></div>
+  <div id="overlay"><div class="big" id="ovBig"></div><div class="sub" id="ovSub"></div><button class="btn primary" id="ovRestart">RESTART</button></div>
+</div>
+
+<script>
+/* CONFIG START */
+const CONFIG = {
+  rerollsPerTurn: 2,
+  scarsToLose: 4,
+  pipsPerEnemyFace: 2,
+  points: { favourite: 2, other: 1, itemBonus: 1, scar: 0 },
+  favouriteVerb: { HAND: 'PRUNE', MOUTH: 'SOW', EYE: 'DIG' },
+  verbs: ['PRUNE', 'SOW', 'DIG'],
+  revealVerb: 'DIG',                                  // verb that reveals the next intent and carries points
+  pipResult: { PRUNE: 'broken', SOW: 'turned' },      // damage verbs -> what they do to a pip
+  items: ['KNIFE', 'GLASSES'],
+  playerDice: [
+    { id: 'MIND', faces: ['PRUNE', 'PRUNE', 'SOW', 'SOW', 'DIG', 'DIG'] },
+    { id: 'HAND', faces: ['HAND', 'HAND', 'HAND', 'HAND', 'HAND+KNIFE', 'HAND+KNIFE'] },
+    { id: 'HEAD', faces: ['EYE', 'EYE+GLASSES', 'EYE+GLASSES', 'MOUTH', 'MOUTH', 'MOUTH'] },
+  ],
+  mindDieId: 'MIND',
+  biteTargets: ['HAND', 'HEAD'],                      // dice ids BITE may scar
+  shapeNames: ['Plan', 'Situation', 'Impulse'],       // by MIND slot 0/1/2
+  actionNames: {                                      // [faceKey][verb]
+    'HAND':        { PRUNE: 'Hit',    SOW: 'Gesture',      DIG: 'Search' },
+    'HAND+KNIFE':  { PRUNE: 'Stab',   SOW: 'Threaten',     DIG: 'Pry' },
+    'MOUTH':       { PRUNE: 'Insult', SOW: 'Small talk',   DIG: 'Ask' },
+    'EYE':         { PRUNE: 'Glare',  SOW: 'Kind look',    DIG: 'Look' },
+    'EYE+GLASSES': { PRUNE: 'Glint',  SOW: 'Look learned', DIG: 'Read closely' },
+  },
+  enemy: {
+    name: 'STRAY DOG',
+    logName: 'dog',
+    faces: ['BITE', 'BITE', 'GROWL', 'GROWL', 'SNIFF', 'WHIMPER'],
+    hostile: ['BITE', 'GROWL', 'SNIFF'],
+    targetPriority: ['BITE', 'GROWL', 'SNIFF'],       // order for spilling PRUNE/SOW past the current intent
+    text: {
+      // predicates: read as "<logName|name> <text>"
+      BITE: 'bites', GROWL: 'growls (−1 reroll next turn)',
+      SNIFF: 'sniffs your pockets', WHIMPER: 'whimpers',
+      wag: 'wags its tail', broken: 'is too hurt to act',
+    },
+  },
+  text: {
+    help: 'ROLL, hold & reroll, drag dice into the sentence, COMMIT. The MIND die sets the verb for dice after it; dice before it act on instinct.',
+    reveal: '(reveal)', noEffect: 'nothing happens', scar: 'SCAR',   // `scar` is also the face key of a scarred face
+    beaten: 'BEATEN', befriended: 'BEFRIENDED', lost: 'YOU FLEE, SCARRED',
+    // --- UI labels / messages ({n} is replaced by a number) ---
+    buttons: { roll: 'ROLL', reroll: 'REROLL ({n} left)', commit: 'COMMIT', restart: 'RESTART' },
+    title: 'SMUGGLER', turn: 'TURN', scarsLabel: 'SCARS', intentLabel: 'INTENT', now: 'NOW', next: 'NEXT', nextPrefix: 'next:',
+    held: 'HELD', unknownFace: '?', sfxOn: 'SFX ON', sfxOff: 'SFX OFF',
+    placeHint: 'Place all 3 dice in the sentence to see what it does ({n}/3)',
+    lastTurn: 'Last:', lastAction: 'last turn:', pressRoll: 'Press ROLL to start',
+    growlStatus: 'GROWL: {n} reroll(s) this turn', noRerolls: 'no rerolls left',
+    revealSeen: 'you see what it will do next', revealChanged: 'its next move changes…',
+    wonBeaten: 'The dog is done for.', wonBefriended: 'The dog is yours now.', lostSub: 'Too many scars. You cannot go on.',
+    floatBroken: 'BROKEN', floatTurned: 'TURNED', floatReveal: 'REVEAL', floatScar: 'SCAR!',
+  },
+  colors: {
+    bg: '#0b0b10', panel: '#16161f', line: '#2a2a3a', text: '#e8e6f0', textDim: '#8a88a0',
+    // verbs: one warm saturated family
+    verb: { PRUNE: '#ff3d6e', SOW: '#ff8a2b', DIG: '#ffc21f' },
+    // body parts: cool blue/cyan family
+    body: { HAND: '#2f9bff', MOUTH: '#27d3c8', EYE: '#6b7bff' },
+    // items: purple family
+    item: { KNIFE: '#b967ff', GLASSES: '#e38cff' },
+    tileText: '#0b0b10',
+    scar: '#3a3a44', scarText: '#ff3b3b',
+    turned: '#4fe06a', broken: '#5a5a66', pipIntact: '#e8e6f0',
+    hostile: '#ff5a5a', glow: '#ffffff',
+    lit: '#ffe36b',        // "sentence complete" gold, COMMIT button, held badge
+    status: '#ffd36b',     // enemy action text, status line, debug accents
+    unknownBg: '#444444', unknownFg: '#aaaaaa',   // the "?" tile before the first roll
+    enemy: { BITE: '#ff5a5a', GROWL: '#d8704a', SNIFF: '#b98a6a', WHIMPER: '#8fa4c0' },
+  },
+  timing: {
+    rollShuffleMs: 600, resolveStepMs: 340, enemyActMs: 560, wobbleMs: 260,
+    // Phase 3 (ms)
+    shuffleStepMs: 55,      // one shuffle frame (also the roll-tick rate)
+    settleStaggerMs: 110,   // extra shuffle time per die so they settle one after another
+    settleMs: 260,          // bounce when a rolled die settles
+    snapMs: 130,            // slide into a slot
+    squashMs: 240,          // squash-and-stretch after landing
+    returnMs: 260,          // invalid drop animating back (with overshoot)
+    popMs: 240,             // a sentence tile popping during COMMIT
+    flyMs: 380,             // floating number flight (to enemy / along the arrow)
+    shakeMs: 300,           // enemy hit shake
+    pipMs: 320,             // pip crack / flip
+    flourishMs: 420,        // face-resolve flourish
+    crackMs: 240,           // BITE crack before the face becomes SCAR
+    lungeMs: 380,           // dog lunge on BITE
+  },
+  audio: {
+    enabledByDefault: true, volume: 0.15,
+    storageKey: 'smug.muted',
+    volumes: { tick: 0.5, snap: 0.9, pop: 0.8, hit: 1, turn: 0.9, bite: 1.1, growl: 0.8, win: 1, lose: 1, hold: 0.6, lit: 0.5 },
+    // each sound = list of voices: [wave, fromHz, toHz, seconds, delaySeconds, gain]
+    sounds: {
+      tick:  [['square', 900, 700, .03, 0, .5]],
+      hold:  [['square', 300, 240, .05, 0, .6]],
+      snap:  [['triangle', 320, 110, .09, 0, 1], ['square', 90, 60, .05, 0, .5]],
+      pop:   [['square', 480, 900, .08, 0, .8]],
+      lit:   [['square', 600, 900, .06, 0, .5], ['square', 900, 1200, .07, .06, .5]],
+      hit:   [['sawtooth', 220, 55, .15, 0, 1], ['square', 130, 50, .1, 0, .7]],
+      turn:  [['square', 440, 440, .06, 0, .7], ['square', 660, 660, .06, .06, .7], ['square', 880, 880, .1, .12, .7]],
+      bite:  [['sawtooth', 180, 40, .2, 0, 1], ['square', 800, 200, .09, 0, .7]],
+      growl: [['sawtooth', 75, 60, .28, 0, .9], ['sawtooth', 79, 62, .28, 0, .6]],
+      win:   [['square', 523, 523, .1, 0, .8], ['square', 659, 659, .1, .1, .8], ['square', 784, 784, .1, .2, .8], ['square', 1047, 1047, .28, .3, .8]],
+      lose:  [['sawtooth', 392, 392, .14, 0, .8], ['sawtooth', 330, 330, .14, .16, .8], ['sawtooth', 262, 262, .14, .32, .8], ['sawtooth', 196, 120, .4, .48, .8]],
+    },
+  },
+  fx: {
+    wobble: [[0, 0, 0], [1, -1, 1.5], [-1, 1, -1.5]],  // [x px, y px, rotation deg] — 3 hand-drawn jitter frames
+    shakePx: 7, tiltMaxDeg: 11, particles: 8,
+    tiltPerPx: 1.4,                 // drag tilt degrees per px of horizontal pointer movement
+    liftScale: 1.07,                // a dragged die's scale
+    squash: [[1.16, .8], [.93, 1.1], [1.03, .98]],   // [scaleX, scaleY] frames after a die lands in a slot
+    popScale: 1.28,                 // a die popping during COMMIT
+    litPopScale: 1.08, litPopMs: 260,   // the three dice popping when the sentence completes
+    settleScale: 1.35,              // roll: die bounce when it settles
+    holdBadgeMs: 200, holdTileMs: 180,
+    floatMs: 700, floatMinY: 121, floatRisePx: 60,   // floating BROKEN / TURNED / SCAR! text (floatMinY keeps it below the top bar)
+    flyLiftPx: -50, flyLiftDigPx: -34,               // arc height of the +N numbers
+    burstDistMin: 26, burstDistRange: 40, burstMs: 380, burstMsRange: 160,
+    burstCounts: { pip: 6, resolvedExtra: 4, lunge: 8, scar: 10, win: 14 },   // sparks (resolvedExtra is added to `particles`)
+    cardPulseScale: 1.1, cardPulseMs: 160,          // enemy face card when a +N arrives
+    arrowSwellScale: 2.2,                           // arrows swelling as DIG points are passed on
+    revealSlideMs: 240,
+    lungeUpPx: 16, lungeDownPx: 46, growlShakePx: 4, sniffMs: 520, whimperMs: 600,
+    scarShakePx: 9, scarPopScale: 1.6, scarPopMs: 300, scarBoxPulseMs: 320,
+    newIntentMs: 300, loseShakePx: 6, loseShakeMs: 500,
+    reducedWaitMs: 80,              // pause used in place of animations under prefers-reduced-motion
+  },
+  ui: {
+    dragThresholdPx: 5,             // moving less than this = a click (toggle hold), not a drag
+    dropSlackPx: 12,                // how far outside a slot a drop still counts
+  },
+  debug: { logRows: 10, pollMs: 120 },
+};
+/* CONFIG END */
+
+/* ENGINE START */
+// Pure game rules. No DOM, no timers, RNG injected. State may be mutated in place.
+(function () {
+  // ---------- helpers ----------
+  function makeRng(seed) {                             // mulberry32
+    let a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function randInt(rng, n) { return Math.min(n - 1, Math.floor(rng() * n)); }
+
+  const SCAR = CONFIG.text.scar;                       // face key of a scarred face
+  // ---------- faces & scoring ----------
+  // -> { face, kind: 'verb'|'body'|'scar', verb, body, item }
+  function parseFace(face) {
+    if (face === SCAR) return { face, kind: 'scar', verb: null, body: null, item: null };
+    if (CONFIG.verbs.indexOf(face) >= 0) return { face, kind: 'verb', verb: face, body: null, item: null };
+    const parts = face.split('+');
+    return { face, kind: 'body', verb: null, body: parts[0], item: parts[1] || null };
+  }
+  // Points a body face earns when performing `verb` (0 for scar / verb faces).
+  function scoreBodyFace(face, verb) {
+    const p = typeof face === 'string' ? parseFace(face) : face;
+    if (p.kind === 'scar') return CONFIG.points.scar;
+    if (p.kind !== 'body') return 0;
+    const base = CONFIG.favouriteVerb[p.body] === verb ? CONFIG.points.favourite : CONFIG.points.other;
+    return base + (p.item ? CONFIG.points.itemBonus : 0);
+  }
+
+  // ---------- sentence ----------
+  function evaluateSentence(faces) {
+    const parsed = faces.map(parseFace);
+    const verbSlots = [];
+    parsed.forEach((p, i) => { if (p.kind === 'verb') verbSlots.push(i); });
+    if (verbSlots.length !== 1) throw new Error('sentence needs exactly one verb face, got ' + verbSlots.length);
+    const mindIndex = verbSlots[0];
+    const verb = parsed[mindIndex].verb;
+    const shape = CONFIG.shapeNames[mindIndex];
+
+    const steps = [];
+    const totals = {};
+    Object.keys(CONFIG.pipResult).forEach(v => { totals[v] = 0; });
+    const order = [];            // damage verbs by first appearance
+    const carryAfter = [];       // is a carry in flight after this step?
+    let carry = 0, reveal = false;
+
+    parsed.forEach((p, i) => {
+      if (i === mindIndex) return;
+      if (p.kind === 'scar') {
+        steps.push({ slot: i, face: p.face, role: 'scar', verb: null, base: CONFIG.points.scar, carryIn: 0,
+          total: 0, reveal: false, passesTo: null, name: CONFIG.text.scar });
+        carryAfter.push(carry > 0);
+        return;
+      }
+      const role = i < mindIndex ? 'instinct' : 'directed';
+      const v = role === 'instinct' ? CONFIG.favouriteVerb[p.body] : verb;
+      const base = scoreBodyFace(p, v);
+      const carryIn = carry;
+      const total = base + carryIn;
+      carry = 0;
+      let stepReveal = false, passesTo = null;
+      if (v === CONFIG.revealVerb) {
+        stepReveal = true; reveal = true;
+        for (let j = i + 1; j < parsed.length; j++) {
+          if (j !== mindIndex && parsed[j].kind === 'body') { passesTo = j; carry = total; break; }
+        }
+      } else if (totals[v] !== undefined) {
+        totals[v] += total;
+        if (order.indexOf(v) < 0) order.push(v);
+      }
+      const names = CONFIG.actionNames[p.face];
+      steps.push({ slot: i, face: p.face, role, verb: v, base, carryIn, total, reveal: stepReveal, passesTo,
+        name: names && names[v] ? names[v] : p.face + ' ' + v });
+      carryAfter.push(carry > 0);
+    });
+
+    let stepsText = '';
+    steps.forEach((s, k) => {
+      let str = s.name + ' ' + s.base + (s.carryIn > 0 ? '+' + s.carryIn : '');
+      if (s.reveal) str += ' ' + CONFIG.text.reveal;
+      stepsText += str;
+      if (k < steps.length - 1) stepsText += carryAfter[k] ? ' → ' : ' · ';
+    });
+    const parts = order.filter(v => totals[v] > 0).map(v => v + ' ' + totals[v]);
+    const totalsText = parts.length ? parts.join(' · ') : CONFIG.text.noEffect;
+    return { shape, mindIndex, verb, steps, totals, order, reveal, totalsText,
+      text: shape + ': ' + stepsText + ' → ' + totalsText };
+  }
+
+  // ---------- player ----------
+  // die: { id, faces: [...6 strings], idx: current face index, held }
+  function createPlayer() {
+    return { dice: CONFIG.playerDice.map(d => ({ id: d.id, faces: d.faces.slice(), idx: 0, held: false })) };
+  }
+  function currentFace(die) { return die.faces[die.idx]; }
+  function rollDie(die, rng) { die.idx = randInt(rng, die.faces.length); return die.idx; }
+  function toggleHold(die) { die.held = !die.held; return die.held; }
+  // Rerolls every un-held die and spends one reroll. Returns rerolled die ids, or null if none left.
+  function rerollUnheld(state, rng) {
+    if (state.rerolls <= 0) return null;
+    state.rerolls -= 1;
+    const ids = [];
+    state.player.dice.forEach(d => { if (!d.held) { rollDie(d, rng); ids.push(d.id); } });
+    return ids;
+  }
+  function countScars(player) {
+    let n = 0;
+    player.dice.forEach(d => d.faces.forEach(f => { if (f === SCAR) n++; }));
+    return n;
+  }
+
+  // ---------- enemy ----------
+  // intent: { faceIdx, wag } ; face: { name, pips: ['intact'|'broken'|'turned', ...] }
+  function createEnemy(rng) {
+    const e = {
+      name: CONFIG.enemy.name,
+      faces: CONFIG.enemy.faces.map(name => ({ name, pips: Array(CONFIG.pipsPerEnemyFace).fill('intact') })),
+      current: null, next: null, foresight: false,
+    };
+    if (rng) e.current = rollIntent(e, rng);
+    return e;
+  }
+  function faceStatus(face) {
+    let intact = 0, broken = 0, turned = 0;
+    face.pips.forEach(p => { if (p === 'intact') intact++; else if (p === 'broken') broken++; else turned++; });
+    if (intact === face.pips.length) return 'intact';
+    if (intact > 0) return 'damaged';
+    return broken > turned ? 'broken' : 'turned';
+  }
+  function isResolved(face) { const s = faceStatus(face); return s === 'broken' || s === 'turned'; }
+  function isHostile(face) { return CONFIG.enemy.hostile.indexOf(face.name) >= 0; }
+
+  // Spend `amount` points of `verb` (PRUNE/SOW) on intact pips. Returns ordered events.
+  function applyVerb(enemy, verb, amount) {
+    const to = CONFIG.pipResult[verb];
+    const events = [];
+    if (!to || amount <= 0) return events;
+    const targets = [];
+    const cur = enemy.current;
+    if (cur && !cur.wag) {
+      const f = enemy.faces[cur.faceIdx];
+      if (isHostile(f) && !isResolved(f)) targets.push(cur.faceIdx);
+    }
+    const prio = CONFIG.enemy.targetPriority;
+    enemy.faces
+      .map((f, i) => ({ f, i }))
+      .filter(o => isHostile(o.f) && targets.indexOf(o.i) < 0)
+      .sort((a, b) => (prio.indexOf(a.f.name) - prio.indexOf(b.f.name)) || (a.i - b.i))
+      .forEach(o => targets.push(o.i));
+    let left = amount;
+    for (const fi of targets) {
+      const face = enemy.faces[fi];
+      if (isResolved(face)) continue;
+      for (let pi = 0; pi < face.pips.length && left > 0; pi++) {
+        if (face.pips[pi] !== 'intact') continue;
+        face.pips[pi] = to;
+        left--;
+        events.push({ type: 'pip', faceIdx: fi, pipIdx: pi, to, verb });
+      }
+      if (isResolved(face)) events.push({ type: 'faceResolved', faceIdx: fi, resolved: faceStatus(face) });
+      if (left <= 0) break;
+    }
+    return events;
+  }
+
+  // Pick a random non-broken face. Turned face => wag intent.
+  function rollIntent(enemy, rng) {
+    let idxs = [];
+    enemy.faces.forEach((f, i) => { if (faceStatus(f) !== 'broken') idxs.push(i); });
+    if (!idxs.length) return { faceIdx: 0, wag: true };
+    const faceIdx = idxs[randInt(rng, idxs.length)];
+    return { faceIdx, wag: faceStatus(enemy.faces[faceIdx]) === 'turned' };
+  }
+
+  // Resolves the enemy's current intent. Returns { events, rerollPenalty }.
+  function enemyAct(state, rng) {
+    const enemy = state.enemy, intent = enemy.current;
+    const face = enemy.faces[intent.faceIdx];
+    const status = faceStatus(face);
+    const T = CONFIG.enemy.text;
+    const base = { type: 'enemyAct', intent: { faceIdx: intent.faceIdx, wag: intent.wag }, face: face.name };
+    const out = { events: [], rerollPenalty: 0 };
+    if (intent.wag || status === 'turned') {
+      out.events.push(Object.assign(base, { skipped: true, reason: 'wag', effect: null, text: T.wag }));
+      return out;
+    }
+    if (status === 'broken') {
+      out.events.push(Object.assign(base, { skipped: true, reason: 'broken', effect: null, text: T.broken }));
+      return out;
+    }
+    const ev = Object.assign(base, { skipped: false, reason: null, effect: null, text: T[face.name] || '' });
+    out.events.push(ev);
+    if (face.name === 'BITE') {
+      const cands = [];
+      state.player.dice.forEach(d => {
+        if (CONFIG.biteTargets.indexOf(d.id) < 0) return;
+        d.faces.forEach((f, fi) => { if (f !== SCAR) cands.push({ d, fi }); });
+      });
+      if (cands.length) {
+        const c = cands[randInt(rng, cands.length)];
+        const previous = c.d.faces[c.fi];
+        c.d.faces[c.fi] = SCAR;
+        ev.effect = 'bite';
+        out.events.push({ type: 'scar', dieId: c.d.id, faceIdx: c.fi, previous, wasCurrent: c.d.idx === c.fi });
+      }
+    } else if (face.name === 'GROWL') {
+      ev.effect = 'growl';
+      ev.rerollPenalty = 1;
+      state.rerollPenalty = 1;
+      out.rerollPenalty = 1;
+    } else if (face.name === 'SNIFF') {
+      ev.effect = 'sniff';
+    } else if (face.name === 'WHIMPER') {
+      ev.effect = 'whimper';
+    }
+    return out;
+  }
+
+  // ---------- win / lose ----------
+  // null while some hostile face is unresolved; else 'BEATEN' | 'BEFRIENDED' (ties -> befriended)
+  function checkWin(enemy) {
+    if (!enemy.faces.every(f => !isHostile(f) || isResolved(f))) return null;
+    let broken = 0, turned = 0;
+    enemy.faces.forEach(f => {
+      const s = faceStatus(f);
+      if (s === 'broken') broken++; else if (s === 'turned') turned++;
+    });
+    return broken > turned ? CONFIG.text.beaten : CONFIG.text.befriended;
+  }
+  function checkLose(player) { return countScars(player) >= CONFIG.scarsToLose; }
+
+  // ---------- game / turn ----------
+  function createGame(rng) {
+    return { player: createPlayer(), enemy: createEnemy(rng), turn: 1, rerolls: 0, rerollPenalty: 0,
+      over: null, result: null, log: [] };
+  }
+  // Begin a turn: clear holds, roll all dice, set rerolls (minus any GROWL penalty).
+  function startTurn(state, rng) {
+    state.rerolls = Math.max(0, CONFIG.rerollsPerTurn - state.rerollPenalty);
+    state.rerollPenalty = 0;
+    state.player.dice.forEach(d => { d.held = false; rollDie(d, rng); });
+    return state.rerolls;
+  }
+
+  // slotOrder: 3 die ids (or indices into player.dice) in slot order.
+  function resolveTurn(state, slotOrder, rng) {
+    const events = [];
+    const dice = slotOrder.map(s => typeof s === 'number' ? state.player.dice[s] : state.player.dice.find(d => d.id === s));
+    if (dice.length !== state.player.dice.length || dice.some(d => !d) || new Set(dice).size !== dice.length)
+      throw new Error('slotOrder must place every die exactly once');
+    const faces = dice.map(currentFace);
+    const evaluation = evaluateSentence(faces);
+    const enemy = state.enemy;
+    const intentFace = enemy.faces[enemy.current.faceIdx].name;
+    const sentenceStr = faces.map((f, i) => i === evaluation.mindIndex ? '[' + f + ']' : f).join(' ');
+    const broke = [];
+
+    events.push({ type: 'sentence', slotOrder: dice.map(d => d.id), faces, evaluation, text: evaluation.text });
+    evaluation.steps.forEach((step, index) => events.push({ type: 'step', index, step }));
+    evaluation.order.forEach(v => {
+      const amount = evaluation.totals[v];
+      if (amount <= 0) return;
+      events.push({ type: 'verb', verb: v, amount });
+      applyVerb(enemy, v, amount).forEach(e => {
+        events.push(e);
+        if (e.type === 'faceResolved') broke.push((e.resolved === 'broken' ? 'broke ' : 'turned ') + enemy.faces[e.faceIdx].name);
+      });
+    });
+
+    // foresight / reveal
+    let rerolledNext = false;
+    if (enemy.next && faceStatus(enemy.faces[enemy.next.faceIdx]) === 'broken') {
+      enemy.next = rollIntent(enemy, rng); rerolledNext = true;
+    }
+    if (evaluation.reveal) {
+      if (!enemy.next) enemy.next = rollIntent(enemy, rng);
+      enemy.foresight = true;
+    }
+    if (evaluation.reveal || rerolledNext) {
+      events.push({ type: 'reveal', next: Object.assign({}, enemy.next), face: enemy.faces[enemy.next.faceIdx].name, rerolled: rerolledNext });
+    }
+
+    const head = 'T' + state.turn + ': ' + sentenceStr + ' → ' + evaluation.totalsText + (broke.length ? ', ' + broke.join(', ') : '');
+    const finish = (tail) => {
+      const line = head + (tail ? '; ' + tail : '');
+      state.log.push(line);
+      return { events, log: line, over: state.over, result: state.result, evaluation };
+    };
+
+    // win check (before the enemy acts)
+    const win = checkWin(enemy);
+    if (win) {
+      state.over = 'won'; state.result = win;
+      events.push({ type: 'win', result: win });
+      return finish(win);
+    }
+
+    // enemy acts
+    const act = enemyAct(state, rng);
+    act.events.forEach(e => events.push(e));
+    const actEv = act.events[0];
+    let tail;
+    if (actEv.skipped) tail = CONFIG.enemy.logName + ' ' + actEv.text;
+    else {
+      tail = CONFIG.enemy.logName + ' ' + actEv.text;
+      const scar = act.events.find(e => e.type === 'scar');
+      if (scar) tail += ' (' + scar.dieId + ' ' + scar.previous + ' → ' + SCAR + ')';
+    }
+
+    if (checkLose(state.player)) {
+      state.over = 'lost'; state.result = CONFIG.text.lost;
+      events.push({ type: 'lose', scars: countScars(state.player) });
+      return finish(tail + '; ' + CONFIG.text.lost);
+    }
+
+    // next intent
+    state.turn += 1;
+    let cur = enemy.next;
+    if (!cur || faceStatus(enemy.faces[cur.faceIdx]) === 'broken') cur = rollIntent(enemy, rng);
+    else cur = { faceIdx: cur.faceIdx, wag: faceStatus(enemy.faces[cur.faceIdx]) === 'turned' };
+    enemy.current = cur;
+    enemy.next = null;
+    if (enemy.foresight) { enemy.next = rollIntent(enemy, rng); enemy.foresight = false; }
+    events.push({ type: 'newIntent', intent: Object.assign({}, cur), face: enemy.faces[cur.faceIdx].name,
+      next: enemy.next ? Object.assign({}, enemy.next) : null,
+      nextFace: enemy.next ? enemy.faces[enemy.next.faceIdx].name : null });
+    return finish(tail);
+  }
+
+  globalThis.SmugEngine = {
+    makeRng, parseFace, scoreBodyFace, evaluateSentence,
+    createPlayer, currentFace, rollDie, toggleHold, rerollUnheld, countScars,
+    createEnemy, faceStatus, isResolved, isHostile, applyVerb, rollIntent, enemyAct, checkWin, checkLose,
+    createGame, startTurn, resolveTurn,
+  };
+})();
+/* ENGINE END */
+
+/* UI START */
+// State machine: 'await-roll' -> 'arranging' -> 'resolving' -> 'enemy' -> 'await-roll' ... 'won' | 'lost'.
+// Game rules live in SmugEngine; the UI only draws a *view model* (`view`) that the event player updates step by
+// step, so the display can lag behind the (already fully resolved) engine state while events play back.
+(function () {
+  const E = globalThis.SmugEngine;
+  const C = CONFIG;
+  const $ = (id) => document.getElementById(id);
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  const ui = {
+    game: null,
+    phase: 'await-roll',
+    slots: [null, null, null],   // die id per sentence slot
+    hover: null,                 // die id under the pointer
+    drag: null,
+    runId: 0,                    // bumped on restart: aborts an in-flight event playback
+    enemyText: '',               // line under the intent (enemy action flavour)
+    previewOverride: null,       // {shape, text} while a committed sentence plays
+    verbFlash: '',
+    actingSlot: null,
+    hidePips: false,             // debug panel: hide enemy pip states / resolved tile looks in the face strip
+  };
+  let view = null;               // { enemy:{faces,current,next}, dice:{id:{faces,idx}} }
+
+  // ---------- helpers ----------
+  const dieById = (id) => ui.game.player.dice.find(d => d.id === id);
+  const slotOf = (id) => ui.slots.indexOf(id);
+  const placedCount = () => ui.slots.filter(Boolean).length;
+  const isHostileName = (n) => C.enemy.hostile.indexOf(n) >= 0;
+  const canInteract = () => ui.phase === 'arranging';
+
+  function tokenColor(tok) {
+    const p = E.parseFace(tok);
+    if (p.kind === 'scar') return { bg: C.colors.scar, fg: C.colors.scarText, cls: 'scar' };
+    if (p.kind === 'verb') return { bg: C.colors.verb[tok] || '#888', fg: C.colors.tileText, cls: '' };
+    if (C.colors.body[tok]) return { bg: C.colors.body[tok], fg: C.colors.tileText, cls: '' };
+    if (C.colors.item[tok]) return { bg: C.colors.item[tok], fg: C.colors.tileText, cls: '' };
+    return { bg: '#888', fg: C.colors.tileText, cls: '' };
+  }
+  function tileHTML(tok, extra) {
+    const c = tokenColor(tok);
+    return '<span class="tile ' + c.cls + (extra ? ' ' + extra : '') + '" style="background:' + c.bg + ';color:' + c.fg + '">' + tok + '</span>';
+  }
+  // 'HAND+KNIFE' -> two stuck-together tiles
+  function faceHTML(face, extra) {
+    if (face === C.text.scar) return tileHTML(face, extra);
+    return face.split('+').map(t => tileHTML(t, extra)).join('');
+  }
+
+  // ---------- view model ----------
+  function snapshotEnemy(en) {
+    const cp = (i) => i ? { faceIdx: i.faceIdx, wag: i.wag } : null;
+    return { faces: en.faces.map(f => ({ name: f.name, pips: f.pips.slice() })), current: cp(en.current), next: cp(en.next) };
+  }
+  function syncView() {
+    const g = ui.game;
+    view = { enemy: snapshotEnemy(g.enemy), dice: {} };
+    g.player.dice.forEach(d => { view.dice[d.id] = { faces: d.faces.slice(), idx: d.idx }; });
+  }
+  const viewFace = (id) => view.dice[id].faces[view.dice[id].idx];
+  const viewScars = () => Object.keys(view.dice).reduce((n, id) => n + view.dice[id].faces.filter(f => f === C.text.scar).length, 0);
+
+  // ---------- static DOM ----------
+  const dom = { slotEls: [], cellEls: {}, dieEls: {}, efc: [] };
+  function buildDOM() {
+    // slots + arrows
+    const slots = $('slots');
+    for (let i = 0; i < 3; i++) {
+      if (i > 0) { const a = document.createElement('div'); a.className = 'arrow'; a.textContent = '▶'; slots.appendChild(a); }
+      const s = document.createElement('div');
+      s.className = 'slot'; s.dataset.slot = i;
+      s.innerHTML = '<span class="num">' + (i + 1) + '</span>';
+      slots.appendChild(s); dom.slotEls.push(s);
+    }
+    // tray cells + dice
+    C.playerDice.forEach(d => {
+      const cell = document.createElement('div');
+      cell.className = 'cell'; cell.dataset.die = d.id;
+      $('tray').appendChild(cell); dom.cellEls[d.id] = cell;
+      const die = document.createElement('div');
+      die.className = 'die'; die.dataset.id = d.id;
+      die.innerHTML = '<div class="faceRow"></div><div class="cap">' + d.id + '</div><span class="held">' + C.text.held + '</span>' +
+        '<div class="ctl"><button class="up" title="Place in leftmost empty slot">▲</button>' +
+        '<button class="down" title="Return to tray">▼</button></div>';
+      die.querySelector('.up').addEventListener('click', (e) => { e.stopPropagation(); onUp(d.id); });
+      die.querySelector('.down').addEventListener('click', (e) => { e.stopPropagation(); onDown(d.id); });
+      die.addEventListener('pointerdown', (e) => onPointerDown(e, d.id));
+      die.addEventListener('pointerenter', () => { ui.hover = d.id; showPopover(d.id); });
+      die.addEventListener('pointerleave', () => { if (ui.hover === d.id) ui.hover = null; hidePopover(); });
+      dom.dieEls[d.id] = die;
+    });
+    // enemy face strip (persistent nodes, updated in place)
+    C.enemy.faces.forEach((name, i) => {
+      const el = document.createElement('div');
+      el.className = 'efc';
+      el.innerHTML = '<div class="tag"></div><span class="tile"></span><div class="pips"></div>';
+      const pips = el.querySelector('.pips');
+      for (let p = 0; p < C.pipsPerEnemyFace; p++) { const s = document.createElement('span'); s.className = 'pip'; pips.appendChild(s); }
+      $('faceStrip').appendChild(el); dom.efc.push(el);
+    });
+    const sc = $('scars');
+    sc.innerHTML = '<span>' + C.text.scarsLabel + '</span>';
+    for (let i = 0; i < C.scarsToLose; i++) { const b = document.createElement('span'); b.className = 'scarbox'; sc.appendChild(b); }
+    const n = document.createElement('span'); n.id = 'scarN'; sc.appendChild(n);
+    $('help').textContent = C.text.help;
+    // CONFIG.colors / labels -> page
+    const root = document.documentElement.style, K = C.colors;
+    [['bg', K.bg], ['panel', K.panel], ['line', K.line], ['text', K.text], ['dim', K.textDim], ['lit', K.lit], ['status', K.status],
+     ['danger', K.scarText], ['glow', K.glow], ['pip', K.pipIntact], ['broken', K.broken], ['turned', K.turned], ['tiletext', K.tileText],
+     ['lift', C.fx.liftScale]].forEach(kv => { if (kv[1] != null) root.setProperty('--' + kv[0], kv[1]); });
+    $('titleLabel').textContent = C.text.title;
+    $('btnRoll').textContent = C.text.buttons.roll;
+    $('btnCommit').textContent = C.text.buttons.commit;
+    $('btnRestart').textContent = C.text.buttons.restart;
+    $('ovRestart').textContent = C.text.buttons.restart;
+    document.querySelector('#intentPanel .lbl').textContent = C.enemy.name + ' · ' + C.text.intentLabel;
+    $('nextWrap').querySelector('.lbl').textContent = C.text.next;
+    $('btnRoll').addEventListener('click', onRoll);
+    $('btnReroll').addEventListener('click', onReroll);
+    $('btnCommit').addEventListener('click', onCommit);
+    $('btnRestart').addEventListener('click', onRestart);
+    $('ovRestart').addEventListener('click', onRestart);
+    window.addEventListener('keydown', onKey);
+  }
+
+  // ---------- render functions (hook points for Phase 3) ----------
+  function renderAll() { renderEnemy(); renderDice(); renderSlots(); renderPreview(); renderControls(); renderOverlay(); renderTopBar(); }
+
+  function enemyTileClass(name, status) {
+    const col = (C.colors.enemy && C.colors.enemy[name]) || C.colors.hostile;
+    if (status === 'broken') return { bg: C.colors.broken, fg: C.colors.tileText, cls: 'broken' };
+    if (status === 'turned') return { bg: C.colors.turned, fg: C.colors.tileText, cls: '' };
+    return { bg: col, fg: C.colors.tileText, cls: '' };
+  }
+  function paintEnemyTile(el, name, status, small) {
+    const c = enemyTileClass(name, status);
+    el.className = 'tile ' + c.cls + (small ? ' small' : '');
+    el.style.background = c.bg; el.style.color = c.fg;
+    el.textContent = name;
+  }
+  function intentLine(intent) {
+    const f = view.enemy.faces[intent.faceIdx];
+    if (intent.wag) return C.enemy.text.wag;
+    if (E.isResolved(f)) return C.enemy.text.broken;
+    return C.enemy.text[f.name] || '';
+  }
+  function renderEnemy() {
+    const en = view.enemy;
+    en.faces.forEach((f, i) => {
+      const el = dom.efc[i], st = E.faceStatus(f);
+      paintEnemyTile(el.querySelector('.tile'), f.name, !ui.hidePips && (st === 'broken' || st === 'turned') ? st : 'intact', false);
+      el.querySelectorAll('.pip').forEach((p, k) => { p.className = ui.hidePips ? 'pip unknown' : 'pip ' + f.pips[k]; });
+      el.classList.toggle('is-current', !!en.current && en.current.faceIdx === i);
+      el.classList.toggle('is-next', !!en.next && en.next.faceIdx === i);
+      el.dataset.status = st;
+      el.querySelector('.tag').textContent = en.current && en.current.faceIdx === i ? C.text.now : (en.next && en.next.faceIdx === i ? C.text.next : '');
+    });
+    // intent
+    const cur = en.current;
+    const curFace = en.faces[cur.faceIdx];
+    const st = E.faceStatus(curFace);
+    paintEnemyTile($('intentTile'), curFace.name, cur.wag ? 'turned' : (st === 'broken' || st === 'turned' ? st : 'intact'), false);
+    const intentStr = C.enemy.name + ' ' + intentLine(cur);
+    $('intentText').textContent = intentStr;
+    // the enemy's act line often repeats the intent line (broken / wagging): show it once
+    // once the turn has played out, label the line as last turn's action so it isn't read as the new intent
+    const eLine = ui.phase === 'await-roll' && ui.enemyText ? C.text.lastAction + ' ' + ui.enemyText : ui.enemyText;
+    $('enemyText').textContent = !ui.enemyText || ui.enemyText === intentStr ?' ' : eLine;
+    const nw = $('nextWrap');
+    if (en.next) {
+      const nf = en.faces[en.next.faceIdx], ns = E.faceStatus(nf);
+      paintEnemyTile($('nextTile'), nf.name, en.next.wag ? 'turned' : (ns === 'broken' || ns === 'turned' ? ns : 'intact'), true);
+      $('nextText').textContent = C.text.nextPrefix + ' ' + intentLine(en.next);
+      nw.classList.remove('hidden');
+    } else nw.classList.add('hidden');
+    $('verbFlash').textContent = ui.verbFlash || '';
+  }
+
+  function renderDice() {
+    ui.game.player.dice.forEach(d => {
+      const el = dom.dieEls[d.id], vd = view.dice[d.id], si = slotOf(d.id);
+      const parent = si >= 0 ? dom.slotEls[si] : dom.cellEls[d.id];
+      if (el.parentNode !== parent) parent.appendChild(el);
+      const hidden = ui.phase === 'await-roll';
+      const face = hidden ? '?' : vd.faces[vd.idx];
+      if (el.dataset.face !== face) {
+        el.dataset.face = face;
+        el.querySelector('.faceRow').innerHTML = hidden ? '<span class="tile" style="background:' + C.colors.unknownBg + ';color:' + C.colors.unknownFg + '">' + C.text.unknownFace + '</span>' : faceHTML(face);
+      }
+      el.classList.toggle('in-slot', si >= 0);
+      el.classList.toggle('held', d.held && !hidden);
+      el.classList.toggle('dim', hidden);
+      el.querySelector('.ctl').style.visibility = canInteract() ? 'visible' : 'hidden';
+    });
+  }
+  function renderSlots() {
+    dom.slotEls.forEach((s, i) => {
+      s.classList.toggle('full', !!ui.slots[i]);
+      s.classList.toggle('acting', ui.actingSlot === i);
+    });
+    $('slots').classList.toggle('complete', placedCount() === 3 && (ui.phase === 'arranging' || ui.phase === 'resolving' || ui.phase === 'enemy'));
+  }
+  function currentPreview() {
+    if (ui.previewOverride) return ui.previewOverride;
+    if (ui.phase === 'arranging') {
+      if (placedCount() < 3) return { hint: true, shape: '', text: C.text.placeHint.replace('{n}', placedCount()) };
+      const faces = ui.slots.map(id => viewFace(id));
+      const ev = E.evaluateSentence(faces);
+      return { shape: ev.shape, text: ev.text, sentence: faces.map((f, i) => i === ev.mindIndex ? '[' + f + ']' : f).join(' ') };
+    }
+    if (ui.phase === 'await-roll') {
+      const log = ui.game.log;
+      return { hint: true, shape: '', text: log.length ? C.text.lastTurn + ' ' + log[log.length - 1] : C.text.pressRoll };
+    }
+    return { hint: true, shape: '', text: '' };
+  }
+  function renderPreview() {
+    const p = currentPreview();
+    $('shape').textContent = p.sentence || p.shape || '';
+    const t = $('previewText');
+    t.textContent = p.text || ' ';
+    t.classList.toggle('hint', !!p.hint);
+  }
+  function renderControls() {
+    const g = ui.game, ph = ui.phase;
+    $('btnRoll').disabled = ph !== 'await-roll';
+    const allHeld = g.player.dice.every(d => d.held);
+    $('btnReroll').disabled = !(ph === 'arranging' && g.rerolls > 0 && !allHeld);
+    $('btnReroll').textContent = C.text.buttons.reroll.replace('{n}', ph === 'arranging' || ph === 'resolving' || ph === 'enemy' ? g.rerolls : 0);
+    $('btnCommit').disabled = !(ph === 'arranging' && placedCount() === 3);
+    let s = '';
+    if (ph === 'await-roll') {
+      s = g.rerollPenalty > 0 ? C.text.growlStatus.replace('{n}', Math.max(0, C.rerollsPerTurn - g.rerollPenalty)) : '';
+    } else if (ph === 'arranging') s = g.rerolls === 0 && g.player.dice.some(d => !d.held) ? C.text.noRerolls : '';
+    $('status').textContent = s;
+  }
+  function renderTopBar() {
+    const n = viewScars();
+    document.querySelectorAll('#scars .scarbox').forEach((b, i) => b.classList.toggle('on', i < n));
+    $('scarN').textContent = n + '/' + C.scarsToLose;
+    $('turn').textContent = C.text.turn + ' ' + ui.game.turn;
+  }
+  function renderOverlay() {
+    const ov = $('overlay'), g = ui.game;
+    const show = ui.phase === 'won' || ui.phase === 'lost';
+    ov.classList.toggle('show', show);
+    if (show) {
+      $('ovBig').textContent = g.result;
+      $('ovBig').style.color = ui.phase === 'lost' ? C.colors.scarText : (g.result === C.text.befriended ? C.colors.turned : C.colors.verb.PRUNE);
+      $('ovSub').textContent = ui.phase === 'won'
+        ? (g.result === C.text.befriended ? C.text.wonBefriended : C.text.wonBeaten)
+        : C.text.lostSub;
+    }
+  }
+
+  // popover with all 6 faces
+  function showPopover(id) {
+    if (ui.drag) return;
+    const d = ui.game.player.dice.find(x => x.id === id), vd = view.dice[id];
+    const pop = $('pop');
+    pop.innerHTML = '<div class="ttl">' + id + ' · 6 faces</div><div class="row">' +
+      vd.faces.map((f, i) => '<div class="f' + (i === vd.idx && ui.phase !== 'await-roll' ? ' cur' : '') + '"><div class="faceRow">' + faceHTML(f) + '</div></div>').join('') + '</div>';
+    pop.style.display = 'block';
+    const sr = $('stage').getBoundingClientRect(), r = dom.dieEls[id].getBoundingClientRect();
+    const pw = pop.offsetWidth, ph2 = pop.offsetHeight;
+    let x = r.left - sr.left + r.width / 2 - pw / 2;
+    x = Math.max(8, Math.min(sr.width - pw - 8, x));
+    let y = r.top - sr.top - ph2 - 8;
+    if (y < 8) y = r.bottom - sr.top + 8;
+    pop.style.left = x + 'px'; pop.style.top = y + 'px';
+  }
+  function hidePopover() { $('pop').style.display = 'none'; }
+
+  // ---------- player actions ----------
+  function placeDie(id, slotIdx) {
+    if (!canInteract()) return;
+    const cur = slotOf(id), occ = ui.slots[slotIdx];
+    if (cur === slotIdx) return;
+    if (cur >= 0) ui.slots[cur] = occ;      // swap (occ may be null)
+    ui.slots[slotIdx] = id;                 // an evicted occupant simply returns to its tray cell
+    renderAll();
+  }
+  function unplaceDie(id) {
+    if (!canInteract()) return;
+    const i = slotOf(id);
+    if (i >= 0) { ui.slots[i] = null; renderAll(); }
+  }
+  function onUp(id) { if (slotOf(id) < 0) { const i = ui.slots.indexOf(null); if (i >= 0) withFlip(id, () => placeDie(id, i)); } }
+  function onDown(id) { withFlip(id, () => unplaceDie(id)); }
+  function toggleHoldDie(id) {
+    if (!canInteract()) return;
+    E.toggleHold(dieById(id));
+    renderAll();
+    hooks.onHold(id);
+    if (ui.hover === id) showPopover(id);
+  }
+  // Run a placement change and let FX animate every die that moved (FLIP).
+  function withFlip(id, fn) { const snap = hooks.snapshot(); fn(); hooks.play(snap, id); }
+  function onKey(e) {
+    if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    if ((e.key === '1' || e.key === '2' || e.key === '3') && ui.hover && canInteract()) {
+      withFlip(ui.hover, () => placeDie(ui.hover, Number(e.key) - 1));
+      if (ui.hover) showPopover(ui.hover);
+    }
+  }
+
+  // Pointer Events drag & drop. < 5px of movement = click = toggle hold.
+  function onPointerDown(e, id) {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (e.target.closest('button')) return;
+    if (!canInteract()) return;
+    const el = dom.dieEls[id];
+    const r = el.getBoundingClientRect();
+    ui.drag = { id, pointerId: e.pointerId, sx: e.clientX, sy: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top,
+      w: r.width, h: r.height, active: false };
+    el.setPointerCapture(e.pointerId);
+    el.addEventListener('pointermove', onPointerMove);
+    el.addEventListener('pointerup', onPointerUp);
+    el.addEventListener('pointercancel', onPointerCancel);
+  }
+  function dropTarget(x, y) {
+    for (let i = 0; i < 3; i++) {
+      const r = dom.slotEls[i].getBoundingClientRect();
+      const m = C.ui.dropSlackPx;
+      if (x >= r.left - m && x <= r.right + m && y >= r.top - m && y <= r.bottom + m) return { kind: 'slot', i };
+    }
+    const tr = $('bottom').getBoundingClientRect();
+    if (y >= tr.top - C.ui.dropSlackPx) return { kind: 'tray' };
+    return null;
+  }
+  function onPointerMove(e) {
+    const d = ui.drag; if (!d || e.pointerId !== d.pointerId) return;
+    const el = dom.dieEls[d.id];
+    if (!d.active) {
+      if (Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < C.ui.dragThresholdPx) return;
+      d.active = true;
+      hidePopover();
+      el.style.width = d.w + 'px'; el.style.height = d.h + 'px';
+      el.classList.add('dragging');
+      hooks.onDragStart(el, d);
+    }
+    el.style.left = (e.clientX - d.ox) + 'px';
+    el.style.top = (e.clientY - d.oy) + 'px';
+    hooks.onDragMove(el, e, d);
+    const t = dropTarget(e.clientX, e.clientY);
+    dom.slotEls.forEach((s, i) => s.classList.toggle('over', !!t && t.kind === 'slot' && t.i === i));
+    $('tray').classList.toggle('over', !!t && t.kind === 'tray' && slotOf(d.id) >= 0);
+  }
+  function endDrag(e, cancelled) {
+    const d = ui.drag; if (!d || e.pointerId !== d.pointerId) return;
+    const el = dom.dieEls[d.id];
+    const snap = d.active ? hooks.snapshot() : null;            // positions while still lifted (for the drop animation)
+    el.removeEventListener('pointermove', onPointerMove);
+    el.removeEventListener('pointerup', onPointerUp);
+    el.removeEventListener('pointercancel', onPointerCancel);
+    try { el.releasePointerCapture(d.pointerId); } catch (_) {}
+    ui.drag = null;
+    const wasActive = d.active;
+    el.classList.remove('dragging');
+    el.style.width = el.style.height = el.style.left = el.style.top = el.style.rotate = '';
+    hooks.onDragEnd(el, d);
+    dom.slotEls.forEach(s => s.classList.remove('over'));
+    $('tray').classList.remove('over');
+    if (cancelled) { renderAll(); return; }
+    if (!wasActive) { toggleHoldDie(d.id); return; }          // click
+    const t = dropTarget(e.clientX, e.clientY);
+    if (t && t.kind === 'slot') placeDie(d.id, t.i);
+    else if (t && t.kind === 'tray') unplaceDie(d.id);
+    // else: invalid drop -> element returns to its container; FX animates it back (hooks.play)
+    renderAll();
+    if (snap) hooks.play(snap, d.id, true);
+    if (ui.hover === d.id) showPopover(d.id);
+  }
+  function onPointerUp(e) { endDrag(e, false); }
+  function onPointerCancel(e) { endDrag(e, true); }
+
+  function onRoll() {
+    if (ui.phase !== 'await-roll') return;
+    E.startTurn(ui.game, Math.random);
+    ui.slots = [null, null, null];
+    ui.phase = 'arranging';
+    ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null;
+    syncView();
+    hooks.onRoll(ui.game.player.dice.map(d => d.id));
+    renderAll();
+  }
+  function onReroll() {
+    if (!canInteract()) return;
+    const ids = E.rerollUnheld(ui.game, Math.random);
+    if (!ids) return;
+    syncView();
+    hooks.onRoll(ids);
+    renderAll();
+    if (ui.hover) showPopover(ui.hover);
+  }
+  function onRestart() {
+    ui.runId++;
+    hooks.onRestart();
+    ui.game = E.createGame(Math.random);
+    ui.phase = 'await-roll';
+    ui.slots = [null, null, null];
+    ui.previewOverride = null; ui.enemyText = ''; ui.verbFlash = ''; ui.actingSlot = null;
+    syncView();
+    hidePopover();
+    renderAll();
+  }
+  async function onCommit() {
+    if (ui.phase !== 'arranging' || placedCount() < 3) return;
+    const run = ++ui.runId;
+    ui.phase = 'resolving';
+    hidePopover();
+    syncView();                                                         // capture the pre-turn picture
+    const out = E.resolveTurn(ui.game, ui.slots.slice(), Math.random);   // engine state is final now; `view` lags
+    renderAll();
+    await playEvents(out.events, run);
+    if (ui.runId !== run) return;                                       // restarted meanwhile
+    ui.actingSlot = null; ui.verbFlash = '';
+    syncView();
+    ui.phase = ui.game.over || 'await-roll';
+    renderAll();
+  }
+  // ---------- event player ----------
+  // One async handler per engine event type. Phase 3: extend a handler (or wrap it) to add animation / audio.
+  // Handlers update `view` / `ui` fields, call the relevant render functions, then await their own timing.
+  const T = C.timing;
+  const EVENT_HANDLERS = {
+    async sentence(ev) {
+      ui.previewOverride = { shape: ev.evaluation.shape, text: ev.text,
+        sentence: ev.faces.map((f, i) => i === ev.evaluation.mindIndex ? '[' + f + ']' : f).join(' ') };
+      renderPreview(); renderSlots();
+      await sleep(T.resolveStepMs / 2);
+    },
+    async step(ev) {
+      ui.actingSlot = ev.step.slot;
+      ui.enemyText = '';
+      renderSlots(); renderEnemy();
+      await sleep(T.resolveStepMs);
+    },
+    async verb(ev) {
+      ui.actingSlot = null;
+      ui.verbFlash = ev.verb + ' ' + ev.amount;
+      renderSlots(); renderEnemy();
+      await sleep(T.resolveStepMs / 2);
+    },
+    async pip(ev) {
+      view.enemy.faces[ev.faceIdx].pips[ev.pipIdx] = ev.to;
+      renderEnemy();
+      await sleep(T.resolveStepMs / 2.5);
+    },
+    async faceResolved(ev) {
+      renderEnemy();
+      await sleep(T.resolveStepMs / 2);
+    },
+    async reveal(ev) {
+      view.enemy.next = { faceIdx: ev.next.faceIdx, wag: ev.next.wag };
+      ui.enemyText = ev.rerolled ? C.text.revealChanged : C.text.revealSeen;
+      renderEnemy();
+      await sleep(T.resolveStepMs);
+    },
+    async win(ev) {
+      ui.verbFlash = '';
+      ui.enemyText = ev.result;
+      renderEnemy();
+      await sleep(T.resolveStepMs);
+    },
+    async enemyAct(ev) {
+      ui.phase = 'enemy';
+      ui.verbFlash = ''; ui.actingSlot = null;
+      ui.enemyText = C.enemy.name + ' ' + ev.text;
+      renderEnemy(); renderSlots(); renderControls();
+      await sleep(T.enemyActMs);
+    },
+    async scar(ev) {
+      const vd = view.dice[ev.dieId];
+      vd.faces[ev.faceIdx] = C.text.scar;
+      renderDice(); renderTopBar();
+      await sleep(T.resolveStepMs);
+    },
+    async lose(ev) {
+      ui.enemyText = C.text.lost;
+      renderEnemy();
+      await sleep(T.resolveStepMs);
+    },
+    async newIntent(ev) {
+      view.enemy.current = { faceIdx: ev.intent.faceIdx, wag: ev.intent.wag };
+      view.enemy.next = ev.next ? { faceIdx: ev.next.faceIdx, wag: ev.next.wag } : null;
+      renderEnemy();
+      await sleep(T.resolveStepMs / 2);
+    },
+  };
+  // Cosmetic hooks Phase 3 can fill in (called outside the event player).
+  const hooks = {
+    onRoll(ids) {}, onHold(id) {}, onRestart() {},
+    onDragStart(el, d) {}, onDragMove(el, e, d) {}, onDragEnd(el, d) {},
+    snapshot() { return null; }, play(snap, id, dropped) {},
+  };
+
+  async function playEvents(events, run) {
+    for (const ev of events) {
+      if (ui.runId !== run) return false;
+      const h = EVENT_HANDLERS[ev.type];
+      if (h) await h(ev);
+    }
+    return true;
+  }
+
+  // ---------- boot ----------
+  function init() {
+    buildDOM();
+    ui.game = E.createGame(Math.random);
+    syncView();
+    renderAll();
+    window.SmugUI = { ui, dom, faceHTML, tileHTML, get view() { return view; }, get game() { return ui.game; }, renderAll, syncView, EVENT_HANDLERS, hooks,
+      render: { renderAll, renderEnemy, renderDice, renderSlots, renderPreview, renderControls, renderOverlay, renderTopBar } };
+  }
+  document.addEventListener('DOMContentLoaded', init);
+})();
+/* UI END */
+
+/* FX START */
+// Juice layer: wobble, roll shuffle, drag/snap/swap/return animation, commit effects, WebAudio blips.
+// Hooks into the UI only through SmugUI.EVENT_HANDLERS and SmugUI.hooks (no game rules in here).
+(function () {
+  const C = CONFIG, T = C.timing, AU = C.audio, FXC = C.fx;
+  const mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  const reduced = () => !!(mq && mq.matches);
+  const $ = (id) => document.getElementById(id);
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+  let U = null, dom = null;
+  const live = new Set();          // transient DOM nodes (flyers, sparks, crack overlays) — swept on RESTART
+  let shuffleTimer = null, tiltTimer = null, wobbleTimer = null;
+
+  // ---------- audio ----------
+  const Sfx = {
+    ctx: null, muted: false,
+    load() {
+      let v = null;
+      try { v = localStorage.getItem(AU.storageKey); } catch (_) {}
+      this.muted = v === null ? !AU.enabledByDefault : v === '1';
+    },
+    save() { try { localStorage.setItem(AU.storageKey, this.muted ? '1' : '0'); } catch (_) {} },
+    ensure() {
+      if (this.ctx === null) {
+        try { const AC = window.AudioContext || window.webkitAudioContext; this.ctx = AC ? new AC() : false; } catch (_) { this.ctx = false; }
+      }
+      if (this.ctx && this.ctx.state === 'suspended') { try { this.ctx.resume(); } catch (_) {} }
+      return this.ctx;
+    },
+    defs: AU.sounds,
+    play(name, pitch, gainMul) {
+      if (this.muted) return;
+      const ctx = this.ensure(); if (!ctx || ctx.state !== 'running') return;
+      const def = this.defs[name]; if (!def) return;
+      const master = AU.volume * (AU.volumes[name] != null ? AU.volumes[name] : 1) * (gainMul || 1);
+      const t0 = ctx.currentTime + .005, k = pitch || 1;
+      def.forEach(v => {
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        const st = t0 + v[4], en = st + v[3];
+        o.type = v[0];
+        o.frequency.setValueAtTime(v[1] * k, st);
+        if (v[2] !== v[1]) o.frequency.exponentialRampToValueAtTime(Math.max(20, v[2] * k), en);
+        g.gain.setValueAtTime(master * v[5], st);
+        g.gain.exponentialRampToValueAtTime(0.0001, en);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(st); o.stop(en + .02);
+      });
+    },
+  };
+  const sfx = (n, p, g) => Sfx.play(n, p, g);
+
+  // ---------- helpers ----------
+  // Web Animations helper; no-op when the user prefers reduced motion (unless `force`).
+  function motion(el, kf, opts, force) {
+    if (!el || !el.animate || (reduced() && !force)) return null;
+    return el.animate(kf, Object.assign({ easing: 'ease-out' }, opts));
+  }
+  function ctr(el) {
+    const r = el.getBoundingClientRect(), s = $('stage').getBoundingClientRect();
+    return { x: r.left - s.left + r.width / 2, y: r.top - s.top + r.height / 2 };
+  }
+  function sweep(node) { live.delete(node); if (node.parentNode) node.parentNode.removeChild(node); }
+  function addLive(node) { live.add(node); $('stage').appendChild(node); return node; }
+  function shake(el, px, ms) {
+    px = px == null ? FXC.shakePx : px;
+    motion(el, [0, -1, .9, -.7, .5, -.3, 0].map(m => ({ transform: 'translateX(' + (m * px) + 'px)' })), { duration: ms || T.shakeMs, easing: 'linear' });
+  }
+  function popAnim(el, big, ms) {
+    big = big || FXC.popScale;
+    motion(el, [{ transform: 'scale(1) rotate(0)' }, { transform: 'scale(' + big + ') rotate(-3deg)', offset: .35 },
+      { transform: 'scale(.95) rotate(1deg)', offset: .7 }, { transform: 'scale(1) rotate(0)' }], { duration: ms || T.popMs });
+  }
+  // text/number that flies from -> to (stage coords). Returns a promise-ish `onArrive` callback via opts.
+  function fly(text, from, to, color, o) {
+    o = o || {};
+    const n = document.createElement('div');
+    n.className = 'flyer' + (o.small ? ' small' : '');
+    n.textContent = text; n.style.color = color;
+    addLive(n);
+    const base = 'translate(-50%,-50%)';
+    const at = (p, dy, sc) => 'translate(' + p.x + 'px,' + (p.y + (dy || 0)) + 'px) ' + base + ' scale(' + sc + ')';
+    const ms = o.ms || T.flyMs;
+    let a;
+    if (reduced()) {
+      a = n.animate([{ transform: at(to, 0, 1), opacity: 1 }, { transform: at(to, 0, 1), opacity: 0 }], { duration: ms, easing: 'linear' });
+    } else {
+      const mid = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+      const lift = o.lift != null ? o.lift : FXC.flyLiftPx;
+      a = n.animate([
+        { transform: at(from, 0, .6), opacity: 0 },
+        { transform: at(from, -10, 1.3), opacity: 1, offset: .18 },
+        { transform: at(mid, lift, 1.15), opacity: 1, offset: .55 },
+        { transform: at(to, 0, .8), opacity: 1, offset: .92 },
+        { transform: at(to, 0, .4), opacity: 0 }], { duration: ms, easing: 'ease-in-out' });
+    }
+    a.onfinish = () => { sweep(n); if (o.onArrive) o.onArrive(); };
+    a.oncancel = () => sweep(n);
+    return n;
+  }
+  function floatText(text, at, color, o) {
+    o = o || {};
+    const n = document.createElement('div');
+    n.className = 'flyer' + (o.small === false ? '' : ' small');
+    n.textContent = text; n.style.color = color; addLive(n);
+    at = { x: at.x, y: Math.max(at.y, FXC.floatMinY) };   // keep the whole rise below the top bar (stays inside the stage)
+    const p = (dy, sc, op) => ({ transform: 'translate(' + at.x + 'px,' + (at.y + dy) + 'px) translate(-50%,-50%) scale(' + sc + ')', opacity: op });
+    const a = n.animate([p(0, .6, 0), p(-14, 1.2, 1), p(-FXC.floatRisePx * .73, 1, 1), p(-FXC.floatRisePx, .9, 0)], { duration: o.ms || FXC.floatMs, easing: 'ease-out' });
+    a.onfinish = a.oncancel = () => sweep(n);
+  }
+  function burst(at, color, count) {
+    if (reduced()) return;
+    count = count || FXC.particles;
+    for (let i = 0; i < count; i++) {
+      const s = document.createElement('div');
+      s.className = 'spark'; s.style.background = color; addLive(s);
+      const ang = (i / count) * Math.PI * 2 + Math.random() * .6, dist = FXC.burstDistMin + Math.random() * FXC.burstDistRange;
+      const x = at.x + Math.cos(ang) * dist, y = at.y + Math.sin(ang) * dist;
+      const a = s.animate([
+        { transform: 'translate(' + at.x + 'px,' + at.y + 'px) scale(1.2) rotate(0)', opacity: 1 },
+        { transform: 'translate(' + x + 'px,' + y + 'px) scale(.2) rotate(' + (Math.random() * 360) + 'deg)', opacity: 0 }],
+        { duration: FXC.burstMs + Math.random() * FXC.burstMsRange, easing: 'cubic-bezier(.1,.7,.4,1)' });
+      a.onfinish = a.oncancel = () => sweep(s);
+    }
+  }
+  const verbColor = (v) => C.colors.verb[v] || '#fff';
+
+  // ---------- idle wobble: 3 hand-drawn jitter frames on a timer ----------
+  let wframe = 0;
+  function wobbleTick() {
+    const frames = FXC.wobble;
+    wframe = (wframe + 1) % frames.length;
+    const off = reduced();
+    document.querySelectorAll('.faceRow, .efc .tile, #intentTile, #nextTile').forEach((t, i) => {
+      if (t.closest('#pop')) return;
+      if (off) { t.style.translate = ''; t.style.rotate = ''; return; }
+      const f = frames[(wframe + i * 5 + (i >> 1)) % frames.length];
+      t.style.translate = f[0] + 'px ' + f[1] + 'px';
+      t.style.rotate = f[2] + 'deg';
+    });
+  }
+
+  // ---------- roll: shuffle faces, then settle with a bounce ----------
+  function stopShuffle(restore) {
+    if (shuffleTimer) { clearInterval(shuffleTimer); shuffleTimer = null; }
+    shuffleJobs = [];
+    if (restore) { Object.keys(dom.dieEls).forEach(id => { dom.dieEls[id].dataset.face = ''; }); U.render.renderDice(); }
+  }
+  let shuffleJobs = [];            // persistent: a REROLL mid-shuffle must not orphan dice that are still shuffling
+  function startShuffle(ids) {
+    if (reduced()) { sfx('tick'); return; }
+    const t0 = performance.now(), step = T.shuffleStepMs;
+    shuffleJobs = shuffleJobs.filter(j => !j.done && ids.indexOf(j.id) < 0)
+      .concat(ids.map((id, k) => ({ id, end: t0 + T.rollShuffleMs + k * T.settleStaggerMs, done: false })));
+    const jobs = shuffleJobs;
+    let last = null;
+    if (shuffleTimer) clearInterval(shuffleTimer);
+    function tick() {
+      const now = performance.now();
+      let any = false;
+      jobs.forEach(j => {
+        if (j.done) return;
+        const el = dom.dieEls[j.id], row = el.querySelector('.faceRow');
+        if (now >= j.end) {
+          j.done = true;
+          el.dataset.face = '';                        // force renderDice to write the real face
+          U.render.renderDice();
+          motion(row, [{ scale: String(FXC.settleScale), rotate: '-5deg' }, { scale: '.9', rotate: '2deg', offset: .55 }, { scale: '1', rotate: '0deg' }], { duration: T.settleMs, easing: 'cubic-bezier(.3,1.4,.5,1)' });
+          sfx('snap', 1.4, .5);
+          return;
+        }
+        any = true;
+        const faces = U.view.dice[j.id].faces;
+        let f; do { f = faces[Math.floor(Math.random() * faces.length)]; } while (f === last && faces.length > 1 && Math.random() < .7);
+        last = f;
+        row.innerHTML = U.faceHTML(f);
+        row.style.rotate = ((Math.random() - .5) * 12) + 'deg';
+      });
+      sfx('tick', .9 + Math.random() * .3);
+      if (!any) { clearInterval(shuffleTimer); shuffleTimer = null; shuffleJobs = []; }
+    }
+    queueMicrotask(tick);
+    shuffleTimer = setInterval(tick, step);
+  }
+
+  // ---------- drag / snap / swap / return (FLIP) ----------
+  function snapshot() {
+    const rects = {};
+    Object.keys(dom.dieEls).forEach(id => {
+      const el = dom.dieEls[id]; const r = el.getBoundingClientRect();
+      rects[id] = { cx: r.left + r.width / 2, cy: r.top + r.height / 2, parent: el.parentNode };
+    });
+    return rects;
+  }
+  function play(snap, dragId) {
+    if (!snap || reduced()) { if (snap) sfx('snap', .8, .4); return; }
+    let landed = false;
+    Object.keys(dom.dieEls).forEach(id => {
+      const el = dom.dieEls[id], s = snap[id];
+      if (el._flip) { el._flip.cancel(); el._flip = null; }
+      const r = el.getBoundingClientRect();
+      const dx = s.cx - (r.left + r.width / 2), dy = s.cy - (r.top + r.height / 2);
+      const moved = s.parent !== el.parentNode;
+      if (Math.abs(dx) + Math.abs(dy) < 2 && id !== dragId) return;
+      el.style.zIndex = 20;
+      let a;
+      if (id === dragId) {
+        const tilt = el._tilt || 0;
+        const from = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + tilt + 'deg) scale(' + FXC.liftScale + ')';
+        if (moved) {
+          const total = T.snapMs + T.squashMs, f = T.snapMs / total;
+          a = el.animate([
+            { transform: from },
+            { transform: 'translate(0,0) rotate(0) scale(1)', offset: f * .85, easing: 'cubic-bezier(.4,0,.8,1)' },
+            { transform: 'scale(' + FXC.squash[0] + ')', offset: f + (1 - f) * .22 },
+            { transform: 'scale(' + FXC.squash[1] + ')', offset: f + (1 - f) * .55 },
+            { transform: 'scale(' + FXC.squash[2] + ')', offset: f + (1 - f) * .8 },
+            { transform: 'scale(1,1)' }], { duration: total, easing: 'ease-out' });
+          landed = true;
+          setTimeout(() => sfx('snap'), T.snapMs * .85);
+        } else {
+          a = el.animate([{ transform: from }, { transform: 'translate(0,0) rotate(0) scale(1)' }],
+            { duration: T.returnMs, easing: 'cubic-bezier(.3,1.7,.5,1)' });     // overshoot: "boing, back"
+          setTimeout(() => sfx('pop', .6, .7), T.returnMs * .5);
+        }
+      } else {
+        a = el.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'translate(0,0)' }],
+          { duration: T.snapMs + 60, easing: 'cubic-bezier(.2,.9,.3,1.15)' });
+      }
+      el._flip = a;
+      const done = () => { if (el._flip === a) el._flip = null; el.style.zIndex = ''; };
+      a.onfinish = done; a.oncancel = done;
+    });
+    if (!landed && dragId && snap[dragId] == null) sfx('snap');
+  }
+
+  function onDragStart(el) { sfx('tick', .7); el._tilt = 0; }
+  function onDragMove(el, e, d) {
+    if (reduced()) return;
+    const vx = e.clientX - (d.lx == null ? e.clientX : d.lx); d.lx = e.clientX;
+    el._tilt = (el._tilt || 0) * .6 + Math.max(-FXC.tiltMaxDeg, Math.min(FXC.tiltMaxDeg, vx * FXC.tiltPerPx)) * .4;
+    el.style.rotate = el._tilt + 'deg';
+    if (tiltTimer) clearTimeout(tiltTimer);
+    tiltTimer = setTimeout(function relax() {          // ease the tilt back to 0 when the pointer stops
+      el._tilt *= .6; el.style.rotate = el._tilt + 'deg';
+      if (Math.abs(el._tilt) > .3 && el.classList.contains('dragging')) tiltTimer = setTimeout(relax, 40); else tiltTimer = null;
+    }, 60);
+  }
+  function onDragEnd(el) { if (tiltTimer) { clearTimeout(tiltTimer); tiltTimer = null; } }
+
+  function onHold(id) {
+    sfx('hold');
+    const el = dom.dieEls[id];
+    motion(el.querySelector('.held'), [{ transform: 'scale(.4)' }, { transform: 'scale(1.3)', offset: .6 }, { transform: 'scale(1)' }], { duration: FXC.holdBadgeMs });
+    motion(el.querySelector('.faceRow'), [{ scale: '1' }, { scale: '.9', offset: .4 }, { scale: '1' }], { duration: FXC.holdTileMs });
+  }
+
+  // ---------- full reset (RESTART): nothing animated or floating may survive ----------
+  function reset() {
+    stopShuffle(false);
+    if (tiltTimer) { clearTimeout(tiltTimer); tiltTimer = null; }
+    Array.from(live).forEach(sweep);
+    document.querySelectorAll('#stage *').forEach(el => { if (el.getAnimations) el.getAnimations().forEach(a => a.cancel()); });
+    Object.keys(dom.dieEls).forEach(id => {
+      const el = dom.dieEls[id];
+      el._flip = null; el.style.zIndex = ''; el.style.rotate = ''; el.dataset.face = '';
+      const row = el.querySelector('.faceRow'); if (row) row.style.rotate = '';
+    });
+    document.querySelectorAll('.crack').forEach(n => n.remove());
+  }
+
+  // ---------- COMMIT playback ----------
+  function targetCard() {
+    const en = U.view.enemy, ok = (i) => { const f = en.faces[i]; return C.enemy.hostile.indexOf(f.name) >= 0 && f.pips.some(p => p === 'intact'); };
+    if (en.current && !en.current.wag && ok(en.current.faceIdx)) return en.current.faceIdx;
+    for (const nm of C.enemy.targetPriority) for (let i = 0; i < en.faces.length; i++) if (en.faces[i].name === nm && ok(i)) return i;
+    return en.current ? en.current.faceIdx : 0;
+  }
+  function flashArrows(a, b) {
+    const arrows = document.querySelectorAll('#slots .arrow');
+    for (let i = Math.min(a, b); i < Math.max(a, b); i++) {
+      const ar = arrows[i];
+      motion(ar, [{ transform: 'scale(1)', color: C.colors.glow }, { transform: 'scale(' + FXC.arrowSwellScale + ')', color: verbColor(C.revealVerb), offset: .4 }, { transform: 'scale(1)' }], { duration: T.flyMs });
+    }
+  }
+  function installHandlers() {
+    const EH = U.EVENT_HANDLERS;
+    const wrap = (name, fn) => {            // fn(ev, orig, run) must call orig(ev) exactly once and return its promise
+      const orig = EH[name];
+      EH[name] = (ev) => fn(ev, orig, U.ui.runId);
+    };
+    const same = (run) => U.ui.runId === run;
+
+    wrap('step', async (ev, orig) => {
+      const st = ev.step, id = U.ui.slots[st.slot], die = dom.dieEls[id];
+      const from = ctr(dom.slotEls[st.slot]);
+      const p = orig(ev);
+      if (die) popAnim(die);
+      sfx('pop', 0.9 + .18 * ev.index);
+      const col = verbColor(st.verb);
+      if (st.role === 'scar') floatText('0', from, C.colors.textDim, { small: false });
+      else if (st.verb === C.revealVerb) {
+        if (st.passesTo != null) {
+          fly('+' + st.total, from, ctr(dom.slotEls[st.passesTo]), col, { lift: FXC.flyLiftDigPx });
+          flashArrows(st.slot, st.passesTo);
+        } else floatText(C.text.floatReveal, from, col);
+      } else {
+        const ci = targetCard(), card = dom.efc[ci];
+        fly('+' + st.total, from, ctr(card), col, { onArrive: () => {
+          motion(card, [{ transform: 'scale(1)' }, { transform: 'scale(' + FXC.cardPulseScale + ')', offset: .4 }, { transform: 'scale(1)' }], { duration: FXC.cardPulseMs });
+          sfx('tick', 1.5, .8);
+        } });
+      }
+      await p;
+    });
+    wrap('verb', async (ev, orig) => {
+      const p = orig(ev); popAnim($('verbFlash'), 1.4, 220); await p;
+    });
+    wrap('pip', async (ev, orig) => {
+      const p = orig(ev);
+      const card = dom.efc[ev.faceIdx], pip = card.querySelectorAll('.pip')[ev.pipIdx];
+      const at = ctr(pip);
+      if (ev.to === 'broken') {
+        motion(pip, [{ transform: 'scale(2) rotate(0)' }, { transform: 'scale(.5) rotate(120deg)', offset: .6 }, { transform: 'rotate(45deg) scale(.7)' }], { duration: T.pipMs });
+        sfx('hit', 1 + Math.random() * .2);
+        burst(at, C.colors.pipIntact, FXC.burstCounts.pip);
+      } else {
+        motion(pip, [{ transform: 'rotateY(0) scale(1.9)' }, { transform: 'rotateY(180deg) scale(1.3)', offset: .5 }, { transform: 'rotateY(360deg) scale(1)' }], { duration: T.pipMs });
+        sfx('turn', 1 + Math.random() * .15);
+        burst(at, C.colors.turned, FXC.burstCounts.pip);
+      }
+      shake(card, FXC.shakePx);
+      if (U.view.enemy.current && U.view.enemy.current.faceIdx === ev.faceIdx) shake($('intentTile'), FXC.shakePx);
+      await p;
+    });
+    wrap('faceResolved', async (ev, orig) => {
+      const p = orig(ev);
+      const card = dom.efc[ev.faceIdx], tile = card.querySelector('.tile'), at = ctr(card);
+      const turned = ev.resolved === 'turned';
+      popAnim(card, 1.2, T.flourishMs);
+      if (turned) motion(tile, [{ transform: 'rotateY(0)' }, { transform: 'rotateY(360deg)' }], { duration: T.flourishMs });
+      else motion(tile, [{ transform: 'translateX(0) rotate(0)' }, { transform: 'translateX(-5px) rotate(-6deg)', offset: .25 },
+        { transform: 'translateX(5px) rotate(5deg)', offset: .5 }, { transform: 'translateX(0) rotate(0)' }], { duration: T.flourishMs });
+      floatText(turned ? C.text.floatTurned : C.text.floatBroken, at, turned ? C.colors.turned : C.colors.hostile, { small: false });
+      burst(at, turned ? C.colors.turned : C.colors.hostile, FXC.particles + FXC.burstCounts.resolvedExtra);
+      sfx(turned ? 'turn' : 'hit', turned ? 1.4 : .7);
+      if (U.view.enemy.current && U.view.enemy.current.faceIdx === ev.faceIdx) popAnim($('intentTile'), 1.25, T.flourishMs);
+      await p;
+    });
+    wrap('reveal', async (ev, orig) => {
+      const p = orig(ev);
+      motion($('nextWrap'), [{ transform: 'translateX(-30px) scale(.8)' }, { transform: 'translateX(0) scale(1)' }], { duration: FXC.revealSlideMs, easing: 'cubic-bezier(.2,1.4,.4,1)' });
+      sfx('lit', 1.3);
+      await p;
+    });
+    wrap('enemyAct', async (ev, orig) => {
+      const p = orig(ev);
+      const tile = $('intentTile'), at = ctr(tile);
+      if (ev.effect === 'bite') {
+        motion(tile, [{ transform: 'translateY(0) scale(1)' }, { transform: 'translateY(' + (-FXC.lungeUpPx) + 'px) scale(.9)', offset: .3 },
+          { transform: 'translateY(' + FXC.lungeDownPx + 'px) scale(1.3)', offset: .55 }, { transform: 'translateY(0) scale(1)' }], { duration: T.lungeMs, easing: 'ease-in-out' });
+        burst({ x: at.x, y: at.y + FXC.lungeDownPx }, C.colors.hostile, FXC.burstCounts.lunge);
+      } else if (ev.effect === 'growl') {
+        sfx('growl');
+        shake(tile, FXC.growlShakePx, T.enemyActMs * .8);
+      } else if (ev.effect === 'sniff') {
+        motion(tile, [{ transform: 'rotate(0)' }, { transform: 'rotate(-6deg) translateY(4px)', offset: .25 }, { transform: 'rotate(4deg)', offset: .5 },
+          { transform: 'rotate(-5deg) translateY(4px)', offset: .75 }, { transform: 'rotate(0)' }], { duration: FXC.sniffMs, easing: 'linear' });
+        sfx('tick', .6);
+      } else if (ev.effect === 'whimper') {
+        motion(tile, [{ transform: 'translateY(0) rotate(0)' }, { transform: 'translateY(8px) rotate(-8deg)' }, { transform: 'translateY(0) rotate(0)' }], { duration: FXC.whimperMs, easing: 'ease-in-out' });
+        sfx('tick', .5);
+      }
+      await p;
+    });
+    wrap('scar', async (ev, orig, run) => {
+      const el = dom.dieEls[ev.dieId], at = ctr(el);
+      sfx('bite', .8);
+      shake(el, FXC.scarShakePx, T.crackMs);
+      let ov = null;
+      if (ev.wasCurrent && !reduced()) {
+        ov = document.createElement('div'); ov.className = 'crack';
+        ov.innerHTML = '<svg viewBox="0 0 100 40" preserveAspectRatio="none"><polyline points="46,0 52,9 43,16 55,24 47,32 53,40" fill="none" stroke="' + C.colors.scarText + '" stroke-width="2.4" stroke-linejoin="miter" vector-effect="non-scaling-stroke"/>' +
+          '<polyline points="52,9 63,12 68,20" fill="none" stroke="' + C.colors.scarText + '" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>';
+        el.appendChild(ov); live.add(ov);
+      }
+      floatText(C.text.floatScar, { x: at.x, y: at.y - 40 }, C.colors.scarText, { small: false });
+      await wait(reduced() ? FXC.reducedWaitMs : T.crackMs);
+      if (!same(run)) return;
+      if (ov) { live.delete(ov); ov.remove(); }
+      const p = orig(ev);
+      const row = el.querySelector('.faceRow');
+      motion(row, [{ scale: String(FXC.scarPopScale) }, { scale: '.85', offset: .5 }, { scale: '1' }], { duration: FXC.scarPopMs, easing: 'cubic-bezier(.3,1.5,.5,1)' });
+      burst(at, C.colors.scarText, FXC.burstCounts.scar);
+      const boxes = document.querySelectorAll('#scars .scarbox.on');
+      if (boxes.length) motion(boxes[boxes.length - 1], [{ transform: 'scale(2.2)' }, { transform: 'scale(1)' }], { duration: FXC.scarBoxPulseMs });
+      await p;
+    });
+    wrap('newIntent', async (ev, orig) => {
+      const p = orig(ev);
+      motion($('intentTile'), [{ transform: 'scale(.3) rotate(-10deg)' }, { transform: 'scale(1.15) rotate(2deg)', offset: .6 }, { transform: 'scale(1) rotate(0)' }], { duration: FXC.newIntentMs, easing: 'ease-out' });
+      sfx('pop', .7, .6);
+      await p;
+    });
+    wrap('win', async (ev, orig) => {
+      const p = orig(ev); sfx('win');
+      burst(ctr($('intentTile')), C.colors.turned, FXC.burstCounts.win); burst(ctr($('faceStrip')), C.colors.lit, FXC.burstCounts.win);
+      await p;
+    });
+    wrap('lose', async (ev, orig) => {
+      const p = orig(ev); sfx('lose');
+      shake($('stage'), FXC.loseShakePx, FXC.loseShakeMs);
+      await p;
+    });
+    wrap('sentence', async (ev, orig) => orig(ev));
+  }
+
+  // ---------- init ----------
+  function init() {
+    U = window.SmugUI; dom = U.dom;
+    Sfx.load();
+    const btn = $('btnMute');
+    const paint = () => { btn.textContent = Sfx.muted ? C.text.sfxOff : C.text.sfxOn; btn.classList.toggle('off', Sfx.muted); };
+    paint();
+    btn.addEventListener('click', () => { Sfx.muted = !Sfx.muted; Sfx.save(); paint(); if (!Sfx.muted) { Sfx.ensure(); sfx('pop'); } });
+    window.addEventListener('keydown', (e) => { if (e.key === 'm' || e.key === 'M') btn.click(); });
+    ['pointerdown', 'keydown'].forEach(t => window.addEventListener(t, () => Sfx.ensure(), { once: false, passive: true }));
+
+    const H = U.hooks;
+    H.onRoll = (ids) => startShuffle(ids);
+    H.onHold = onHold;
+    H.onRestart = reset;
+    H.onDragStart = onDragStart; H.onDragMove = onDragMove; H.onDragEnd = onDragEnd;
+    H.snapshot = snapshot; H.play = play;
+    installHandlers();
+
+    // sentence completes: light-up chime + all three tiles pulse together (glow itself is CSS on #slots.complete)
+    let wasComplete = false;
+    new MutationObserver(() => {
+      const c = $('slots').classList.contains('complete');
+      if (c && !wasComplete && U.ui.phase === 'arranging') {
+        sfx('lit');
+        U.ui.slots.forEach(id => { if (id) popAnim(dom.dieEls[id], FXC.litPopScale, FXC.litPopMs); });
+      }
+      wasComplete = c;
+    }).observe($('slots'), { attributes: true, attributeFilter: ['class'] });
+
+    wobbleTimer = setInterval(wobbleTick, T.wobbleMs);
+    window.SmugFX = { sfx, Sfx, reset, burst, fly, floatText, reduced };
+  }
+  document.addEventListener('DOMContentLoaded', init);
+})();
+/* FX END */
+
+/* DEBUG START */
+// Debug / tuning drawer. Own IIFE; talks to the game only through window.SmugUI (game state is edited in place, then
+// SmugUI.syncView() + SmugUI.renderAll()). Closed by default; toggle with the DEBUG button or the ` key.
+(function () {
+  const E = globalThis.SmugEngine, C = CONFIG;
+  const $ = (id) => document.getElementById(id);
+  let U, panel, open = false, sig = '';
+
+  const busy = () => U.ui.phase === 'resolving' || U.ui.phase === 'enemy';   // commit playback running
+  const live = () => U.ui.phase === 'await-roll' || U.ui.phase === 'arranging';
+  const refreshGame = () => { U.syncView(); U.renderAll(); if (U.ui.hover) { const d = U.ui.hover; U.dom.dieEls[d].dispatchEvent(new Event('pointerenter')); } };
+
+  // ---------- actions (also the console API: SmugDebug.*) ----------
+  function setFace(dieId, idx) {
+    if (U.ui.phase !== 'arranging') return false;
+    const die = U.game.player.dice.find(d => d.id === dieId);
+    if (!die || !(idx >= 0 && idx < die.faces.length)) return false;
+    die.idx = idx; refreshGame(); return true;
+  }
+  function addRerolls(n) {
+    if (U.ui.phase !== 'arranging') return false;
+    U.game.rerolls = Math.max(0, U.game.rerolls + n); refreshGame(); return true;
+  }
+  function resetEnemy() {
+    if (!live()) return false;
+    U.game.enemy = E.createEnemy(Math.random);
+    U.ui.enemyText = ''; U.ui.verbFlash = '';
+    refreshGame(); return true;
+  }
+  function setIntent(faceIdx) {
+    if (!live()) return false;
+    const en = U.game.enemy, f = en.faces[faceIdx];
+    if (!f) return false;
+    en.current = { faceIdx, wag: E.faceStatus(f) === 'turned' };
+    U.ui.enemyText = '';
+    refreshGame(); return true;
+  }
+  function clearScars() {
+    if (!live()) return false;
+    U.game.player.dice.forEach(d => {
+      const orig = C.playerDice.find(x => x.id === d.id);
+      if (orig) d.faces = orig.faces.slice();
+    });
+    refreshGame(); return true;
+  }
+  function setHidePips(hide) {
+    U.ui.hidePips = !!hide;
+    U.render.renderEnemy();
+    syncPanel(true);
+  }
+
+  // ---------- panel ----------
+  function build() {
+    const stage = $('stage');
+    const btn = document.createElement('button');
+    btn.id = 'btnDebug'; btn.textContent = 'DEBUG'; btn.title = 'Debug / tuning panel (`)';
+    $('top').insertBefore(btn, $('btnMute'));
+    btn.addEventListener('click', () => toggle());
+
+    panel = document.createElement('aside');
+    panel.id = 'dbg';
+    panel.innerHTML =
+      '<h4>ENEMY VIEW</h4>' +
+      '<label class="chk"><input type="checkbox" id="dbgShow"> show all enemy faces and pips</label>' +
+      '<h4>PLAYER DICE · SET SHOWN FACE</h4><div id="dbgDice"></div>' +
+      '<h4>REROLLS</h4><div class="row"><button class="dbtn" id="dbgRrMinus">− 1</button>' +
+      '<button class="dbtn" id="dbgRrPlus">+ 1</button><span id="dbgRr"></span></div>' +
+      '<h4>ENEMY</h4><div class="row"><label>intent</label><select id="dbgIntent"></select></div>' +
+      '<div class="row"><button class="dbtn" id="dbgReset">RESET ENEMY</button><button class="dbtn" id="dbgScars">CLEAR SCARS</button></div>' +
+      '<div id="dbgNote"></div>' +
+      '<h4>TURN LOG · NEWEST FIRST</h4><ol id="dbgLog"></ol>';
+    stage.appendChild(panel);
+
+    const dice = $('dbgDice');
+    C.playerDice.forEach(d => {
+      const row = document.createElement('div'); row.className = 'row';
+      row.innerHTML = '<label>' + d.id + '</label><select data-die="' + d.id + '"></select>';
+      dice.appendChild(row);
+      row.querySelector('select').addEventListener('change', (e) => { setFace(d.id, Number(e.target.value)); e.target.blur(); });
+    });
+    $('dbgShow').addEventListener('change', (e) => setHidePips(!e.target.checked));
+    $('dbgRrMinus').addEventListener('click', () => addRerolls(-1));
+    $('dbgRrPlus').addEventListener('click', () => addRerolls(1));
+    $('dbgReset').addEventListener('click', resetEnemy);
+    $('dbgScars').addEventListener('click', clearScars);
+    const sel = $('dbgIntent');
+    C.enemy.faces.forEach((n, i) => { const o = document.createElement('option'); o.value = i; o.textContent = (i + 1) + ': ' + n; sel.appendChild(o); });
+    sel.addEventListener('change', (e) => { setIntent(Number(e.target.value)); e.target.blur(); });
+
+    // keep the panel's own typing / clicks away from the game's global key handlers (1-3, M) — except the toggle key
+    panel.addEventListener('keydown', (e) => { if (e.key !== '`') e.stopPropagation(); });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === '`' || e.code === 'Backquote') { e.preventDefault(); toggle(); }
+    });
+  }
+
+  function toggle(force) {
+    open = force === undefined ? !open : !!force;
+    panel.classList.toggle('open', open);
+    $('btnDebug').classList.toggle('on', open);
+    if (open) syncPanel(true);
+  }
+
+  // Cheap signature of everything the panel shows; the panel re-renders only when it changes (no per-frame DOM churn).
+  function signature() {
+    const g = U.game, ui = U.ui;
+    return [ui.phase, g.turn, g.rerolls, g.log.length, ui.hidePips, g.enemy.current && g.enemy.current.faceIdx,
+      g.player.dice.map(d => d.idx + ':' + d.faces.join(',')).join('|')].join('#');
+  }
+  function syncPanel(force) {
+    if (!panel || !open) return;
+    const s = signature();
+    if (!force && s === sig) return;
+    sig = s;
+    const g = U.game, ui = U.ui, dis = busy();
+    const hidden = ui.phase !== 'arranging';
+    g.player.dice.forEach(d => {
+      const sel = panel.querySelector('select[data-die="' + d.id + '"]');
+      sel.innerHTML = d.faces.map((f, i) => '<option value="' + i + '">' + (i + 1) + ': ' + f + '</option>').join('');
+      sel.value = d.idx; sel.disabled = hidden;
+      sel.title = hidden ? (dis ? 'locked during playback' : 'ROLL first: dice are hidden until rolled') : '';
+    });
+    $('dbgShow').checked = !ui.hidePips;
+    $('dbgRr').textContent = g.rerolls + ' left' + (g.rerollPenalty ? ' (GROWL −' + g.rerollPenalty + ' next turn)' : '');
+    $('dbgRrMinus').disabled = ui.phase !== 'arranging' || g.rerolls <= 0;
+    $('dbgRrPlus').disabled = ui.phase !== 'arranging';
+    $('dbgIntent').value = g.enemy.current.faceIdx;
+    $('dbgIntent').disabled = !live();
+    $('dbgReset').disabled = !live();
+    $('dbgScars').disabled = !live();
+    $('dbgNote').textContent = dis ? 'locked while the commit plays back'
+      : (ui.phase === 'won' || ui.phase === 'lost') ? 'fight over: RESTART to use the controls'
+      : ui.phase === 'await-roll' ? 'dice are hidden until ROLL (face + reroll controls wake up after)' : '';
+    // log: engine pushes the new line at once, hide it until playback is over
+    const log = g.log.slice(0, g.log.length - (dis ? 1 : 0)).slice(-C.debug.logRows).reverse();
+    $('dbgLog').innerHTML = log.length ? log.map(l => '<li></li>').join('') : '<li>(no turns yet)</li>';
+    if (log.length) $('dbgLog').querySelectorAll('li').forEach((li, i) => { li.textContent = log[i]; });
+  }
+
+  function init() {
+    U = window.SmugUI;
+    build();
+    setInterval(() => syncPanel(false), C.debug.pollMs);
+    window.SmugDebug = { toggle, setFace, addRerolls, resetEnemy, setIntent, clearScars, setHidePips, sync: () => syncPanel(true) };
+  }
+  document.addEventListener('DOMContentLoaded', init);
+})();
+/* DEBUG END */
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+bplist00�XUTI-Data�[public.htmlO �<meta charset='utf-8'><html><head></head><body><h1>Task for Claude Code: Smuggler dice-sentence prototype v0</h1>
+<h2>Goal</h2>
+<p>Build a <strong>tiny, playable HTML prototype</strong> of one encounter, so we can feel whether building a "sentence" from dice is fun. It must be simple, readable and <strong>satisfying to fiddle with</strong>. Clarity and juice matter more than features.</p>
+<p>Deliver <strong>one self-contained <code>index.html</code></strong> (vanilla JS + CSS, no build step, no external libraries except optionally one Google Font). It opens by double-click.</p>
+<h2>Rules to implement (v0)</h2>
+<h3>Player dice (3)</h3>
+<p>Each die has 6 faces. The current face is shown; hovering shows all 6.</p>
+<ul>
+<li><strong>MIND</strong> (verb): PRUNE, PRUNE, SOW, SOW, DIG, DIG</li>
+<li><strong>HAND</strong>: HAND, HAND, HAND, HAND, HAND+KNIFE, HAND+KNIFE</li>
+<li><strong>HEAD</strong>: EYE, EYE+GLASSES, EYE+GLASSES... use exactly: EYE, EYE+GLASSES, EYE+GLASSES, MOUTH, MOUTH, MOUTH</li>
+</ul>
+<h3>Body parts and favourite verbs</h3>
+<ul>
+<li>HAND → PRUNE</li>
+<li>MOUTH → SOW</li>
+<li>EYE → DIG</li>
+</ul>
+<h3>Turn</h3>
+<ol>
+<li>The enemy die is already rolled and its face is shown as its <strong>intent</strong>.</li>
+<li>Press <strong>ROLL</strong>: all 3 player dice roll.</li>
+<li>Up to <strong>2 rerolls</strong>. Click a die to hold/unhold it, then press REROLL; held dice stay.</li>
+<li><strong>Arrange</strong> the 3 dice into the SENTENCE row (3 slots, left to right) by drag &amp; drop, with click-to-place as a fallback. All 3 dice must be placed.</li>
+<li>While arranging, a <strong>live preview</strong> shows the sentence name and result (see "Preview text").</li>
+<li>Press <strong>COMMIT</strong> to resolve the sentence left to right, with a short animation per die.</li>
+<li>The enemy acts (its intent face resolves), then rolls its next intent. Next turn.</li>
+</ol>
+<h3>Resolving a sentence (left to right)</h3>
+<ul>
+<li>Dice <strong>after</strong> the MIND die use the mind's verb.</li>
+<li>Dice <strong>before</strong> the MIND die act on <strong>instinct</strong>, using their body part's favourite verb.</li>
+<li>The MIND die itself scores 0. It only sets the verb.</li>
+<li><strong>Points per body die:</strong> 2 if the verb it performs equals its favourite verb, otherwise 1. +1 if it has an item (KNIFE or GLASSES). A SCAR face scores 0 and does nothing.</li>
+<li><strong>DIG:</strong> a DIG die reveals the enemy's <strong>next</strong> intent in advance (show it greyed under the current one), and <strong>adds its points to the next body die in the sentence</strong>. A DIG with no body die after it only reveals.</li>
+<li><strong>PRUNE X:</strong> break X points' worth of enemy faces. Each enemy face has 2 toughness pips. Remove pips starting with the currently shown intent face, then other hostile faces.</li>
+<li><strong>SOW X:</strong> turn X points' worth of pips the same way. A face whose pips are all turned becomes <strong>turned</strong> (harmless, green).</li>
+<li>A face can be partly broken and partly turned. When all its pips are gone it counts as broken if most pips were broken, otherwise as turned (ties count as turned).</li>
+</ul>
+<h3>Enemy: STRAY DOG (one die, 6 faces, 2 pips each)</h3>
+<p>BITE, BITE, GROWL, GROWL, SNIFF, WHIMPER</p>
+<ul>
+<li><strong>BITE:</strong> one random non-scar face on one of your HAND or HEAD dice becomes <strong>SCAR</strong>. Animate it.</li>
+<li><strong>GROWL:</strong> you get 1 fewer reroll next turn.</li>
+<li><strong>SNIFF:</strong> nothing (flavour text: "it sniffs your pockets").</li>
+<li><strong>WHIMPER:</strong> nothing. WHIMPER does <strong>not</strong> count as hostile.</li>
+<li>When rolling its intent, a broken face is rerolled. If it lands on a turned face, it shows the face as "wags its tail" and does nothing.</li>
+</ul>
+<h3>Win / lose</h3>
+<ul>
+<li><strong>Win</strong> when no hostile faces (BITE, GROWL, SNIFF) remain unbroken or unturned. Show <strong>"BEATEN"</strong> if more of its faces were broken, or <strong>"BEFRIENDED"</strong> if more were turned.</li>
+<li><strong>Lose</strong> when you have 4 SCARs.</li>
+<li>A <strong>RESTART</strong> button.</li>
+</ul>
+<h2>Preview text (readability is the point)</h2>
+<p>Generate a short sentence plus the total for every arrangement. For example:</p>
+<ul>
+<li><code>[PRUNE] EYE KNIFE</code> → "Plan: Glare 1 · Stab 3 → PRUNE 4"</li>
+<li><code>EYE [PRUNE] KNIFE</code> → "Situation: Look 2 (reveal) → Stab 3+2 → PRUNE 5"</li>
+<li><code>KNIFE EYE [PRUNE]</code> → "Impulse: Stab 3 · Look 2 (reveal) → PRUNE 3"</li>
+</ul>
+<p>Shape names come from the MIND position: first = <strong>Plan</strong>, middle = <strong>Situation</strong>, last = <strong>Impulse</strong>.</p>
+<p>Action names by verb × body part:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>PRUNE</th>
+<th>SOW</th>
+<th>DIG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HAND</td>
+<td>Hit</td>
+<td>Gesture</td>
+<td>Search</td>
+</tr>
+<tr>
+<td>HAND+KNIFE</td>
+<td>Stab</td>
+<td>Threaten</td>
+<td>Pry</td>
+</tr>
+<tr>
+<td>MOUTH</td>
+<td>Insult</td>
+<td>Small talk</td>
+<td>Ask</td>
+</tr>
+<tr>
+<td>EYE</td>
+<td>Glare</td>
+<td>Kind look</td>
+<td>Look</td>
+</tr>
+<tr>
+<td>EYE+GLASSES</td>
+<td>Glint</td>
+<td>Look learned</td>
+<td>Read closely</td>
+</tr>
+</tbody>
+</table>
+<p>Put all names and numbers in <strong>one CONFIG object at the top of the script</strong>, so designers can tweak them without reading the code.</p>
+<h2>Visual direction: Baba Is You–inspired, original art</h2>
+<p>Take the <em>feel</em> of Baba Is You, not its assets.</p>
+<ul>
+<li>Dark, flat background (near-black). Chunky, blocky, uppercase <strong>word tiles</strong>: dice faces are shown as bold word blocks (PRUNE, HAND, KNIFE), each verb/body part with its own saturated colour. Verbs share one colour family, body parts another, items a third.</li>
+<li>Tiles <strong>wobble</strong> with a subtle idle wiggle (a 2–3 frame jitter like hand-drawn animation), done with CSS transforms on a timer.</li>
+<li>The SENTENCE row looks like a rule being formed: three tile slots on one line with a small arrow between slots. When the sentence is complete and valid, the tiles <strong>light up</strong> together.</li>
+<li><strong>Juice:</strong> dice snap into slots with a little squash and stretch; rolling shuffles faces quickly before settling; COMMIT plays each tile in turn with a pop; hits shake the enemy die; SCAR tiles crack; turned faces flip to green. Optional tiny WebAudio blips (no audio files), with a mute toggle.</li>
+<li>Keep the layout on one screen with no scrolling at a 1280×720 laptop size: enemy at the top, sentence row in the middle, your dice and buttons at the bottom, preview text under the sentence row.</li>
+<li>Pixel-ish feel through CSS (hard edges, <code>image-rendering: pixelated</code> if using canvas, a chunky display font). Don't copy Baba Is You sprites, fonts or logos.</li>
+</ul>
+<h2>Debug / tuning panel (collapsible)</h2>
+<ul>
+<li>Toggle "show all enemy faces and pips"</li>
+<li>Buttons: set any player die to a chosen face (to test specific sentences quickly), add or remove rerolls, reset the enemy</li>
+<li>A small <strong>log</strong> of the last turns, e.g. "T3: EYE [PRUNE] KNIFE → PRUNE 5, broke BITE; dog GROWLs"</li>
+</ul>
+<h2>Out of scope (don't build)</h2>
+<p>Map, souls, emotions, thoughts, more enemies, more items, saving, mobile layout, menus, a tutorial beyond one line of help text.</p>
+<h2>Acceptance checklist</h2>
+<ul>
+<li>[ ] A full fight against the dog can be won both ways ("BEATEN" and "BEFRIENDED") and lost.</li>
+<li>[ ] The three example arrangements above produce exactly the shown numbers.</li>
+<li>[ ] The preview updates instantly whenever the dice order changes.</li>
+<li>[ ] Rerolls and holding work; GROWL reduces next turn's rerolls.</li>
+<li>[ ] DIG reveals the next intent and passes points forward correctly.</li>
+<li>[ ] All tuning values live in CONFIG.</li>
+<li>[ ] It feels nice to drag tiles around (snap, wobble, light-up).</li>
+</ul>
+<h2>What we want to learn from playing it</h2>
+<ol>
+<li>Is rerolling and arranging fun (Balatro-like), or a chore?</li>
+<li>Do players use Situation / Plan / Impulse on purpose?</li>
+<li>Does putting the MIND last really rescue a bad verb roll?</li>
+<li>Do PRUNE and SOW feel like different approaches?</li>
+</ol></body></html>     #                            �
